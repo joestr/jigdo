@@ -1,7 +1,7 @@
-/* $Id: jigdo-file-cmd.hh,v 1.6 2002/02/16 18:42:00 richard Exp $ -*- C++ -*-
+/* $Id: jigdo-file-cmd.hh,v 1.6 2004/04/16 14:20:29 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -15,12 +15,11 @@
 #ifndef JIGDO_FILE_CMD_HH
 #define JIGDO_FILE_CMD_HH
 
+#include <config.h>
+
 #include <iosfwd>
 #include <string>
-namespace std { }
-using namespace std;
 
-#include <config.h>
 #include <jigdoconfig.hh>
 #include <scan.hh>
 #include <md5sum.hh>
@@ -60,7 +59,7 @@ class JigdoFileCmd {
 
   // Command line options, to be used by the jigdo-file commands
 # if WINDOWS
-  static const char* const binaryName = "jigdo-file";
+  static const char* const binaryName;
 # else
   friend const string& binName();
   static string binaryName; // of the program
@@ -71,6 +70,7 @@ class JigdoFileCmd {
   static string imageFile;
   static string jigdoFile;
   static string templFile;
+  static string jigdoMergeFile;
   static string cacheFile;
   static size_t optCacheExpiry; // Expiry time for cache in seconds
   static vector<string> optLabels; // Strings of the form "Label=/some/path"
@@ -83,8 +83,11 @@ class JigdoFileCmd {
   static bool optMkImageCheck; // true => check MD5sums
   static bool optAddImage; // true => Add [Image] section to output .jigdo
   static bool optAddServers; // true => Add [Servers] to output .jigdo
+  static bool optHex; // true => Use hex not base64 output for md5/ls cmds
+  static string optDebug; // list of debug msg to turn on, or all/help
   // Reporter is defined in config.h and is the base of all other *Reporter's
   static AnyReporter* optReporter;
+  static string optMatchExec;
   //________________________________________
 
   /** Defined in jigdo-file.cc - reads command line options and sets

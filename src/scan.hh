@@ -1,7 +1,7 @@
-/* $Id: scan.hh,v 1.30 2002/02/16 18:52:05 richard Exp $ -*- C++ -*-
+/* $Id: scan.hh,v 1.2 2004/06/09 09:43:55 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -14,15 +14,15 @@
 #ifndef SCAN_HH
 #define SCAN_HH
 
+#include <config.h>
+
 #include <list>
 #include <set>
 #include <vector>
-namespace std { }
-using namespace std;
 #include <time.h>
+#include <sys/stat.h>
 
 #include <cachefile.hh>
-#include <config.h>
 #include <debug.hh>
 #include <md5sum.hh>
 #include <recursedir.fh>
@@ -428,7 +428,7 @@ JigdoCache::iterator& JigdoCache::iterator::operator++() {
 
 template <class StringP, class StringL, class StringU>
 LocationPath::LocationPath(const StringP& p, const StringL& l,
-                           const StringU& u = "")
+                           const StringU& u)
   : path(p), label(l), uri(u) {
   //path.reserve(0); label.reserve(0); uri.reserve(0);
 }

@@ -1,0 +1,12 @@
+Document: jigdo-mini-howto
+Title: Debian Jigdo mini-HOWTO
+Abstract: jigdo-lite (in the jigdo-file package) is a tool for
+ downloading Debian CD images from any "regular" Debian package mirror
+ instead of one of the few and slow CD mirrors. This HOWTO explains
+ how to use the program for downloading images or updating existing
+ images to the latest version.
+Section: Apps/Net
+
+Format: HTML
+Index: /usr/share/doc/jigdo-file/debian-jigdo-mini-howto.html
+Files: /usr/share/doc/jigdo-file/debian-jigdo-mini-howto.html

@@ -19,3 +19,4 @@ gtk-interface.stamp
 cvs
 *.dll
 Makedeps
+jigdo.res

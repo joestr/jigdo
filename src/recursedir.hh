@@ -1,7 +1,7 @@
-/* $Id: recursedir.hh,v 1.12 2002/02/16 18:52:05 richard Exp $ -*- C++ -*-
+/* $Id: recursedir.hh,v 1.1.1.1 2003/07/04 22:29:24 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -14,6 +14,8 @@
 #ifndef RECURSEDIR_HH
 #define RECURSEDIR_HH
 
+#include <config.h>
+
 #include <dirent.hh>
 
 #include <fstream>
@@ -21,8 +23,7 @@
 #include <queue>
 #include <set>
 #include <stack>
-namespace std { }
-using namespace std;
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

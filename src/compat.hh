@@ -1,7 +1,7 @@
-/* $Id: compat.hh,v 1.10 2002/03/17 22:13:38 richard Exp $ -*- C++ -*-
+/* $Id: compat.hh,v 1.4 2004/02/05 14:43:50 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2003  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -14,20 +14,22 @@
 #ifndef COMPAT_HH
 #define COMPAT_HH
 
-#include <string>
-namespace std { }
-using namespace std;
-
 #include <config.h>
+
+#include <string>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#if WINDOWS
+#  include <windows.h>
+#endif
 //______________________________________________________________________
 
 // No operator<< for uint64, so define our own
 #if !HAVE_OUTUINT64
 #include <iostream>
-namespace std { }
-using namespace std;
 inline ostream& operator<<(ostream& s, const uint64 x) {
   s << static_cast<unsigned long>(x / 1000000000)
     << static_cast<unsigned long>(x % 1000000000);
@@ -49,12 +51,38 @@ int compat_truncate(const char* path, uint64 length);
 
 /* Rename a file. Mingw does provide rename(), but gives an error if
    the destination name already exists. This one doesn't. */
-#if !WINDOWS
+#if WINDOWS
+int compat_rename(const char* src, const char* dst);
+#else
 inline int compat_rename(const char* src, const char* dst) {
   return rename(src, dst);
 }
+#endif
+//______________________________________________________________________
+
+/* Create a directory */
+#if WINDOWS
+inline int compat_mkdir(const char* newDir) {
+  return mkdir(newDir);
+}
 #else
-int compat_rename(const char* src, const char* dst);
+inline int compat_mkdir(const char* newDir) {
+  return mkdir(newDir, 0777);
+}
+#endif
+//______________________________________________________________________
+
+// Set/overwrite environment variable, return SUCCESS or FAILURE
+#if WINDOWS
+inline bool compat_setenv(const char* name, const char* value) {
+  return (SetEnvironmentVariable(name, value) != 0) ? SUCCESS : FAILURE;
+}
+#elif HAVE_SETENV /* Linux, BSD */
+inline bool compat_setenv(const char* name, const char* value) {
+  return (setenv(name, value, 1) == 0) ? SUCCESS : FAILURE;
+}
+#else /* Solaris and other Unices without setenv() */
+bool compat_setenv(const char* name, const char* value);
 #endif
 //______________________________________________________________________
 
@@ -85,5 +113,52 @@ inline void compat_swapFileUriChars(string& s) {
     }
   }
 }
+//______________________________________________________________________
+
+#if HAVE_STRINGCMP
+inline int compat_compare(const string& s1, string::size_type pos1,
+    string::size_type n1, const string& s2, string::size_type pos2 = 0,
+    string::size_type n2 = string::npos) {
+  return s1.compare(pos1, n1, s2, pos2, n2);
+}
+#else
+int compat_compare(const string& s1, string::size_type pos1,
+    string::size_type n1, const string& s2, string::size_type pos2 = 0,
+    string::size_type n2 = string::npos);
+#endif
+//______________________________________________________________________
+
+#if HAVE_STRINGSTRCMP
+inline int compat_compare(const string& s1, string::size_type pos1,
+                          string::size_type n1, const char* s2,
+                          string::size_type n2 = string::npos) {
+  return s1.compare(pos1, n1, s2, n2);
+}
+#else
+int compat_compare(const string& s1, string::size_type pos1,
+                   string::size_type n1, const char* s2,
+                   string::size_type n2 = string::npos);
+#endif
+//______________________________________________________________________
+
+#if HAVE_LIBDB
+#  include <db.h>
+// v3, v4.0:
+//         int  (*open) __P((DB *,
+//                 const char *, const char *, DBTYPE, u_int32_t, int));
+// v4.1 onwards:
+//         int  (*open) __P((DB *, DB_TXN *,
+//                 const char *, const char *, DBTYPE, u_int32_t, int));
+inline int compat_dbOpen(DB* db, const char* file, const char* database,
+                         DBTYPE type, u_int32_t flags, int mode) {
+  return db->open(db,
+#                 if (DB_VERSION_MAJOR > 4 || \
+                    (DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR > 0))
+                  NULL,
+#                 endif
+                  file, database, type, flags, mode);
+}
+#endif
+//______________________________________________________________________
 
 #endif

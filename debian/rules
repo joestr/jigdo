@@ -9,7 +9,8 @@ export DH_COMPAT=2
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --disable-nls --without-gui \
+	CC=gcc-3.4 CXX=g++-3.4 \
+	    ./configure --prefix=/usr --with-gui --enable-nls \
 	    --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
 	touch configure-stamp
 
@@ -17,8 +18,8 @@ build: configure-stamp build-stamp
 build-stamp:
 	dh_testdir
 	$(MAKE)
+	$(MAKE) -C src test || true
 	touch build-stamp
-
 
 clean:
 	dh_testdir
@@ -31,7 +32,11 @@ install: build
 	dh_testdir
 	dh_testroot
 	dh_clean -k
-	$(MAKE) DESTDIR=debian/jigdo-file install
+	$(MAKE) DESTDIR=debian/jigdo install-jigdo
+	$(MAKE) DESTDIR=debian/jigdo-file install-po \
+	    install-jigdo-file install-jigdo-lite install-jigdo-mirror
+	ln -sf "../common-licenses/GPL-2" \
+	    "debian/jigdo/usr/share/jigdo/COPYING"
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -44,7 +49,6 @@ binary-arch: build install
 	dh_installdocs
 	dh_installexamples
 	dh_installmenu
-	dh_undocumented
 	dh_installchangelogs 
 	dh_link
 	dh_strip

@@ -1,53 +1,99 @@
-cachefile.o: cachefile.cc config.h dirent.hh debug.hh cachefile.hh bstream.hh serialize.hh
+# job/makeimagedl-info-test.cc:10
+job/makeimagedl-info-test$(EXE): job/makeimagedl-info-test.o $(TEST-DEFAULTOBJS) job/makeimagedl-info.o
+	$(LD) -o job/makeimagedl-info-test$(EXE) job/makeimagedl-info-test.o $(TEST-DEFAULTOBJS) job/makeimagedl-info.o $(TEST-LDFLAGS)
+# job/jigdo-io-test.cc:10
+job/jigdo-io-test$(EXE): job/jigdo-io-test.o $(TEST-DEFAULTOBJS) job/datasource.o util/gunzip.o util/configfile.o util/md5sum.o util/glibc-md5.o
+	$(LD) -o job/jigdo-io-test$(EXE) job/jigdo-io-test.o $(TEST-DEFAULTOBJS) job/datasource.o util/gunzip.o util/configfile.o util/md5sum.o util/glibc-md5.o $(TEST-LDFLAGS)
+# net/proxyguess-test.cc:12
+net/proxyguess-test$(EXE): net/proxyguess-test.o $(TEST-DEFAULTOBJS) 
+	$(LD) -o net/proxyguess-test$(EXE) net/proxyguess-test.o $(TEST-DEFAULTOBJS)  $(TEST-LDFLAGS)
+# util/string-utf-test.cc:12
+util/string-utf-test$(EXE): util/string-utf-test.o $(TEST-DEFAULTOBJS) 
+	$(LD) -o util/string-utf-test$(EXE) util/string-utf-test.o $(TEST-DEFAULTOBJS)  $(TEST-LDFLAGS)
+# util/gunzip-test.cc:12
+util/gunzip-test$(EXE): util/gunzip-test.o $(TEST-DEFAULTOBJS) util/gunzip.o
+	$(LD) -o util/gunzip-test$(EXE) util/gunzip-test.o $(TEST-DEFAULTOBJS) util/gunzip.o $(TEST-LDFLAGS)
+# util/mimestream-test.cc:12
+util/mimestream-test$(EXE): util/mimestream-test.o $(TEST-DEFAULTOBJS) 
+	$(LD) -o util/mimestream-test$(EXE) util/mimestream-test.o $(TEST-DEFAULTOBJS)  $(TEST-LDFLAGS)
+# util/log-test.cc:12
+util/log-test$(EXE): util/log-test.o $(TEST-DEFAULTOBJS) 
+	$(LD) -o util/log-test$(EXE) util/log-test.o $(TEST-DEFAULTOBJS)  $(TEST-LDFLAGS)
+# util/md5sum-test.cc:12
+util/md5sum-test$(EXE): util/md5sum-test.o $(TEST-DEFAULTOBJS) util/glibc-md5.o util/md5sum.o
+	$(LD) -o util/md5sum-test$(EXE) util/md5sum-test.o $(TEST-DEFAULTOBJS) util/glibc-md5.o util/md5sum.o $(TEST-LDFLAGS)
+# util/rsyncsum-test.cc:15
+util/rsyncsum-test$(EXE): util/rsyncsum-test.o $(TEST-DEFAULTOBJS) util/rsyncsum.o
+	$(LD) -o util/rsyncsum-test$(EXE) util/rsyncsum-test.o $(TEST-DEFAULTOBJS) util/rsyncsum.o $(TEST-LDFLAGS)
+# util/configfile-test.cc:12
+util/configfile-test$(EXE): util/configfile-test.o $(TEST-DEFAULTOBJS) util/configfile.o
+	$(LD) -o util/configfile-test$(EXE) util/configfile-test.o $(TEST-DEFAULTOBJS) util/configfile.o $(TEST-LDFLAGS)
+# jigdoconfig-test.cc:12
+jigdoconfig-test$(EXE): jigdoconfig-test.o $(TEST-DEFAULTOBJS) jigdoconfig.o util/configfile.o
+	$(LD) -o jigdoconfig-test$(EXE) jigdoconfig-test.o $(TEST-DEFAULTOBJS) jigdoconfig.o util/configfile.o $(TEST-LDFLAGS)
+
+gtk/interface.o: gtk/interface.cc config.h dirent.hh gtk/interface.hh gtk/gui.hh
+gtk/treeiter.o: gtk/treeiter.cc config.h dirent.hh gtk/treeiter.hh
+gtk/gtk-makeimage.o: gtk/gtk-makeimage.cc config.h dirent.hh job/single-url.hh util/md5sum.hh net/download.hh job/makeimage.hh util/smartptr.hh gtk/interface.hh util/status.hh util/progress.fh gtk/gui.hh util/bstream.hh gtk/jobline.fh util/string.hh util/string-utf.hh util/log.hh job/datasource.hh util/debug.hh job/job.hh util/bstream-counted.hh gtk/joblist.hh job/makeimagedl.hh util/ilist.hh util/nocopy.hh util/configfile.hh gtk/jobline.hh util/progress.hh util/md5sum.fh jigdoconfig.hh job/makeimagedl.fh net/libwww.hh gtk/gtk-makeimage.hh gtk/messagebox.hh gtk/gtk-single-url.hh
+gtk/gtk-single-url.o: gtk/gtk-single-url.cc config.h dirent.hh util/autoptr.hh gtk/jobline.hh util/bstream.hh gtk/messagebox.hh util/smartptr.hh job/job.hh util/bstream-counted.hh net/libwww.hh net/download.hh gtk/interface.hh gtk/gui.hh job/makeimagedl.fh gtk/jobline.fh util/progress.fh util/string.hh job/datasource.hh util/string-utf.hh util/progress.hh util/log.hh job/single-url.hh gtk/joblist.hh util/nocopy.hh util/debug.hh gtk/gtk-single-url.hh
+gtk/gui.o: gtk/gui.cc config.h dirent.hh gtk/jobline.hh util/bstream.hh gtk/messagebox.hh util/smartptr.hh job/job.hh util/bstream-counted.hh net/libwww.hh net/download.hh gtk/interface.hh gtk/gui.hh job/makeimagedl.fh gtk/jobline.fh util/progress.fh util/string.hh job/datasource.hh util/string-utf.hh util/progress.hh util/log.hh job/single-url.hh gtk/joblist.hh util/nocopy.hh util/debug.hh gtk/gtk-single-url.hh util/md5sum.hh job/makeimage.hh util/status.hh job/makeimagedl.hh util/ilist.hh util/configfile.hh util/md5sum.fh jigdoconfig.hh gtk/gtk-makeimage.hh
+gtk/messagebox.o: gtk/messagebox.cc config.h dirent.hh util/debug.hh gtk/interface.hh gtk/gui.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh gtk/messagebox.hh gtk/support.hh
+gtk/jigdo.o: gtk/jigdo.cc config.h dirent.hh util/debug.hh net/libwww.hh net/download.hh util/glibc-getopt.h net/glibwww.hh gtk/interface.hh gtk/gui.hh gtk/jobline.fh util/string.hh util/string-utf.hh util/log.hh gtk/joblist.hh util/nocopy.hh gtk/jobline.hh net/proxyguess.hh gtk/support.hh
+gtk/support.o: gtk/support.cc config.h dirent.hh gtk/support.hh
+gtk/jobline.o: gtk/jobline.cc config.h dirent.hh job/single-url.hh util/md5sum.hh net/download.hh job/makeimage.hh util/smartptr.hh gtk/interface.hh util/status.hh util/progress.fh gtk/gui.hh util/bstream.hh gtk/jobline.fh util/string.hh util/string-utf.hh util/log.hh job/datasource.hh util/debug.hh job/job.hh util/bstream-counted.hh gtk/joblist.hh job/makeimagedl.hh util/ilist.hh util/nocopy.hh util/configfile.hh gtk/jobline.hh util/progress.hh util/md5sum.fh jigdoconfig.hh job/makeimagedl.fh net/libwww.hh gtk/gtk-makeimage.hh gtk/messagebox.hh gtk/gtk-single-url.hh
+gtk/joblist.o: gtk/joblist.cc config.h dirent.hh net/libwww.hh net/download.hh gtk/interface.hh gtk/gui.hh gtk/jobline.fh util/string.hh util/string-utf.hh util/log.hh util/debug.hh gtk/joblist.hh util/nocopy.hh gtk/jobline.hh gtk/support.hh gtk/treeiter.hh
+job/makeimagedl-info.o: job/makeimagedl-info.cc config.h dirent.hh compat.hh util/configfile.hh util/debug.hh jigdoconfig.hh util/md5sum.fh job/makeimagedl.fh util/md5sum.hh util/nocopy.hh util/smartptr.hh util/progress.fh job/datasource.hh util/string.hh util/string-utf.hh util/bstream-counted.hh util/log.hh net/libwww.hh util/ilist.hh net/download.hh util/progress.hh job/single-url.hh job/makeimage.hh util/status.hh util/bstream.hh job/job.hh job/makeimagedl.hh
+job/jigdodownload.o: job/jigdodownload.cc config.h dirent.hh job/makeimagedl.hh net/download.hh job/makeimagedl.fh util/configfile.hh util/md5sum.hh util/progress.hh util/nocopy.hh util/smartptr.hh util/progress.fh util/debug.hh job/datasource.hh jigdoconfig.hh util/string.hh job/single-url.hh util/string-utf.hh job/makeimage.hh util/bstream-counted.hh util/status.hh util/log.hh util/bstream.hh net/libwww.hh job/job.hh util/ilist.hh util/md5sum.fh job/jigdodownload.hh
+job/jigdo-io.o: job/jigdo-io.cc config.h dirent.hh util/debug.hh util/configfile.hh util/status.hh util/log.hh job/makeimagedl.fh util/bstream.hh net/libwww.hh util/nocopy.hh job/makeimagedl.hh util/ilist.hh util/progress.fh job/datasource.hh util/gunzip.hh job/jigdo-io.fh net/download.hh util/md5sum.fh util/md5sum.hh util/progress.hh util/smartptr.hh jigdoconfig.hh util/string.hh job/single-url.hh util/string-utf.hh job/makeimage.hh util/bstream-counted.hh job/job.hh job/jigdo-io.hh util/mimestream.hh
+job/makeimage.o: job/makeimage.cc config.h dirent.hh util/configfile.hh jigdoconfig.hh util/nocopy.hh util/debug.hh job/makeimage.hh
+job/makeimagedl-info-test.o: job/makeimagedl-info-test.cc config.h dirent.hh util/debug.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/md5sum.fh job/makeimagedl.fh util/md5sum.hh util/smartptr.hh util/progress.fh job/datasource.hh util/bstream-counted.hh net/libwww.hh util/ilist.hh net/download.hh util/configfile.hh util/progress.hh jigdoconfig.hh job/single-url.hh job/makeimage.hh util/status.hh util/bstream.hh job/job.hh job/makeimagedl.hh
+job/datasource.o: job/datasource.cc job/job.hh job/makeimagedl.fh util/nocopy.hh util/progress.fh config.h dirent.hh util/debug.hh job/datasource.hh
+job/makeimagedl.o: job/makeimagedl.cc config.h dirent.hh util/bstream.hh job/job.hh job/makeimagedl.fh util/nocopy.hh util/progress.fh job/datasource.hh util/progress.hh util/debug.hh job/cached-url.hh compat.hh util/status.hh util/log.hh net/libwww.hh job/makeimagedl.hh util/ilist.hh util/gunzip.hh job/jigdo-io.fh net/download.hh util/md5sum.fh util/configfile.hh util/md5sum.hh util/smartptr.hh jigdoconfig.hh util/string.hh job/single-url.hh util/string-utf.hh job/makeimage.hh util/bstream-counted.hh job/jigdo-io.hh util/mimestream.hh
+job/cached-url.o: job/cached-url.cc config.h dirent.hh util/autoptr.hh util/bstream.hh job/job.hh job/makeimagedl.fh util/nocopy.hh util/progress.fh job/datasource.hh util/progress.hh util/debug.hh job/cached-url.hh util/string.hh util/string-utf.hh util/log.hh
+job/url-part-test.o: job/url-part-test.cc job/url-part.hh job/url-part.ih config.h dirent.hh job/url-part.fh job/url-part.cc
+job/jigdo-io-test.o: job/jigdo-io-test.cc config.h dirent.hh util/md5sum.fh job/makeimagedl.fh util/md5sum.hh util/nocopy.hh util/smartptr.hh util/progress.fh util/debug.hh job/datasource.hh util/string.hh util/string-utf.hh util/bstream-counted.hh util/log.hh net/libwww.hh util/ilist.hh net/download.hh util/configfile.hh util/progress.hh jigdoconfig.hh job/single-url.hh job/makeimage.hh util/status.hh util/bstream.hh job/job.hh job/makeimagedl.hh util/gunzip.hh job/jigdo-io.fh job/jigdo-io.hh util/mimestream.hh job/jigdo-io.cc
+job/single-url.o: job/single-url.cc config.h dirent.hh util/autoptr.hh util/debug.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/smartptr.hh util/bstream-counted.hh job/job.hh job/makeimagedl.fh util/progress.fh job/datasource.hh net/libwww.hh net/download.hh util/progress.hh util/bstream.hh job/single-url.hh
+job/url-part.o: job/url-part.cc config.h dirent.hh job/url-part.fh job/url-part.hh job/url-part.ih
+net/libwww-HTFTP.o: net/libwww-HTFTP.c 
+net/libwww-HTHost.o: net/libwww-HTHost.c 
+net/glibwww-init.o: net/glibwww-init.cc config.h dirent.hh net/glibwww.hh
+net/glibwww-callbacks.o: net/glibwww-callbacks.cc config.h dirent.hh net/glibwww.hh
+net/glibwww-trans.o: net/glibwww-trans.cc config.h dirent.hh net/glibwww.hh
+net/proxyguess-test.o: net/proxyguess-test.cc config.h dirent.hh util/debug.hh net/glibwww.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh net/proxyguess.hh net/proxyguess.cc
+net/proxyguess.o: net/proxyguess.cc config.h dirent.hh net/glibwww.hh util/nocopy.hh util/string.hh util/string-utf.hh util/debug.hh util/log.hh net/proxyguess.hh
+net/download.o: net/download.cc config.h dirent.hh util/debug.hh net/libwww.hh net/download.hh net/glibwww.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh
+util/string-utf-test.o: util/string-utf-test.cc config.h dirent.hh util/nocopy.hh util/string.hh util/string-utf.hh util/debug.hh util/log.hh
+util/rsyncsum.o: util/rsyncsum.cc config.h dirent.hh util/debug.hh serialize.hh util/bstream.hh util/rsyncsum.hh util/mimestream.hh util/rsyncsum.ih
+util/gunzip-test.o: util/gunzip-test.cc config.h dirent.hh util/debug.hh util/bstream.hh util/gunzip.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh
+util/string.o: util/string.cc config.h dirent.hh util/debug.hh util/string.hh
+util/mimestream-test.o: util/mimestream-test.cc config.h dirent.hh util/debug.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/mimestream.hh
+util/configfile.o: util/configfile.cc config.h dirent.hh util/debug.hh util/configfile.hh util/string.hh
+util/md5sum.o: util/md5sum.cc config.h dirent.hh util/glibc-md5.hh util/bstream.hh util/md5sum.fh util/debug.hh util/md5sum.hh util/mimestream.hh util/md5sum.ih
+util/glibc-getopt1.o: util/glibc-getopt1.c config.h dirent.hh util/glibc-getopt.h
+util/string-utf.o: util/string-utf.cc config.h dirent.hh util/debug.hh util/string.hh util/string-utf.hh
+util/progress.o: util/progress.cc config.h dirent.hh util/debug.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/progress.fh util/progress.hh
+util/gunzip.o: util/gunzip.cc config.h dirent.hh util/debug.hh util/gunzip.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh
+util/log-test.o: util/log-test.cc config.h dirent.hh util/nocopy.hh util/string.hh util/string-utf.hh util/debug.hh util/log.hh
+util/debug.o: util/debug.cc config.h dirent.hh util/debug.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh
+util/log.o: util/log.cc util/nocopy.hh util/string.hh util/string-utf.hh config.h dirent.hh util/debug.hh util/log.hh
+util/md5sum-test.o: util/md5sum-test.cc config.h dirent.hh util/debug.hh util/bstream.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/md5sum.fh util/md5sum.hh util/mimestream.hh
+util/rsyncsum-test.o: util/rsyncsum-test.cc config.h dirent.hh util/debug.hh util/bstream.hh serialize.hh util/rsyncsum.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh
+util/glibc-getopt.o: util/glibc-getopt.c config.h dirent.hh util/glibc-getopt.h
+util/configfile-test.o: util/configfile-test.cc config.h dirent.hh util/debug.hh util/configfile.hh
+util/glibc-md5.o: util/glibc-md5.cc config.h dirent.hh util/bstream.hh util/md5sum.fh util/debug.hh util/md5sum.hh util/glibc-md5.hh
+util/bstream.o: util/bstream.cc config.h dirent.hh util/debug.hh util/bstream.hh
 compat.o: compat.cc config.h dirent.hh compat.hh
-configfile.o: configfile.cc config.h dirent.hh debug.hh configfile.hh string.hh
-debug.o: debug.cc config.h dirent.hh debug.hh
-download.o: download.cc config.h dirent.hh debug.hh libwww.hh download.hh glibwww.hh string.hh
-gtk-error.o: gtk-error.cc config.h dirent.hh gtk-error.hh gtk-interface.hh gtk-gui.hh
-gtk-gui.o: gtk-gui.cc config.h dirent.hh gtk-interface.hh gtk-gui.hh debug.hh libwww.hh download.hh joblist.hh job-download.hh string.hh
-gtk-interface.o: gtk-interface.cc config.h dirent.hh gtk-interface.hh gtk-gui.hh gtk-support.hh
-gtk-support.o: gtk-support.cc config.h dirent.hh gtk-support.hh
-glibc-getopt.o: glibc-getopt.c config.h dirent.hh glibc-getopt.h
-glibc-getopt1.o: glibc-getopt1.c config.h dirent.hh glibc-getopt.h
-glibc-md5.o: glibc-md5.cc config.h dirent.hh bstream.hh debug.hh mimestream.hh md5sum.ih md5sum.hh glibc-md5.hh
-glibwww-callbacks.o: glibwww-callbacks.cc config.h dirent.hh glibwww.hh
-glibwww-init.o: glibwww-init.cc config.h dirent.hh glibwww.hh
-glibwww-trans.o: glibwww-trans.cc config.h dirent.hh glibwww.hh
-jigdo.o: jigdo.cc config.h dirent.hh debug.hh libwww.hh download.hh gtk-interface.hh gtk-gui.hh gtk-support.hh
-jigdo-file.o: jigdo-file.cc config.h dirent.hh glibc-getopt.h compat.hh debug.hh configfile.hh cachefile.hh bstream.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh mkimage.hh zstream.fh mktemplate.hh jigdoconfig.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh jigdo-file-cmd.hh recursedir.hh string.hh
-jigdo-file-cmd.o: jigdo-file-cmd.cc config.h dirent.hh compat.hh debug.hh cachefile.hh bstream.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh mkimage.hh zstream.fh mktemplate.hh configfile.hh jigdoconfig.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh jigdo-file-cmd.hh recursedir.hh string.hh
-jigdoconfig.o: jigdoconfig.cc config.h dirent.hh debug.hh configfile.hh jigdoconfig.hh string.hh
-joblist.o: joblist.cc config.h dirent.hh gtk-support.hh debug.hh libwww.hh download.hh gtk-interface.hh gtk-gui.hh joblist.hh string.hh
-md5sum.o: md5sum.cc config.h dirent.hh glibc-md5.hh bstream.hh debug.hh mimestream.hh md5sum.ih md5sum.hh
-mkimage.o: mkimage.cc config.h dirent.hh compat.hh rsyncsum.hh scan.fh cachefile.hh recursedir.fh scan.hh bstream.hh debug.hh mimestream.hh md5sum.ih md5sum.hh serialize.hh rsyncsum.ih mkimage.hh string.hh zstream.fh zstream.hh
-mktemplate.o: mktemplate.cc config.h dirent.hh debug.hh configfile.hh compat.hh autoptr.hh rsyncsum.hh scan.fh cachefile.hh recursedir.fh scan.hh bstream.hh mimestream.hh md5sum.ih md5sum.hh serialize.hh rsyncsum.ih mkimage.hh zstream.fh mktemplate.hh string.hh zstream.hh
-recursedir.o: recursedir.cc config.h dirent.hh debug.hh recursedir.fh recursedir.hh string.hh
-rsyncsum.o: rsyncsum.cc config.h dirent.hh bstream.hh serialize.hh debug.hh mimestream.hh rsyncsum.ih rsyncsum.hh
-scan.o: scan.cc config.h dirent.hh bstream.hh compat.hh debug.hh configfile.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh cachefile.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh string.hh
-string.o: string.cc debug.hh config.h dirent.hh string.hh
-torture.o: torture.cc config.h dirent.hh bstream.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh debug.hh cachefile.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh string.hh mkimage.hh zstream.fh mktemplate.hh recursedir.hh
-zstream.o: zstream.cc config.h dirent.hh string.hh bstream.hh debug.hh zstream.fh zstream.hh
-configfile-test.o: configfile-test.cc config.h dirent.hh debug.hh configfile.hh string.hh configfile.cc debug.cc
-configfile-test: configfile-test.o
-		$(LD) -o configfile-test $(LDFLAGS) configfile-test.o
-download-test.o: download-test.cc config.h dirent.hh debug.hh libwww.hh download.hh glibwww.hh string.hh download.cc
-download-test: download-test.o
-		$(LD) -o download-test $(LDFLAGS) download-test.o
-jigdoconfig-test.o: jigdoconfig-test.cc config.h dirent.hh debug.hh configfile.hh jigdoconfig.hh string.hh jigdoconfig.cc configfile.cc debug.cc string.cc
-jigdoconfig-test: jigdoconfig-test.o
-		$(LD) -o jigdoconfig-test $(LDFLAGS) jigdoconfig-test.o
-joblist-test.o: joblist-test.cc string.hh config.h dirent.hh gtk-support.hh debug.hh libwww.hh download.hh gtk-interface.hh gtk-gui.hh joblist.hh joblist.cc
-joblist-test: joblist-test.o
-		$(LD) -o joblist-test $(LDFLAGS) joblist-test.o
-md5sum-test.o: md5sum-test.cc config.h dirent.hh debug.hh debug.cc bstream.hh mimestream.hh md5sum.ih md5sum.hh glibc-md5.hh glibc-md5.cc md5sum.cc
-md5sum-test: md5sum-test.o
-		$(LD) -o md5sum-test $(LDFLAGS) md5sum-test.o
-mimestream-test.o: mimestream-test.cc 
-mimestream-test: mimestream-test.o
-		$(LD) -o mimestream-test $(LDFLAGS) mimestream-test.o
-recursedir-test.o: recursedir-test.cc debug.hh config.h dirent.hh recursedir.fh recursedir.hh string.hh recursedir.cc debug.cc
-recursedir-test: recursedir-test.o
-		$(LD) -o recursedir-test $(LDFLAGS) recursedir-test.o
-rsyncsum-test.o: rsyncsum-test.cc config.h dirent.hh bstream.hh serialize.hh debug.hh mimestream.hh rsyncsum.ih rsyncsum.hh rsyncsum.cc
-rsyncsum-test: rsyncsum-test.o
-		$(LD) -o rsyncsum-test $(LDFLAGS) rsyncsum-test.o
+scan.o: scan.cc config.h dirent.hh util/debug.hh util/bstream.hh compat.hh util/configfile.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh cachefile.hh util/md5sum.fh util/md5sum.hh recursedir.fh serialize.hh util/rsyncsum.hh scan.fh scan.hh
+torture.o: torture.cc config.h dirent.hh util/debug.hh util/bstream.hh util/configfile.hh jigdoconfig.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/md5sum.fh util/md5sum.hh util/mimestream.hh cachefile.hh recursedir.fh serialize.hh util/rsyncsum.hh scan.fh scan.hh mkimage.hh zstream.fh partialmatch.hh compat.hh jigdoconfig.fh mktemplate.hh recursedir.hh
+jigdoconfig-test.o: jigdoconfig-test.cc util/configfile.hh config.h dirent.hh util/debug.hh jigdoconfig.hh
+partialmatch.o: partialmatch.cc config.h dirent.hh zstream.fh util/bstream.hh partialmatch.hh compat.hh util/configfile.hh jigdoconfig.fh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/md5sum.fh util/md5sum.hh serialize.hh util/rsyncsum.hh scan.fh util/debug.hh mktemplate.hh cachefile.hh recursedir.fh scan.hh partialmatch.ih
+jigdoconfig.o: jigdoconfig.cc config.h dirent.hh util/configfile.hh util/debug.hh jigdoconfig.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh
+recursedir-test.o: recursedir-test.cc config.h dirent.hh util/debug.hh recursedir.hh util/string.hh recursedir.fh recursedir.cc util/nocopy.hh util/string-utf.hh util/log.hh util/debug.cc
+mkimage.o: mkimage.cc config.h dirent.hh compat.hh util/nocopy.hh util/string.hh util/string-utf.hh util/debug.hh util/log.hh util/bstream.hh util/md5sum.fh util/md5sum.hh cachefile.hh recursedir.fh serialize.hh util/rsyncsum.hh scan.fh scan.hh mkimage.hh zstream.fh zstream.hh
+recursedir.o: recursedir.cc config.h dirent.hh recursedir.fh util/debug.hh recursedir.hh util/string.hh
+mkjigdo.o: mkjigdo.cc config.h dirent.hh util/configfile.hh util/debug.hh jigdoconfig.hh util/bstream.hh util/md5sum.fh util/md5sum.hh util/mimestream.hh zstream.fh partialmatch.hh compat.hh jigdoconfig.fh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh serialize.hh util/rsyncsum.hh scan.fh mktemplate.hh cachefile.hh recursedir.fh scan.hh
+cachefile.o: cachefile.cc config.h dirent.hh util/debug.hh cachefile.hh compat.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/bstream.hh serialize.hh
+mktemplate.o: mktemplate.cc config.h dirent.hh util/autoptr.hh compat.hh util/debug.hh util/nocopy.hh util/string.hh util/string-utf.hh util/log.hh util/mimestream.hh util/bstream.hh util/md5sum.fh util/md5sum.hh cachefile.hh recursedir.fh serialize.hh util/rsyncsum.hh scan.fh scan.hh mkimage.hh zstream.fh partialmatch.hh util/configfile.hh jigdoconfig.fh mktemplate.hh zstream.hh
+jigdo-file-cmd.o: jigdo-file-cmd.cc config.h dirent.hh compat.hh util/debug.hh partialmatch.hh jigdoconfig.hh jigdoconfig.fh cachefile.hh util/bstream.hh util/md5sum.fh util/md5sum.hh recursedir.fh util/nocopy.hh serialize.hh util/string.hh util/rsyncsum.hh util/string-utf.hh scan.fh util/log.hh scan.hh mktemplate.hh mkimage.hh zstream.fh util/configfile.hh jigdo-file-cmd.hh util/mimestream.hh recursedir.hh
+jigdo-file.o: jigdo-file.cc config.h dirent.hh util/glibc-getopt.h compat.hh util/debug.hh util/configfile.hh partialmatch.hh jigdoconfig.hh jigdoconfig.fh cachefile.hh util/bstream.hh util/md5sum.fh util/md5sum.hh recursedir.fh util/nocopy.hh serialize.hh util/string.hh util/rsyncsum.hh util/string-utf.hh scan.fh util/log.hh scan.hh mktemplate.hh mkimage.hh zstream.fh jigdo-file-cmd.hh recursedir.hh
+zstream.o: zstream.cc config.h dirent.hh util/nocopy.hh util/string.hh util/string-utf.hh util/debug.hh util/log.hh util/bstream.hh util/md5sum.fh util/md5sum.hh serialize.hh zstream.fh zstream.hh

@@ -1,7 +1,7 @@
-/* $Id: compat.cc,v 1.8 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: compat.cc,v 1.2 2003/12/21 22:43:57 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2003  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -11,8 +11,14 @@
 
 */
 
+#include <config.h>
+
 #include <compat.hh>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <set>
+
 #if WINDOWS
 #  include <windows.h>
 #  include <winbase.h>
@@ -72,6 +78,42 @@ int compat_rename(const char* src, const char* dst) {
 #endif
 //====================================================================
 
+#if !WINDOWS && !HAVE_SETENV
+namespace {
+  struct CmpTilEq {
+    /* Like less<>, but only compares up to the first '=' in the string. All
+       *strings must* contain a '='. */
+    bool operator()(const string& x, const string& y) const {
+      string::const_iterator xx = x.begin(), yy = y.begin();
+      char a, b;
+      do {
+        a = *xx; ++xx;
+        b = *yy; ++yy;
+        if (a == '=') return b != '=';
+      } while (a == b);
+      if (b == '=') return false;
+      return a < b;
+    }
+  };
+}
+
+/* This is probably a candidate for the least efficient setenv-via-putenv
+   implementation ever. */
+bool compat_setenv(const char* name, const char* value) {
+  typedef set<string, CmpTilEq> VarSet;
+  static VarSet vars;
+  string var = name;
+  var += '=';
+  var += value;
+  VarSet::iterator old = vars.find(var);
+  if (old != vars.end()) vars.erase(old);
+  pair<VarSet::iterator,bool> ins = vars.insert(var);
+  return putenv(const_cast<char*>(ins.first->c_str())) == 0 ?
+    SUCCESS : FAILURE;
+}
+#endif
+//====================================================================
+
 #if !WINDOWS && HAVE_IOCTL_WINSZ && HAVE_FILENO
 #include <sys/ioctl.h>
 #include <errno.h>
@@ -82,4 +124,55 @@ int ttyWidth() {
     return 0;
   return w.ws_col;
 }
+//====================================================================
+
+#if !HAVE_STRINGCMP
+int compat_compare(const string& s1, string::size_type pos1,
+    string::size_type n1, const string& s2, string::size_type pos2 = 0,
+                          string::size_type n2 = string::npos) {
+  string::size_type r1 = s1.length() - pos1;
+  if (r1 > n1) r1 = n1;
+  string::size_type r2 = s2.length() - pos2;
+  if (r2 > n2) r2 = n2;
+  string::size_type r = r2;
+  int rdiff = r1 - r2;
+  if (rdiff < 0) r = r1;
+  string::const_iterator i1 = s1.begin() + pos1;
+  string::const_iterator i2 = s2.begin() + pos2;
+  while (r > 0) {
+    if (*i1 < *i2) return -1;
+    if (*i1 > *i2) return 1;
+    ++i1; ++i2;
+    --r;
+  }
+  return rdiff;
+}
+#endif
+
+//====================================================================
+
+#if !HAVE_STRINGSTRCMP
+int compat_compare(const string& s1, string::size_type pos1,
+                   string::size_type n1, const char* s2,
+                   string::size_type n2 = string::npos) {
+  string::size_type r1 = s1.length() - pos1;
+  if (r1 > n1) r1 = n1;
+  string::size_type r2 = strlen(s2);
+  if (r2 > n2) r2 = n2;
+  string::size_type r = r2;
+  int rdiff = r1 - r2;
+  if (rdiff < 0) r = r1;
+  string::const_iterator i1 = s1.begin() + pos1;
+  const char* i2 = s2;
+  while (r > 0) {
+    if (*i1 < *i2) return -1;
+    if (*i1 > *i2) return 1;
+    ++i1; ++i2;
+    --r;
+  }
+  return rdiff;
+}
+#endif
+
+
 #endif

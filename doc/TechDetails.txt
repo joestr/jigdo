@@ -10,14 +10,14 @@ Additional notes:
  - The reason for all those quoting rules in the .jigdo is that in the
    future, it may be allowed to add options to some lines, e.g.:
    MyServer=http://foo.com/ --referer=... --priority=... --decrypt
-   
+
  - The difference between the Base64 encoding used by jigdo and the
    real one (RFC2045) is that jigdo uses `-' instead of `+' and it
    uses `_' instead of `/'. Additionally, no `=' characters are
    appended to the end of the Base64 string.
 
 Support for automatic ungzipping of .jigdo files is currently not
-present.
+present in jigdo-file, only in jigdo.
 
 
 
@@ -36,7 +36,7 @@ files.
 As soon as the first blockLen bytes of a file have been seen in the
 image this way, the program starts calculating the MD5 sum of blocks
 of length md5BlockLength (where blockLen < md5BlockLength; the
-defaults are 4k, 64k resp.). These MD5 checksums are compared to
+defaults are 1k, 64k resp.). These MD5 checksums are compared to
 pre-calculated MD5 sums of md5BlockLength-sized chunks of the file
 that matched, until one doesn't match, or the last one matched.
 
@@ -68,8 +68,8 @@ demand" if/when necessary.
 
 
 
-File format of .template files
-==============================
+File format of .template and .tmp files
+=======================================
 
 The image template files consist of three types of parts:
 
@@ -86,6 +86,12 @@ little-endian (i.e. least-significant byte first) because that *is*
 the proper end to open an egg. The length includes the ID and length
 field itself, so for an empty part (containing just the ID and the
 length field) the length field would have the value 10.
+
+Temporary image files (.tmp files) consist of the image data, followed
+by a description part with the same format as in .template files.
+Those areas of the temporary image to which no file data has yet been
+written are filled with zero bytes.
+
 
 Header
 ------
@@ -116,6 +122,7 @@ by "/". The field must not contain any space characters and only one
 information, e.g. an URL, for those people who open the file in a text
 editor and haven't a clue what it is. ;-)
 
+
 Description
 -----------
 
@@ -124,7 +131,8 @@ are 6 bytes long - 256TB ought to be enough for everybody...
 
 The order of entries with type==2 or type==6 corresponds to how
 matched files and areas of unmatched data appear in the image file.
-There must only be one entry of type==5 in the list.
+There must only be one entry of type==5 in the list [which must
+probably be the last entry].
 
 The pseudo program below would be suitable for decoding the
 description data.
@@ -216,3 +224,11 @@ ranges.
 
 Note that the data of one type==2 entry in the description data may be
 distributed over more than one raw data part.
+
+
+File format version history
+---------------------------
+
+1.0 (jigdo-file/0.5.0): Initial format
+1.1 (jigdo-file/0.6.3): Format change in template files: New type 5
+    obsoletes type 1. New type 6 obsoletes type 3.

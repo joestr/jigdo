@@ -1,7 +1,7 @@
-/* $Id: torture.cc,v 1.37 2002/02/21 22:29:11 richard Exp $ -*- C++ -*-
+/* $Id: torture.cc,v 1.6 2004/06/16 15:21:49 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -34,12 +34,13 @@
 
 */
 
+#include <config.h>
+
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
-namespace std { }
-using namespace std;
 
 #include <errno.h>
 #include <fcntl.h>
@@ -49,14 +50,15 @@ using namespace std;
 #include <sys/stat.h>
 
 #include <bstream.hh>
-#include <config.h>
-#include <scan.hh>
-#include <string.hh>
+#include <jigdoconfig.hh>
+#include <log.hh>
 #include <md5sum.hh>
 #include <mimestream.hh>
 #include <mkimage.hh>
 #include <mktemplate.hh>
 #include <recursedir.hh>
+#include <scan.hh>
+#include <string.hh>
 
 // mingw doesn't define SSIZE_MAX (maximum amount to read() at a time)
 #ifndef SSIZE_MAX
@@ -64,9 +66,7 @@ using namespace std;
 #  define SSIZE_MAX (UINT_MAX)
 #endif
 
-#ifndef DEBUG_TORTURE
-#  define DEBUG_TORTURE (DEBUG && 0)
-#endif
+LOCAL_DEBUG_UNIT("torture")
 //______________________________________________________________________
 
 /* I sometimes run torture on machines on which 'niced', the nice
@@ -290,7 +290,9 @@ namespace {
     Rand rand(nr);
     size_t mem = 0;
     files.resize(0);
-    int zeroFile = -1; // Only one file of zeroes per test case
+    //int zeroFile = -1; // Only one file of zeroes per test case
+    // Disable all-zeroes file - causes too many false FAIL messages
+    int zeroFile = 0;
 
     ifstream rev(TORTURE_DIR "rev");
     if (rev) {
@@ -363,7 +365,7 @@ namespace {
              << otherFile << " at offset " << otherOff << '\n';
         //cerr << (void*)files[otherFile].data << "..."
         // << (void*)(files[otherFile].data+otherLen) << endl;
-        o.seekp(otherOff, ios::beg);
+        o.seekp(static_cast<uint64>(otherOff), ios::beg);
         writeBytes(o, files[otherFile].data, otherLen);
         if (!o) cerr << "Aargh - write() failed! (" << strerror(errno)
                      << ')' << endl;
@@ -381,7 +383,7 @@ namespace {
     Rand rand(nr);
     cheatMrNice();
     bofstream img(TORTURE_DIR "image", ios::binary);
-    bofstream info(TORTURE_DIR "image"EXTSEPS"info");
+    ofstream info(TORTURE_DIR "image"EXTSEPS"info");
     size_t mem = 0;
     imageMatches.resize(0);
     while (mem < MAX_IMAGE) {
@@ -390,7 +392,7 @@ namespace {
         // an area of random data
         size_t size = static_cast<size_t>(rand.get(18));
         for (size_t i = 0; i < size; ++i)
-          img << static_cast<byte>(rand.get(8) ^ 0xff);
+          img.put(static_cast<byte>(rand.get(8) ^ 0xff));
         mem += size;
       } else if (x < 2*85) {
         // a complete file
@@ -398,18 +400,13 @@ namespace {
         info << mem << ' ' << i << '\n';
         writeBytes(img, files[i].data, files[i].size);
         imageMatches.push_back(Match(mem, i));
-#       if DEBUG_TORTURE
-        cerr << mem << ": Complete: #" << i << endl;
-#       endif
+        debug("%1: Complete: #%2", mem, i);
         mem += files[i].size;
       } else {
         // an incomplete file (some bytes missing at the end)
         int i = static_cast<int>(rand.rnd(files.size()));
         size_t size = static_cast<size_t>(rand.rnd(files[i].size-1));
-#       if DEBUG_TORTURE
-        cerr << mem << ": Incomplete: " << size << " bytes from #" << i
-             << endl;
-#       endif
+        debug("%1: Incomplete: %2 bytes from #%3", mem, size, i);
         writeBytes(img, &files[i].data[0], size);
         mem += size;
       }
@@ -419,7 +416,8 @@ namespace {
 
   struct TortureReport : public MkTemplate::ProgressReporter,
                          public JigdoDesc::ProgressReporter,
-                         public MD5Sum::ProgressReporter {
+                         public MD5Sum::ProgressReporter,
+                         public JigdoConfig::ProgressReporter {
     virtual ~TortureReport() { }
     virtual void matchFound(const FilePart* file, uint64 offInImage) {
       size_t n = 0;
@@ -474,10 +472,12 @@ int main(int argc, char* argv[]) {
              << " md5BlockLen=" << md5BlockLen
              << " readAmount=" << readAmount << endl;
         cheatMrNice();
-        bifstream image(TORTURE_DIR "image", ios::binary);
-        ofstream jigdo(TORTURE_DIR "image"EXTSEPS"jigdo", ios::binary);
-        bofstream templ(TORTURE_DIR "image"EXTSEPS"template", ios::binary);
         TortureReport reporter;
+        bifstream image(TORTURE_DIR "image", ios::binary);
+        auto_ptr<ConfigFile> cfDel(new ConfigFile());
+        JigdoConfig jc(TORTURE_DIR "image"EXTSEPS"jigdo",
+                       cfDel.release(), reporter);
+        bofstream templ(TORTURE_DIR "image"EXTSEPS"template", ios::binary);
 
         RecurseDir fileNames;
         for (size_t i = 0; i < files.size(); ++i) { // Add files
@@ -495,9 +495,9 @@ int main(int argc, char* argv[]) {
         //____________________
 
         // CREATE TEMPLATE
-        MkTemplate op(&cache, &image, &jigdo, &templ, reporter, 0,
+        MkTemplate op(&cache, &image, &jc, &templ, reporter, 0,
                       readAmount);
-        op.run();
+        op.run("image", "image"EXTSEPS"template");
 
         // Write out reported offsets for comparison with image.info
         ofstream imageReport(TORTURE_DIR "image"EXTSEPS"reported");
@@ -506,6 +506,9 @@ int main(int argc, char* argv[]) {
           imageReport << i->off << ' ' << i->nr << endl;
 
         // Check whether reported offsets are correct
+        /* To see the complete set of differences between the files that were
+           in the image and the files that mktemplate /reported/ to be there,
+           use "diff ironmaiden/image.info ironmaiden/image.reported". */
         bool offsetCheckOK = true;
         bool allChecksOK = true;
         vector<Match>::iterator j = reporter.matches.begin();
@@ -528,6 +531,11 @@ int main(int argc, char* argv[]) {
           allChecksOK = false;
           returnStatus = FAILURE;
         }
+
+        // Write jigdo
+        ofstream jigdo(TORTURE_DIR "image"EXTSEPS"jigdo", ios::binary);
+        jigdo << jc.configFile();
+
         image.close();
         jigdo.close();
         templ.close();

@@ -1,7 +1,7 @@
-/* $Id: mkimage.hh,v 1.23 2002/02/16 23:35:37 richard Exp $ -*- C++ -*-
+/* $Id: mkimage.hh,v 1.1.1.1 2003/07/04 22:29:22 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -14,15 +14,14 @@
 #ifndef MKIMAGE_HH
 #define MKIMAGE_HH
 
+#include <config.h>
+
 #include <iosfwd>
 #include <queue>
 #include <vector>
 #include <typeinfo>
-namespace std { }
-using namespace std;
 
 #include <bstream.hh>
-#include <config.h>
 #include <debug.hh>
 #include <md5sum.hh>
 #include <scan.hh>
@@ -234,7 +233,7 @@ public:
       not be two contiguous Unmatched regions - this is not checked.
       Similarly, the length of the ImageInfo part must match the
       accumulated lengths of the other parts. */
-  bostream& put(bostream& file) const;
+  bostream& put(bostream& file, MD5Sum* md = 0) const;
 
   /// List contents of a JigdoDescVec to a stream in human-readable format.
   void list(ostream& s) throw();
@@ -305,38 +304,38 @@ JigdoDescVec::~JigdoDescVec() {
 
 template<class Iterator>
 Iterator JigdoDesc::ImageInfo::serialize(Iterator i) const {
-  serialize1(IMAGE_INFO, i);
-  serialize6(size(), i);
-  ::serialize(md5(), i);
-  serialize4(blockLength(), i);
+  i = serialize1(IMAGE_INFO, i);
+  i = serialize6(size(), i);
+  i = ::serialize(md5(), i);
+  i = serialize4(blockLength(), i);
   return i;
 }
 size_t JigdoDesc::ImageInfo::serialSizeOf() const { return 1 + 6 + 16 + 4; }
 
 template<class Iterator>
 Iterator JigdoDesc::UnmatchedData::serialize(Iterator i) const {
-  serialize1(UNMATCHED_DATA, i);
-  serialize6(size(), i);
+  i = serialize1(UNMATCHED_DATA, i);
+  i = serialize6(size(), i);
   return i;
 }
 size_t JigdoDesc::UnmatchedData::serialSizeOf() const { return 1 + 6; }
 
 template<class Iterator>
 Iterator JigdoDesc::MatchedFile::serialize(Iterator i) const {
-  serialize1(MATCHED_FILE, i);
-  serialize6(size(), i);
-  ::serialize(rsync(), i);
-  ::serialize(md5(), i);
+  i = serialize1(MATCHED_FILE, i);
+  i = serialize6(size(), i);
+  i = ::serialize(rsync(), i);
+  i = ::serialize(md5(), i);
   return i;
 }
 size_t JigdoDesc::MatchedFile::serialSizeOf() const { return 1 + 6 + 8 + 16;}
 
 template<class Iterator>
 Iterator JigdoDesc::WrittenFile::serialize(Iterator i) const {
-  serialize1(WRITTEN_FILE, i);
-  serialize6(size(), i);
-  ::serialize(rsync(), i);
-  ::serialize(md5(), i);
+  i = serialize1(WRITTEN_FILE, i);
+  i = serialize6(size(), i);
+  i = ::serialize(rsync(), i);
+  i = ::serialize(md5(), i);
   return i;
 }
 size_t JigdoDesc::WrittenFile::serialSizeOf() const { return 1 + 6 + 8 + 16;}

@@ -2,14 +2,14 @@
 
 <refentry lang="en">
   <refentryinfo>
-    <address>richard@atterer.net</address>
+    <address>jigdo atterer.net</address>
     <author>
       <firstname>Richard</firstname><surname>Atterer</surname>
     </author>
     <copyright>
-      <year>2001-2002</year><holder>Richard Atterer</holder>
+      <year>2001-2003</year><holder>Richard Atterer</holder>
     </copyright>
-    <date>Jan 24, 2002</date>
+    <date>Sep 13, 2003</date>
   </refentryinfo>
   <refmeta>
     <refentrytitle>jigdo-file</refentrytitle>
@@ -44,8 +44,8 @@
         make-image, verify</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="description">
     <title>DESCRIPTION</title>
 
     <para>Jigsaw Download, or short jigdo, is a scheme developed
@@ -93,14 +93,14 @@
     `<filename>.jigdo</filename>' file by you before distributing
     it.</para>
 
-    <para>See later sections for a more detailed description of how
-    jigdo works, and also to get a better idea of what applications it
-    supports (such as customized versions of images released by
-    others).</para>
+    <para>The `DETAILS' section below contains technical details on
+    how jigdo works. The `EXAMPLES' section lists a number of common
+    scenarios and may help you to get an idea of what jigdo is useful
+    for.</para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="options">
     <title>OPTIONS</title>
 
     <para>Many options are specific to a particular
@@ -244,7 +244,6 @@
         </listitem>
       </varlistentry>
 
-
       <varlistentry>
         <term><option>--cache-expiry=<replaceable
           >SECONDS</replaceable></option></term>
@@ -305,6 +304,47 @@
       </varlistentry>
 
       <varlistentry>
+        <term><option>--hex</option></term>
+        <listitem>
+          <para>Output checksums in hexadecimal instead of Base64-like
+          format. This should not be used with the
+          <command>make-template</command> command, because the
+          resulting `<filename>.jigdo</filename>' file violates the
+          `<filename>.jigdo</filename>' file format. Its intended use
+          is to make <command>jigdo-file</command> more interoperable
+          with other Unix shell utilities like <citerefentry>
+              <refentrytitle>md5sum</refentrytitle><manvolnum>1</manvolnum>
+            </citerefentry>.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--no-hex</option></term>
+        <listitem>
+          <para><emphasis>This is the default.</emphasis> Use jigdo's
+          own Base64-like encoding of checksums.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--debug</option><optional>=<literal>help</literal
+          >|=<literal>all</literal>|=<replaceable>UNIT,~UNIT...</replaceable>
+          </optional></term>
+        <listitem>
+          <para>Switch on or off debugging output. Just `--debug' is
+          equivalent to `--debug=all'. The argument is a
+          comma-separated list of unit names for which debugging
+          output is to be enabled, or disabled if the name is preceded
+          by `~'. The special name `all' means all units. By default,
+          debugging output is switched off except for the units
+          `assert' and `general'. The exact list of available units
+          for which debugging can be switched on depends on whether
+          jigdo was compiled with debugging support - the list can be
+          printed with `--debug=help'.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><replaceable>FILES</replaceable></term>
         <listitem>
           <para>Names of files or directories to use as input. These
@@ -324,8 +364,8 @@
     </variablelist>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="commands">
     <title>COMMANDS</title>
 
     <para>The command name is the first non-option argument passed to
@@ -334,7 +374,7 @@
     names should not be used in scripts - there may be incompatible
     changes to them in the future!</emphasis></para>
 
-    <refsect2>
+    <refsect2 id="make-template">
       <title><command>make-template</command>, <command>mt</command></title>
 
       <para>Reads <replaceable>image</replaceable> and
@@ -357,9 +397,11 @@
       the characters `<literal>//</literal>' (Unix) or
       `<literal>\.\</literal>' (Windows), this has special meaning. In
       the final jigdo file that users will download, each of the parts
-      is referenced in the `[Parts]' section with a URI of the form
-      `Label:some/filename'. The `[Servers]' section gives a mapping
-      of labels to servers on the internet, with lines like
+      is referenced in the `<literal>[Parts]</literal>' section with a
+      URI of the form `Label:some/filename'. (See `FORMAT OF .JIGDO
+      FILES' below for a detailed description.) The
+      `<literal>[Servers]</literal>' section gives a mapping of labels
+      to servers on the internet, with lines like
       `Label=http://myserver.org/jigdofiles/'. Using this information,
       <command>jigdo</command> will create the final download URI for
       the part, `http://myserver.org/jigdofiles/some/filename'.
@@ -401,17 +443,19 @@
           <listitem>
             <para>By default, using <option>--label</option> as
             described above will cause lines of the form
-            `Label=file:/path/' to be written to the `[Servers]'
-            section of the output jigdo file. If you want to override
-            the `file:' URI so that the line reads
-            `Label=http://some.server.org/', you can do so by
-            specifying <option>--uri</option> along with
-            <option>--label</option>.</para>
-
-            <para>Note that <option>--uri</option> only has an effect
-            if the corresponding <option>--label</option> with the
-            same label name is present, and gets used by the
-            program.</para>
+            `Label=file:/path/' to be written to the
+            `<literal>[Servers]</literal>' section of the output jigdo
+            file. If you want to override the `file:' URI so that the
+            line reads `Label=http://some.server.org/', you can do so
+            by specifying <option>--uri</option> along with
+            <option>--label</option>. Giving just <option>--uri
+            <replaceable>Label=...</replaceable></option> without the
+            corresponding <option>--label
+            <replaceable>Label=...</replaceable></option> has no
+            effect, and even if you specify both, an entry is only
+            added to the `<literal>[Servers]</literal>' section if the
+            label is referenced by at least one
+            `<literal>[Parts]</literal>' entry.</para>
 
             <para>The supplied value is not quoted by the program; if
             it contains characters such as space or any of the
@@ -420,6 +464,10 @@
             protect it from the shell, e.g. <literal>\\\\</literal> or
             <literal>'\\'</literal> to get a single backslash in the
             URI.)</para>
+
+            <para>The mapping specified with an <option>--uri</option>
+            option is ignored if it is already present in the output
+            jigdo file.</para>
 
             <para>Users of the Windows version may notice that the
             `<literal>\</literal>' directory separators are converted
@@ -455,7 +503,7 @@
           <listitem>
             <para>Set minimum length of a part for
             <command>jigdo-file</command> to look for it in the image.
-            The default is 4k. Parts smaller than this will never be
+            The default is 1k. Parts smaller than this will never be
             found in the image, so their data will be included in the
             template file. The search algorithm used requires such a
             minimum length, otherwise template generation could become
@@ -463,8 +511,49 @@
             <replaceable>FILES</replaceable> are larger than a certain
             amount, you can increase <command>jigdo-file</command>'s
             speed slightly by specifying the amount with this option.
-            There is a hard-wired absolute minimum of 1k - anything
-            lower will silently be set to 1k.</para>
+            There is a hard-wired absolute minimum of 256 bytes -
+            anything lower will silently be set to 256.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><option>--merge=<replaceable>FILE</replaceable
+            ></option></term>
+          <listitem>
+            <para>Include the contents of
+            <replaceable>FILE</replaceable> in the output
+            `<filename>.jigdo</filename>' file. The file can contain
+            data which you want added to the output (for example, a
+            `<literal>[Servers]</literal>' section with a list of your
+            servers as entries), or it can be the jigdo file output by
+            an earlier run of <command>jigdo-file</command>.</para>
+
+            <para>It is possible to specify the same file for input
+            with <option>--merge</option> and for output with
+            <option>--jigdo</option>. However, you will also need to
+            use <option>--force</option> to make the program overwrite
+            the old version of the jigdo file with the new one.
+            <replaceable>FILE</replaceable> can be `-' for standard
+            input.</para>
+
+            <para>When <emphasis>adding</emphasis> new information to
+            the supplied file, <command>jigdo-file</command> will not
+            insert new lines into the `<literal>[Parts]</literal>'
+            section if an entry for the same MD5 checksum (but not
+            necessarily with the same URI!) already exists, and it
+            will not insert new lines into the
+            `<literal>[Servers]</literal>' section if a completely
+            identical entry already exists.</para>
+
+            <para>When <emphasis>reading in</emphasis> the existing
+            <replaceable>FILE</replaceable>, the behaviour is slightly
+            different: The program <emphasis>preserves</emphasis>
+            entries in the `<literal>[Parts]</literal>' section with
+            identical checksum, but different URIs. For completely
+            identical entries (same checksum and URI), only one entry
+            is preserved and the duplicates are removed. The
+            `<literal>[Servers]</literal>' section is left
+            untouched.</para>
           </listitem>
         </varlistentry>
 
@@ -472,17 +561,41 @@
           <term><option>--image-section</option></term>
           <listitem>
             <para><emphasis>This is the default.</emphasis> Causes
-            <command>jigdo-file</command> to include an `[Image]'
-            section in the `<filename>.jigdo</filename>' file.</para>
+            <command>jigdo-file</command> to add an
+            `<literal>[Image]</literal>' section to the
+            `<filename>.jigdo</filename>' file.</para>
+
+            <para>As an exception, a new `<literal>[Image]</literal>'
+            section is <emphasis>not</emphasis> added if you use
+            <option>--merge</option> and the file to merge contains an
+            `<literal>[Image]</literal>' section with a line which
+            reads `<literal>Template-MD5Sum=</literal>' (end of line
+            after the `='). In this case, the generated template
+            data's MD5 checksum value is just added after the `=' of
+            the first line of this form in the file - no whole new
+            `<literal>[Image]</literal>' section is appended. This
+            behaviour is useful because it allows you to pass via
+            <option>--merge</option> an `<literal>[Image]</literal>'
+            section with arbitrary content and then have the MD5
+            checksum automatically added by
+            <command>jigdo-file</command>. The section `FORMAT OF
+            .JIGDO FILES' below explains the
+            `<literal>[Image]</literal>' section contents in greater
+            detail.</para>
           </listitem>
         </varlistentry>
 
         <varlistentry>
           <term><option>--no-image-section</option></term>
           <listitem>
-            <para>Do <emphasis>not</emphasis> include an `[Image]'
-            section in the `<filename>.jigdo</filename>' file. You
-            need to add one yourself if you use this option.</para>
+            <para>Do <emphasis>not</emphasis> include an
+            `<literal>[Image]</literal>' section in the
+            `<filename>.jigdo</filename>' file. You need to add one
+            yourself if you use this option. However, doing that is
+            not easy (you also need to add a
+            `<literal>Template-MD5Sum</literal>' line with the correct
+            checksum, or <command>jigdo</command> will complain), so
+            use of this option is discouraged.</para>
           </listitem>
         </varlistentry>
 
@@ -490,30 +603,95 @@
           <term><option>--servers-section</option></term>
           <listitem>
             <para><emphasis>This is the default.</emphasis> Causes
-            <command>jigdo-file</command> to append a `[Servers]'
-            section at the end of the `<filename>.jigdo</filename>'
-            file. This default section uses `file:' URIs, which allows
-            for immediate reassembly of the image from the local
-            filesystem, and is also useful if you want to edit the
-            file manually and replace the `file:' URIs with other
-            URIs.</para>
+            <command>jigdo-file</command> to add a
+            `<literal>[Servers]</literal>' section to the
+            `<filename>.jigdo</filename>' file. This default section
+            uses `file:' URIs, which allows for immediate reassembly
+            of the image from the local filesystem, and is also useful
+            if you want to edit the file manually and replace the
+            `file:' URIs with other URIs.</para>
           </listitem>
         </varlistentry>
 
         <varlistentry>
           <term><option>--no-servers-section</option></term>
           <listitem>
-            <para>Do <emphasis>not</emphasis> add a `[Servers]'
-            section at the end of the `<filename>.jigdo</filename>'
-            file. Useful e.g. if you are going to append the section
-            with a script.</para>
+            <para>Do <emphasis>not</emphasis> add a
+            `<literal>[Servers]</literal>' section at the end of the
+            `<filename>.jigdo</filename>' file. Useful e.g. if you are
+            going to append the section with a script.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><option>--match-exec=<replaceable>SHELLCOMMAND</replaceable
+            ></option></term>
+          <listitem>
+            <para>Whenever a file is found in the image, execute the
+            supplied command string by passing it to a shell.
+            <command>jigdo-file</command> sets up a number of
+            environment variables with information about the file
+            match. For example, if the file
+            `<filename>/path//a/b/file</filename>' was found in the
+            image and `Label:a/b/file' is going to be written to the
+            `<filename>.jigdo</filename>' file:
+
+              <itemizedlist>
+                <listitem><para><envar>LABEL</envar>="<literal>Label</literal
+                >" - Name of the label for the file. The example assumes
+                that `<option>--label</option>
+                <literal>Label=/path</literal>' was specified by you.
+                In the absence of such an option, <envar>LABEL</envar>
+                will be set but empty.</para></listitem>
+
+                <listitem><para><envar>LABELPATH</envar>="<literal
+                >/path/</literal>" - The path corresponding to the label,
+                or in other words, the prefix of the matched file's
+                path that will <emphasis>not</emphasis> appear in the
+                output `<filename>.jigdo</filename>' file. Is set even
+                without any `<option>--label</option>' option present.
+                Ends with a slash.</para></listitem>
+
+                <listitem><para><envar>MATCHPATH</envar>="<literal
+                >a/b/</literal>" - The rest of the path, without the
+                leafname of the matched file. Is either empty or ends
+                with a slash.</para></listitem>
+
+                <listitem><para><envar>LEAF</envar>="<literal>file</literal>"
+                - The leafname of the matched file.</para></listitem>
+
+                <listitem><para><envar>MD5SUM</envar>="<literal
+                >lNVdUSqbo2yqm33webrhnw</literal>" - The md5sum of the
+                matched file, in Base64-like format.</para></listitem>
+
+                <listitem><para><envar>FILE</envar>="<literal
+                >/path//a/b/file</literal>" - For convenience, the
+                complete path of the file. The variable is always set
+                to <literal>$LABELPATH$MATCHPATH$LEAF</literal
+                >.</para></listitem>
+
+              </itemizedlist>
+            </para>
+
+            <para>Please be careful to correctly quote the string
+            passed to this option, otherwise your supplied command
+            will not work with filenames that contain spaces. As an
+            example, to create a backup of hard links to the matched
+            files, use the following option:
+            <literal>--match-exec='mkdir -p "${LABEL:-.}/$MATCHPATH"
+            && ln -f "$FILE" "${LABEL:-.}/$MATCHPATH$LEAF"'</literal>
+            </para>
+
+            <para>By default, no command is executed. Use
+            --match-exec="" to remove a command string which was set
+            with an earlier use of this option.</para>
           </listitem>
         </varlistentry>
       </variablelist>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="make-image">
       <title><command>make-image</command>, <command>mi</command></title>
 
       <para>Reads `<filename>.template</filename>' and
@@ -577,8 +755,8 @@
       </variablelist>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="print-missing">
       <title><command>print-missing</command>, <command>pm</command></title>
 
       <para>Reads `<filename>.jigdo</filename>',
@@ -591,22 +769,22 @@
       <command>jigdo</command> on the command line.</para>
 
       <para>For each part that is not yet present in the temporary
-      image file, the file checksum is looked up in the `[Parts]'
-      section of the jigdo file. Any label in the corresponding entry
-      is then expanded according to the label definitions in the
-      `[Servers]' section and printed on standard output.
-      <command>jigdo</command> allows you to specify several
-      alternative locations for each label in this section, but
-      <command>print-missing</command> will only output the first one
-      for each missing part.</para>
+      image file, the file checksum is looked up in the
+      `<literal>[Parts]</literal>' section of the jigdo file. Any
+      label in the corresponding entry is then expanded according to
+      the label definitions in the `<literal>[Servers]</literal>'
+      section and printed on standard output. <command>jigdo</command>
+      allows you to specify several alternative locations for each
+      label in this section, but <command>print-missing</command> will
+      only output the first one for each missing part.</para>
 
-      <para>If the checksum cannot be found in the `[Parts]' section
-      (this Should Not Happen unless you deleted that section), a
-      lookup is instead made for
+      <para>If the checksum cannot be found in the
+      `<literal>[Parts]</literal>' section (this Should Not Happen
+      unless you deleted that section), a lookup is instead made for
       `MD5Sum:<replaceable>&lt;checksum&gt;</replaceable>', just like
       with <command>jigdo</command>. (Thus, if you want to get rid of
-      the `[Parts]' section, you can do so if you rename each part to
-      its own checksum.)</para>
+      the `<literal>[Parts]</literal>' section, you can do so if you
+      rename each part to its own checksum.)</para>
 
       <variablelist>
         <varlistentry>
@@ -615,8 +793,9 @@
           <listitem>
             <para>Override the entries in the
             `<filename>.jigdo</filename>' file for any label with a
-            URI of your choice. With the example above, a `[Parts]'
-            entry of `Label:some/filename' will cause the line
+            URI of your choice. With the example above, a
+            `<literal>[Parts]</literal>' entry of
+            `Label:some/filename' will cause the line
             `http://some.server.org/some/filename' to be
             printed.</para>
 
@@ -632,8 +811,8 @@
       </variablelist>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="print-missing-all">
       <title><command>print-missing-all</command>,
       <command>pma</command></title>
 
@@ -646,8 +825,8 @@
       for <command>print-missing</command>.</para>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="verify">
       <title><command>verify</command>, <command>ver</command></title>
 
       <para>Reads <replaceable>image</replaceable> (presumably
@@ -662,8 +841,8 @@
       image with this command.</para>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="scan">
       <title><command>scan</command>, <command>sc</command></title>
 
       <para>Reads all the <replaceable>FILES</replaceable> and enters
@@ -672,8 +851,8 @@
       command.</para>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="md5sum">
       <title><command>md5sum</command>, <command>md5</command></title>
 
       <para>Reads all the <replaceable>FILES</replaceable> and prints
@@ -698,8 +877,8 @@
       checksums and/or writing the checksums of scanned files.</para>
 
     </refsect2>
-    <!-- ----------------------------------------- -->
-    <refsect2>
+    <!-- ========================================= -->
+    <refsect2 id="list-template">
       <title><command>list-template</command>, <command>ls</command></title>
 
       <para>Reads a `<filename>.template</filename>' file and outputs
@@ -712,10 +891,11 @@
       output also distinguishes between parts that have been written
       to the image and parts that haven't.</para>
 
-      <para>The following different types of lines can be output.
-      `have-file' only occurs for `<filename>.tmp</filename>' files,
-      indicating a file that has already been successfully written to
-      the temporary file:</para>
+      <para>The exact output format may change incompatibly between
+      different jigdo releases. The following different types of lines
+      can be output. `have-file' only occurs for
+      `<filename>.tmp</filename>' files, indicating a file that has
+      already been successfully written to the temporary file:</para>
 
       <screen
 >in-template  <replaceable>offset-in-image  length</replaceable>
@@ -727,8 +907,8 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
     </refsect2>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="details">
     <title>DETAILS</title>
 
     <para>Jigsaw Download was created with the format of ISO9660 CD
@@ -760,8 +940,7 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
     information is stored in the `<filename>.jigdo</filename>' file, a
     text file to which you can add URLs for your server(s). The jigdo
     file provides a mapping for each MD5 checksum to one or more
-    alternative download locations for the corresponding part. See the
-    section `FORMAT OF .JIGDO FILES' below for details.</para>
+    alternative download locations for the corresponding part.</para>
 
     <para>Apart from the mapping of MD5 sums to URIs, the jigdo file
     also contains an URI pointing to a download location for the
@@ -771,19 +950,18 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
     reassemble the complete image.</para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="jigdo-format">
     <title>FORMAT OF .JIGDO FILES</title>
-
-    <para><emphasis>WORK IN PROGRESS... at the moment, minor
-    modifications to the format are still possible.</emphasis></para>
 
     <para>The overall format of `<filename>.jigdo</filename>' files
     follows that of `<filename>.ini</filename>' files, as also used by
     the Gnome and KDE projects for some data. The file is organized
     into sections, each of which is preceded by a line reading
-    `[Sectionname]'. Within each section, lines have the form
-    `Label=Value'. Such lines are also called `entries' below.</para>
+    `<literal>[Sectionname]</literal>'. Within each section, lines
+    have the form `Label=Value'. Such lines are also called `entries'
+    below. All `<filename>.jigdo</filename>' files use UTF-8 as their
+    character encoding.</para>
 
     <para>Comments are introduced with the `<literal>#</literal>'
     character and extend to the end of the line. Whitespace is ignored
@@ -797,61 +975,105 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
     characters with special meaning (the characters
     <literal>'"#\</literal> and space/tab) must be quoted with
     <literal>\</literal> to appear in the value. As with the shell,
-    there is a difference between <literal>''</literal> and
-    <literal>""</literal>: Within <literal>''</literal>, the
-    characters <literal>"#\</literal> and whitespace lose their
-    special meaning, whereas within <literal>""</literal>, only the
-    characters <literal>'#</literal> and whitespace lose their special
-    meaning - in other words, backslash escapes still work inside
-    <literal>""</literal>, but not <literal>''</literal>.</para>
+    there is a difference between <literal>'&nbsp;'</literal> and
+    <literal>"&nbsp;"</literal>: Within <literal>'&nbsp;'</literal>,
+    the characters <literal>"#\</literal> and whitespace lose their
+    special meaning and become ordinary characters, whereas within
+    <literal>"&nbsp;"</literal>, only the characters
+    <literal>'#</literal> and whitespace lose their special meaning -
+    in other words, backslash escapes still work inside
+    <literal>"&nbsp;"</literal>, but not
+    <literal>'&nbsp;'</literal>.</para>
+
+    <para>`<filename>.jigdo</filename>' files can optionally be
+    compressed with <citerefentry>
+	<refentrytitle>gzip</refentrytitle><manvolnum>1</manvolnum>
+    </citerefentry>. <command>jigdo-file</command> always outputs
+    uncompressed files, which you can compress yourself. 
+    <command>jigdo-lite</command> supports single uncompressed and
+    compressed files. <command>jigdo</command> additionally supports
+    any number of concatenated plaintext and gzipped parts in the
+    files - for example, you can compress a
+    `<filename>.jigdo</filename>' file and then add a couple of lines
+    of uncompressed data to the end. In all cases, the
+    `<filename>.gz</filename>' extension should be removed from the
+    filename - the tools will determine automatically from the file
+    contents whether a file is compressed or not.</para>
 
     <para>Below is a description of the individual section names used
     by jigdo.</para>
 
-    <!-- >1 images per .jigdo -->
-
-    <refsect2>
+    <refsect2 id="jigdo-section">
       <title>Jigdo section</title>
 
       <screen
 >[Jigdo]
-Version=1.0
-Generator=jigdo-file/0.5.3
-Info=<replaceable>long description</replaceable></screen>
+Version=1.1
+Generator=jigdo-file/1.0.0</screen>
 
       <para>Information about the version of the jigdo file format
-      used, and the program that generated it. The `Info' label can
-      contain a description of the contents of the jigdo file.</para>
-
-      <para>There is one such section per
-      `<filename>.jigdo</filename>' file.</para>
+      used, and the program that generated it. There should be one
+      such section per `<filename>.jigdo</filename>' file.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="image-section">
       <title>Image section</title>
 
       <screen
 >[Image]
 Filename=<replaceable>"filename for saving on user's disc"</replaceable>
 Template=<replaceable>"URI where to fetch template file"</replaceable>
-Selected=yes|no
-ShortInfo=<replaceable>single-line description, for displaying menu of images</replaceable>
-Info=<replaceable>long description</replaceable></screen>
+Template-MD5Sum=OQ8riqT1BuyzsrT9964A7g
+ShortInfo=<replaceable>single-line description of the image (200 characters max.)</replaceable>
+Info=<replaceable>long description (5000 characters max.)</replaceable></screen>
 
-      <para>The `Selected' label indicates whether the image is
-      selected for download by default when <command>jigdo</command>
-      is run for this file.</para>
+      <para>The value for the `Template' entry can be either an URL
+      (absolute or relative to the URL of the jigdo file) or a string
+      of the form `<replaceable>Label</replaceable>:<replaceable
+      >pathname</replaceable>' (<emphasis>UNIMPLEMENTED</emphasis>),
+      as described below.</para>
 
-      <para>Instead of an URI, the value for the `Template' entry can
-      also be a string of the form `<replaceable>Label</replaceable
-      >:<replaceable>pathname</replaceable>', as described
-      below.</para>
+      <para>The `Template-MD5Sum' entry is added by
+      <command>jigdo-file</command> and specifies the MD5 checksum of
+      the generated `<filename>.template</filename>' file. It is used
+      by <command>jigdo</command> to detect cases where the downloaded
+      template data is corrupted or belongs to a different
+      image.</para>
 
-      <para>This section may occur multiple times, there is one such
-      section for each image in the jigdo file.</para>
+      <para>Unlike other entry values, the values of the
+      `<literal>ShortInfo</literal>' and `<literal>Info</literal>'
+      entries are <emphasis>not</emphasis> split up into words,
+      instead all quoting is preserved.</para>
+
+      <para>The value of the `<literal>Info</literal>' entry is
+      special in that <citerefentry>
+        <refentrytitle>jigdo</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry> can optionally parse XML markup it contains. If
+      the markup has errors such as unbalanced/unsupported tags, the
+      string is displayed literally, without XML parsing. Supported
+      tags are <literal>&lt;b&gt;&lt;/b&gt;</literal> (bold),
+      <literal>&lt;i&gt;&lt;/i&gt;</literal> (italic),
+      <literal>&lt;tt&gt;&lt;/tt&gt;</literal> (typewriter font),
+      <literal>&lt;u&gt;&lt;/u&gt;</literal> (underline),
+      <literal>&lt;big&gt;&lt;/big&gt;</literal> (larger font),
+      <literal>&lt;small&gt;&lt;/small&gt;</literal> (smaller font)
+      and <literal>&lt;br/&gt;</literal> (linebreak). Supported
+      entities include <literal>&amp;lt;</literal> (`&lt;'),
+      <literal>&amp;gt;</literal> (`&gt;') and
+      <literal>&amp;amp;</literal> (`&amp;'). Note that the whole
+      `<literal>Info</literal>' entry must be on one line in the jigdo
+      file.</para>
+
+      <para>This section may occur multiple times, but all except the
+      first one will be ignored. This is useful e.g. when creating a
+      `<filename>.jigdo</filename>' file for a DVD image when you
+      already have `<filename>.jigdo</filename>' files for CDs with
+      the same content: You can simply `<literal>[Include]</literal>'
+      (see below) the CDs' jigdo files at the end of the DVD jigdo
+      file, after its `<literal>[Image]</literal>' section.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="parts-section">
       <title>Parts section</title>
 
       <screen
@@ -869,12 +1091,13 @@ kyfebwu6clbYqqWUdFIyaw=LabelB:some/path/part2
       URI or a string of the form `<replaceable>Label</replaceable
       >:<replaceable>pathname</replaceable>', which is expanded into
       one or more URIs by looking up the definition(s) for the
-      <replaceable>Label</replaceable> in the `[Servers]'
-      section.</para>
+      <replaceable>Label</replaceable> in the
+      `<literal>[Servers]</literal>' section.</para>
 
       <para>In case a particular MD5 checksum cannot be found in any
-      `[Parts]' section by <command>jigdo</command>, the program will
-      perform a lookup for `<literal>MD5Sum:</literal><replaceable
+      `<literal>[Parts]</literal>' section by
+      <command>jigdo</command>, the program will perform a lookup for
+      `<literal>MD5Sum:</literal><replaceable
       >&lt;checksum&gt;</replaceable>', e.g. for
       `<literal>MD5Sum:xJNkjrq8NYMraeGavUpllw</literal>' if you
       deleted the line for `part0' above.</para>
@@ -882,11 +1105,20 @@ kyfebwu6clbYqqWUdFIyaw=LabelB:some/path/part2
       <para>A checksum appearing multiple times in this section
       indicates alternative download locations for the part.</para>
 
-      <para>There may be any number of `[Parts]' sections in the file;
-      they are all considered when looking up MD5 checksums.</para>
+      <para>There may be any number of `<literal>[Parts]</literal>'
+      sections in the file; they are all considered when looking up
+      MD5 checksums.</para>
+
+      <para><command>jigdo-file</command> always puts the
+      `<literal>[Parts]</literal>' section at the end of the file, and
+      it even rearranges any file specified with
+      <option>--merge</option> to have only one such section at the
+      end. This is done to allow <command>jigdo</command> to display
+      the information from the `<literal>[Image]</literal>' section
+      while the rest of that file is still being downloaded.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="servers-section">
       <title>Servers section</title>
 
       <screen
@@ -903,25 +1135,74 @@ LabelC=http://some.where.com/jigdo/</screen>
 
       <para>A label name appearing multiple times in this section
       indicates alternative download locations for the parts that use
-      the label in the `[Parts]' section. This notation makes it very
-      easy to add mirrors to the jigdo file.</para>
+      the label in the `<literal>[Parts]</literal>' section. This
+      notation makes it very easy to add mirrors to the jigdo
+      file.</para>
 
       <para>As shown by the example above, the label values may
-      themselves reference other labels. For example, the entry
-      `LabelB:some/path/part2' in the `[Parts]' section will expand to
+      themselves reference other labels. In this case, the entry
+      `LabelB:some/path/part2' in the `<literal>[Parts]</literal>'
+      section will expand to
       `http://some.where.com/jigdo/subdirectory/some/path/part2'.
       Loops in the label definitions result in undefined behaviour and
       must be avoided.</para>
 
-      <para>There may be any number of `[Servers]' sections in the
-      file; they are all considered when looking up labels. Either of
-      `[Parts]' or `[Servers]', but not both, can be omitted from the
-      jigdo file.</para>
+      <para>There may be any number of `<literal>[Servers]</literal>'
+      sections in the file; they are all considered when looking up
+      labels. Either of `<literal>[Parts]</literal>' or
+      `<literal>[Servers]</literal>', but not both, can be omitted
+      from the jigdo file.</para>
+    </refsect2>
+
+    <refsect2 id="comment-section">
+      <title>Comment section</title>
+
+      <screen
+>[Comment]
+Any text, except that lines must not begin with `['.</screen>
+
+      <para>All text following a `<literal>[Comment]</literal>' or
+      `<literal>[comment]</literal>' line is ignored, up to the next
+      line with a section label.</para>
+    </refsect2>
+
+    <refsect2 id="include">
+      <title>Include directive</title>
+
+      <screen>[Include http://some.url/file.jigdo]</screen>
+
+      <para>Lines of this form cause the content of the specified
+      jigdo file to be downloaded and parsed just like the main jigdo
+      file. The effect will be the same as copying the included file's
+      contents into the file which contains the include directive.</para>
+
+      <para>The URL argument can be an absolute or relative URL. 
+      Relative URLs are assumed to be relative to the URL of the jigdo
+      file which contains the include directive. Includes can be
+      nested, but it is an error to create a loop of include
+      directives. It is <emphasis>not</emphasis> possible to use URLs
+      of the form `<replaceable>Label</replaceable>:<replaceable
+      >pathname</replaceable>'.</para>
+
+      <para>The URL cannot be quoted with "". Any
+      `<literal>]</literal>' characters in the argument must be
+      escaped as `<literal>%5D</literal>', and any spaces as
+      `<literal>%20</literal>'.</para>
+
+      <para>Include directives are only supported by
+      <command>jigdo</command>, they are ignored by
+      <command>jigdo-lite</command>.</para>
+
+      <para>An include directive terminates any previous section, but
+      it does not start a new one. In other words, a new section must
+      always be started after the include line,
+      <command>jigdo</command> does not allow normal entries to appear
+      below the `<literal>[Include]</literal>'.</para>
     </refsect2>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="cache-files">
     <title>CACHE FILES</title>
 
     <para>Any file specified with the <option>--cache</option> option
@@ -970,11 +1251,11 @@ LabelC=http://some.where.com/jigdo/</screen>
     re-read.</para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="examples">
     <title>EXAMPLES</title>
 
-    <refsect2>
+    <refsect2 id="ex-cdimage">
       <title>Preparing your CD image for distribution</title>
 
       <para>You have created a CD image
@@ -997,11 +1278,10 @@ LabelC=http://some.where.com/jigdo/</screen>
         Mysite=ftp://mysite.org/</command></para></blockquote>
       </para>
 
-      <para>After editing the file
-      `<filename>/home/ftp/image.jigdo</filename>' to contain the
-      correct URI for the template, `ftp://mysite.org/image.template',
-      people can point <command>jigdo</command> at
-      `ftp://mysite.org/image.jigdo' to download your image.</para>
+      <para>People can now point <command>jigdo</command> at
+      `ftp://mysite.org/image.jigdo' to download your image. The
+      template file needs to be accessible as
+      `ftp://mysite.org/image.template'.</para>
 
       <para>Note that nothing prevents you from doing the same for an
       FTP server that isn't administrated by you - in that case, you
@@ -1010,7 +1290,7 @@ LabelC=http://some.where.com/jigdo/</screen>
       server/homepage.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="ex-largefile">
       <title>Preparing an arbitrary large file for
       distribution</title>
 
@@ -1032,10 +1312,10 @@ LabelC=http://some.where.com/jigdo/</screen>
       `<filename>.jigdo</filename>' file and provide the right URIs
       for the two servers that you are going to upload the
       `<filename>part<replaceable>XX</replaceable></filename>' files
-      as well as the `<filename>.template</filename>' file to.</para>
+      to.</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="ex-customize">
       <title>Customized versions of images</title>
 
       <para>Because it is possible to assign a different URI for each
@@ -1044,8 +1324,9 @@ LabelC=http://some.where.com/jigdo/</screen>
       Suppose that someone is distributing a CD image, and that you
       want to make a few small changes to it and redistribute your own
       version. You download the `<filename>official.iso</filename>' CD
-      image with <command>jigdo</command>, write it to CD-R, make your
-      changes (say, adding files from the
+      image with <command>jigdo</command> (passing it the URL of
+      `<filename>official.jigdo</filename>'), write it to CD-R, make
+      your changes (say, adding files from the
       `<filename>myfiles</filename>' directory on your harddisc) and
       produce your own version, `<filename>myversion.iso</filename>'.
       Next, you instruct <command>jigdo-file</command> to create the
@@ -1054,22 +1335,25 @@ LabelC=http://some.where.com/jigdo/</screen>
 
         <blockquote><para><command>jigdo-file make-template
         --image=myversion.iso /mnt/cdrom/ myfiles// --label
-        My=myfiles/ --uri
-        My=http://my.homepage.net/</command></para></blockquote>
+        My=myfiles/ --uri My=http://my.homepage.net/
+        --merge=official.jigdo</command></para></blockquote>
 
       while `<filename>official.iso</filename>' is mounted under
-      `<filename>/mnt/cdrom</filename>'. Now you need to create a
-      `<filename>.jigdo</filename>' file that references the same
-      files as the original image, but provides additional links for
-      any files <command>jigdo-file</command> picked up from the
-      `<filename>myfiles</filename>' directory. This is most easily
-      done by copying over the relevant sections from the jigdo file
-      for `<filename>official.iso</filename>' to your own version's
-      jigdo file.</para>
+      `<filename>/mnt/cdrom</filename>'. By using
+      <option>--merge</option>, you have told
+      <command>jigdo-file</command> to take the contents of
+      `<filename>official.jigdo</filename>', add to it a new
+      `<literal>[Image]</literal>' section for
+      `<filename>myversion.iso</filename>' and write the resulting
+      jigdo file to `<filename>myversion.jigdo</filename>' - so now
+      `<filename>myversion.jigdo</filename>' offers two images for
+      download, the original version and your modified version. (If
+      you do not want it to offer the official version, edit it and
+      remove the `<literal>[Image]</literal>' section that lists
+      `<filename>official.iso</filename>'.)</para>
 
-      <para>Finally, after also adding a correct link for the template
-      file, you can upload the `<filename>.jigdo</filename>' file, the
-      `<filename>.template</filename>' file and also the files in
+      <para>Now you can upload the `<filename>.jigdo</filename>' file,
+      the `<filename>.template</filename>' file and also the files in
       `<filename>myfiles</filename>' to `http://my.homepage.net/'.
       Thus, for people to download your modified image, you do
       <emphasis>not</emphasis> need to upload the complete image
@@ -1081,7 +1365,7 @@ LabelC=http://some.where.com/jigdo/</screen>
       changes end up in the new template file.)</para>
     </refsect2>
 
-    <refsect2>
+    <refsect2 id="ex-combine">
       <title>Combining many jigdo-managed images into one</title>
 
       <para>It is also no problem to combine data from several sources
@@ -1099,38 +1383,42 @@ LabelC=http://some.where.com/jigdo/</screen>
     </refsect2>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="bugs">
     <title>BUGS</title>
 
     <para>For certain contents of one of the input files, most notably
     a sequence of zero bytes longer than <option>--min-length</option>
-    at the start of the file, <command>jigdo-file
-    make-template</command> may fail to find the file in the image.
-    Unfortunately, this restriction cannot be avoided because the
-    program could become very slow otherwise.
-    <command>jigdo-file</command> may also fail to find the file that
-    <emphasis>follows</emphasis> an all-zeroes file in the image. To
-    avoid this, exclude the all-zeroes file from
-    <replaceable>FILES</replaceable> - this means that its data will
-    end up in the template data, but an all-zeroes file can be
-    compressed very well.</para>
+    at the start of the file and an area of zeros preceding the file
+    data in the image, <command>jigdo-file make-template</command> may
+    fail to find the file in the image. Unfortunately, this
+    restriction cannot be avoided because the program could become
+    very slow otherwise. If you use the <option>--debug</option>
+    option, all instances of <command>jigdo-file</command> discarding
+    possible matches are indicated by lines containing the word
+    `<literal>DROPPED</literal>'.</para>
 
     <para>In fact, not only all-zeroes files trigger this behaviour,
-    but also any files which contain at their start a long sequence of
+    but also files which contain at their start a long sequence of
     short identical strings. For example, both a file containing only
     `<literal>a</literal>' characters and one containing
     `<literal>abcabcabcabc</literal>...' are problematic.</para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="seealso">
     <title>SEE ALSO</title>
 
     <para>
       <citerefentry>
         <refentrytitle>jigdo</refentrytitle><manvolnum>1</manvolnum>
       </citerefentry> (NOT YET IMPLEMENTED),
+      <citerefentry>
+        <refentrytitle>jigdo-lite</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry>,
+      <citerefentry>
+        <refentrytitle>jigdo-mirror</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry>,
       <citerefentry>
         <refentrytitle>split</refentrytitle><manvolnum>1</manvolnum>
       </citerefentry> (or `<command>info split</command>'),
@@ -1146,15 +1434,14 @@ LabelC=http://some.where.com/jigdo/</screen>
     </para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="author">
     <title>AUTHOR</title>
 
     <para><ulink url="http://atterer.net/jigdo/">Jigsaw
     Download</ulink> was written by Richard Atterer
-    <email>jigdo@atterer.net</email>, to make downloading of CD ROM
-    images for the Debian GNU/Linux distribution more
-    convenient.</para>
+    <email>jigdo atterer.net</email>, to make downloading of CD ROM
+    images for the Debian Linux distribution more convenient.</para>
 
   </refsect1>
 </refentry>

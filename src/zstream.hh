@@ -1,7 +1,7 @@
-/* $Id: zstream.hh,v 1.18 2002/02/16 18:52:05 richard Exp $ -*- C++ -*-
+/* $Id: zstream.hh,v 1.1.1.1 2003/07/04 22:29:41 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -20,15 +20,15 @@
 #ifndef ZSTREAM_HH
 #define ZSTREAM_HH
 
-#include <zlib.h>
+#include <config.h>
 
+#include <zlib.h>
 #include <iostream>
-namespace std { }
-using namespace std;
 
 #include <bstream.hh>
 #include <config.h>
 #include <debug.hh>
+#include <md5sum.fh>
 #include <zstream.fh>
 //______________________________________________________________________
 
@@ -45,17 +45,22 @@ struct Zerror : Error {
     written to the underlying stream (i.e. the compressed data) exceed
     chunkLimit - once this happens, the zlib data is flushed and the
     resultant compressed chunk written out with a header (cf
-    ../doc/TechDetails.txt for format). This is jigdo-specific. */
+    ../doc/TechDetails.txt for format). This is jigdo-specific.
+
+    Additional features mainly useful for jigdo: If an MD5Sum object
+    is passed to Zobstream(), any data written to the output stream is
+    also passed to the object. */
 class Zobstream {
 public:
 
-  inline Zobstream();
+  inline Zobstream(MD5Sum* md = 0);
   /** Calls close(), which might throw a Zerror exception! Call
       close() before destroying the object to avoid this. */
   ~Zobstream() { close(); delete zipBuf; Assert(todoBuf == 0); }
   inline Zobstream(bostream& s, size_t chunkLimit,
                    int level = Z_DEFAULT_COMPRESSION, int windowBits = 15,
-                   int memLevel = 8, size_t todoBufSz = 256U);
+                   int memLevel = 8, size_t todoBufSz = 256U,
+                   MD5Sum* md = 0);
   bool is_open() const { return stream != 0; }
   /** @param todoBufSz Size of mini buffer, which holds data sent to
       the stream with single put() calls or << statements */
@@ -113,6 +118,8 @@ private:
   ZipData* zipBufLast; // Last link
 
   size_t chunkLim;
+
+  MD5Sum* md5sum;
 };
 //______________________________________________________________________
 
@@ -172,17 +179,19 @@ private:
 /* Initialising todoBufSize and todoCount in this way allows us to
    move Assert(is_open) out of the inline functions and into zip() for
    calls to put() and write() */
-Zobstream::Zobstream() : todoBuf(0), todoBufSize(0), todoCount(0),
-                         stream(0), zipBuf(0), zipBufLast(0) {
+Zobstream::Zobstream(MD5Sum* md) : todoBuf(0), todoBufSize(0), todoCount(0),
+                                   stream(0), zipBuf(0), zipBufLast(0),
+                                   md5sum(md) {
   z.zalloc = (alloc_func)0;
   z.zfree = (free_func)0;
   z.opaque = 0;
 }
 
 Zobstream::Zobstream(bostream& s, size_t chunkLimit, int level,
-                     int windowBits, int memLevel, size_t todoBufSz)
+                     int windowBits, int memLevel, size_t todoBufSz,
+                     MD5Sum* md)
     : todoBuf(0), todoBufSize(0), todoCount(0), stream(0),
-      zipBuf(0), zipBufLast(0) {
+      zipBuf(0), zipBufLast(0), md5sum(md) {
   z.zalloc = (alloc_func)0;
   z.zfree = (free_func)0;
   z.opaque = 0;
@@ -228,7 +237,7 @@ Zobstream& Zobstream::write(const byte* x, size_t n) {
 }
 //________________________________________
 
-Zibstream::Zibstream(bistream& s, size_t bufSz = 64*1024)
+Zibstream::Zibstream(bistream& s, size_t bufSz)
     : stream(0), bufSize(bufSz), buf(0) { // data* will be init'ed by open()
   z.zalloc = (alloc_func)0;
   z.zfree = (free_func)0;
@@ -236,7 +245,7 @@ Zibstream::Zibstream(bistream& s, size_t bufSz = 64*1024)
   open(s);
 }
 
-Zibstream::Zibstream(size_t bufSz = 64*1024)
+Zibstream::Zibstream(size_t bufSz)
     : stream(0), bufSize(bufSz), buf(0) {
   z.zalloc = (alloc_func)0;
   z.zfree = (free_func)0;

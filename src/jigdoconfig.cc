@@ -1,7 +1,7 @@
-/* $Id: jigdoconfig.cc,v 1.11 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: jigdoconfig.cc,v 1.5 2003/09/12 23:08:01 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -18,12 +18,11 @@
 
 #include <config.h>
 #include <jigdoconfig.hh>
+#include <log.hh>
 #include <string.hh>
-
-#ifndef JIGDOCONFIG_DEBUG
-#  define JIGDOCONFIG_DEBUG (DEBUG & 0)
-#endif
 //______________________________________________________________________
+
+DEBUG_UNIT("jigdoconfig")
 
 void JigdoConfig::ProgressReporter::error(const string& message) {
   cerr << message << endl;
@@ -59,7 +58,7 @@ JigdoConfig::JigdoConfig(const char* jigdoFile, ProgressReporter& pr)
     : config(0), serverMap(), freporter(pr, jigdoFile) {
   ifstream f(jigdoFile);
   if (!f) {
-    string err = subst(_("Could not open `%1' (%2)"),
+    string err = subst(_("Could not open `%1' for input: %2"),
                        jigdoFile, (errno != 0 ? strerror(errno) : ""));
     freporter.reporter->error(err);
     return;
@@ -70,13 +69,12 @@ JigdoConfig::JigdoConfig(const char* jigdoFile, ProgressReporter& pr)
   f >> *config;
 
   rescan();
-# if JIGDOCONFIG_DEBUG
-  cerr << "[Servers] mapping is:" << endl;
+# if DEBUG
+  debug("[Servers] mapping is:");
   for (Map::iterator i = serverMap.begin(), e =serverMap.end(); i != e; ++i){
-    cerr << i->first << ":\n";
     for (vector<string>::iterator j = i->second.begin(), k = i->second.end();
          j != k; ++j)
-      cerr << "    " << *j << endl;
+      debug("    %1 => %2", i->first, *j);
   }
 # endif
 }
@@ -134,9 +132,7 @@ void JigdoConfig::rescan() {
   while (!entries.empty()) {
     ServerLine& l = entries.front();
     string label(*l.line, l.labelStart, l.labelEnd - l.labelStart);
-#   if JIGDOCONFIG_DEBUG
-    cerr << "rescan: `" << label << '\'' << endl;
-#   endif
+    debug("rescan: `%1'", label);
     rescan_addLabel(entries, label, printError);
   }
 }
@@ -146,7 +142,8 @@ void JigdoConfig::rescan_makeSubst(list<ServerLine>& entries,
     Map::iterator mapl, const ServerLine& l, bool& printError) {
   // Split the value, "Foo:some/path", into whitespace-separated words
   vector<string> words;
-  ConfigFile::split(words, l.line, l.valueStart);
+  ConfigFile::split(words, *l.line, l.valueStart);
+# if 0
   if (words.size() > 1 && printError) {
     /* In the future, there might be support for --switches, so don't
        allow >1 words per URI. */
@@ -159,6 +156,7 @@ void JigdoConfig::rescan_makeSubst(list<ServerLine>& entries,
     freporter.error(err, lineNr);
     printError = false;
   }
+# endif
   //____________________
 
   // Where to append new URIs for this label
@@ -175,45 +173,33 @@ void JigdoConfig::rescan_makeSubst(list<ServerLine>& entries,
   string& s = words.front();
   string::size_type colon = s.find(':');
   if (colon == string::npos) {
-#   if JIGDOCONFIG_DEBUG
-    cerr << "Appending to entry for `" << mapl->first << "' fixed mapping `"
-         << s << '\'' << endl;
-#   endif
+    debug("Appending to entry for `%1' fixed mapping `%2'", mapl->first, s);
     uris.push_back(s); // No label ref, append directly
     return;
   }
   //____________________
 
   string refLabel(s, 0, colon);
-# if JIGDOCONFIG_DEBUG
-  cerr << "rescan_addLabel   ref `" << refLabel << '\'' << endl;
-# endif
+  debug("rescan_addLabel   ref `%1'", refLabel);
 
   // Ensure there's a map entry for refLabel, even if it's empty - RECURSE
   Map::iterator mapr = rescan_addLabel(entries, refLabel, printError);
   Paranoid(mapr != serverMap.end());
   if (mapr->second.empty()) {
-#   if JIGDOCONFIG_DEBUG
-    cerr << "Appending to entry for `" << mapl->first << "' fixed mapping `"
-         << s << '\'' << endl;
-#   endif
+    debug("Appending to entry for `%1' fixed mapping `%2'", mapl->first, s);
     uris.push_back(s); // Label not defined, so no substitution
     return;
   }
 
   /* For each of the mappings of "Foo", substitute the "Foo:" in
      "label" with the mapping */
-# if JIGDOCONFIG_DEBUG
-  cerr << "Appending to entry for `" << mapl->first << "' mappings for `"
-       << refLabel << "':" << endl;
-# endif
+  debug("Appending to entry for `%1' mappings for `%2':",
+        mapl->first, refLabel);
   for (vector<string>::iterator i = mapr->second.begin(),
          e = mapr->second.end(); i != e; ++i) {
     uris.push_back(*i);
     uris.back().append(s, colon + 1, string::npos);
-#   if JIGDOCONFIG_DEBUG
-    cerr << "    " << uris.back() << endl;
-#   endif
+    debug("    %1", uris.back());
   }
   return;
 }
@@ -247,9 +233,7 @@ JigdoConfig::Map::iterator JigdoConfig::rescan_addLabel(
   if (mapl != serverMap.end()) return mapl;
 
   // Create entry in serverMap for this label.
-# if JIGDOCONFIG_DEBUG
-  cerr << "rescan_addLabel label `" << label << '\'' << endl;
-# endif
+  debug("rescan_addLabel label `%1'", label);
   pair<Map::iterator,bool> x =
       serverMap.insert(make_pair(label, vector<string>()));
   mapl = x.first;

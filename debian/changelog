@@ -1,11 +1,111 @@
-jigdo (0.6.5-2) stable; urgency=low
+jigdo (0.7.1-5) unstable; urgency=low
 
-  * Backported some changes from 0.6.8 to stable:
-  * Relative template URLs allowed, closes: #149885
+  * Added build-depends on GCC 3.4, use it for compilation
+    Closes: #221375: jigdo should be compiled with g++-3.3 to undergo
+    c102 transition.
+
+ -- Richard Atterer <atterer@debian.org>  Sat, 31 Jul 2004 17:09:30 +0200
+
+jigdo (0.7.1-4) unstable; urgency=low
+
+  * jigdo-file: Bugfix for the code which deduces missing --image/
+    --jigdo/--template arguments. Broken in 0.7.1, would deduce
+    /x.iso.template from /x.iso, instead of /x.template (Adrian Bunk)
+    Closes: #257646: output file name changes broke scripts
+
+ -- Richard Atterer <atterer@debian.org>  Mon,  5 Jul 2004 15:45:21 +0200
+
+jigdo (0.7.1-3) unstable; urgency=low
+
+  * jigdo-lite: Fixed regular expressions so they work with sed 4.1
+    Closes: #256331: Problem with recent unstable dvd images
+
+ --  <atterer@debian.org>  Sat, 26 Jun 2004 13:17:38 +0200
+
+jigdo (0.7.1-2) unstable; urgency=low
+
+  * Fix for a build error on 64 bit architectures
+  * Accidentally built 0.7.1-1 as a native package
+
+ --  <atterer@debian.org>  Thu, 24 Jun 2004 12:23:32 +0200
+
+jigdo (0.7.1-1) unstable; urgency=low
+
+  * New upstream release 
+  * Fixes segfaults due to big local vars on stack, closes: #192275
+  * jigdo-lite: Fix interpretation of jigdo-file return code,
+    closes: #205740
+  * Upstream release includes workaround which enables DVD (>4GB file)
+    creation even if compiled with GCC 3.0 to 3.4, closes: #248489
+  * Bugfix for "jigdo-file make-image": Failed assertion
+    `nextAlignedOff>off' and huge .template with >4GB image,
+    closes: #223786
+
+ -- Richard Atterer <atterer@debian.org>  Wed, 23 Jun 2004 15:26:36 +0200
+
+jigdo (0.7.0-2) unstable; urgency=low
+
+  * Fix for a build error on 64 bit architectures
+  * Including upstream changelog in jigdo binary package
+
+ -- Richard Atterer <atterer@debian.org>  Tue,  6 May 2003 21:12:41 +0200
+
+jigdo (0.7.0-1) unstable; urgency=low
+
+  * New upstream release
+  * First release of a BETA version of the jigdo GTK+ GUI in Debian
+  * jigdo-lite: Fix for problem with the "read" builtin with some
+    shells, e.g. dash; closes: #183691
+
+ -- Richard Atterer <atterer@debian.org>  Fri,  2 May 2003 17:28:28 +0200
+
+jigdo (0.6.9-2) unstable; urgency=low
+
+  * Fixed build errors with new versions of GCC 3.2, closes: #178195
+
+ -- Richard Atterer <atterer@debian.org>  Sat, 25 Jan 2003 00:10:32 +0100
+
+jigdo (0.6.9-1) unstable; urgency=low
+
+  * New upstream release
+  * jigdo-lite: When temporary dir is already present, scan its
+    contents *before* downloading the first batch of files,
+    closes: #153643
+  * jigdo-file: Prevent infinite loop if I/O error occurs during
+    scanning of files, closes: #153947
+  * jigdo-lite: Use a separate temporary dir for each new download. 
+    This allows you to run several jigdo-lite instances in the same
+    dir at the same time, closes: #154338
+  * Improved handling of invalid cache files (created if disc gets
+    full during cache update): Instead of crashing, jigdo-file prints
+    an error. However, libdb still corrupts the cache file,
+    closes: #163721
+  * jigdo-lite supports a --scan command line option to avoid the
+    "Files to scan" question, closes: #176947
+  * Conflicts: jigdo (<< 0.6.9) because of jigdo.mo in both packages,
+    just to allow for smooth upgrade for people using my unofficial
+    jigdo package.
+  * Added the Debian jigdo mini-HOWTO to the doc directory
+
+ -- Richard Atterer <atterer@debian.org>  Thu, 26 Dec 2002 18:02:28 +0100
+
+jigdo (0.6.8-1) unstable; urgency=low
+
+  * New upstream release
   * jigdo-lite/mirror use "jigdo-file --no-cache" when reading
     downloaded files from tmp dir, closes: #150973
 
- -- Richard Atterer <atterer@debian.org>  Thu, 19 Dec 2002 15:44:31 +0100
+ -- Richard Atterer <atterer@debian.org>  Fri, 28 Jun 2002 23:04:47 +0200
+
+jigdo (0.6.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Fixed in 0.6.6: [Image] sections in jigdo files now include
+    checksum of template data, closes: #141418
+  * Relative URLs allowed; fixes #149885, but leaving bug open and
+    tagged "woody".
+
+ -- Richard Atterer <atterer@debian.org>  Thu, 13 Jun 2002 22:07:15 +0200
 
 jigdo (0.6.5-1) unstable; urgency=medium
 

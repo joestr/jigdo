@@ -1,7 +1,7 @@
-/* $Id: jigdo-file-cmd.cc,v 1.12 2002/02/16 18:41:59 richard Exp $ -*- C++ -*-
+/* $Id: jigdo-file-cmd.cc,v 1.10 2004/06/18 23:22:47 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -11,16 +11,15 @@
 
 */
 
+#include <config.h>
+
 #include <fstream>
 #include <memory>
-namespace std { }
-using namespace std;
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include <config.h>
 #include <compat.hh>
 #include <debug.hh>
 #include <jigdo-file-cmd.hh>
@@ -31,25 +30,43 @@ using namespace std;
 
 namespace {
 
-/* Open named file or stdin if name is "-". Store pointer to stream
-   obj in dest and return it (except when it points to stdin; in this
-   case return null). */
+#if !HAVE_WORKING_FSTREAM /* ie istream and bistream are not the same */
+/* Open named file or stdin if name is "-". Store pointer to stream obj in
+   dest and return it (except when it points to an object which should not be
+   deleted by the caller; in this case return null). */
+bistream* openForInput(bistream*& dest, const string& name) throw(Cleanup) {
+  if (name == "-") {
+    dest = &bcin;
+    return 0;
+  }
+  dest = new bifstream(name.c_str(), ios::binary);
+  if (!*dest) {
+    cerr << subst(_("%1: Could not open `%2' for input: %3"),
+                  binName(), name, strerror(errno)) << endl;
+    throw Cleanup(3);
+  }
+  return dest;
+}
+#endif
+
+/* Open named file or stdin if name is "-". Store pointer to stream obj in
+   dest and return it (except when it points to an object which should not be
+   deleted by the caller; in this case return null). */
 istream* openForInput(istream*& dest, const string& name) throw(Cleanup) {
   if (name == "-") {
-    /* EEEEK! There's no standard way to switch mode of cin to binary.
-       (There might be an implementation-dependent way? close()ing and
-       re-open()ing cin may have strange effects.) */
+    /* EEEEK! There's no standard way to switch mode of cin to binary. (There
+       might be an implementation-dependent way? close()ing and re-open()ing
+       cin may have strange effects.) */
     dest = reinterpret_cast<istream*>(&cin);
     return 0;
-  } else {
-    dest = new ifstream(name.c_str(), ios::binary);
-    if (!*dest) {
-      cerr << subst(_("%1: Error opening `%2' for input (%3)"),
-                    binName(), name, strerror(errno)) << endl;
-      throw Cleanup(3);
-    }
-    return dest;
   }
+  dest = new ifstream(name.c_str(), ios::binary);
+  if (!*dest) {
+    cerr << subst(_("%1: Could not open `%2' for input: %3"),
+                  binName(), name, strerror(errno)) << endl;
+    throw Cleanup(3);
+  }
+  return dest;
 }
 
 /* Ensure that an output file is not already present. Should use this
@@ -68,14 +85,30 @@ int willOutputTo(const string& name, bool optForce,
   return 1;
 }
 
+#if !HAVE_WORKING_FSTREAM /* ie istream and bistream are not the same */
+bostream* openForOutput(bostream*& dest, const string& name) throw(Cleanup) {
+  if (name == "-") {
+    dest = &bcout;
+    return 0;
+  }
+  dest = new bofstream(name.c_str(), ios::binary|ios::trunc);
+  if (!*dest) {
+    cerr << subst(_("%1: Could not open `%2' for output: %3"),
+                  binName(), name, strerror(errno)) << endl;
+    throw Cleanup(3);
+  }
+  return dest;
+}
+#endif
+
 ostream* openForOutput(ostream*& dest, const string& name) throw(Cleanup) {
   if (name == "-") {
     dest = reinterpret_cast<ostream*>(&cout); // EEEEK!
     return 0;
   } else {
-    dest = new ofstream(name.c_str(), ios::binary);
+    dest = new ofstream(name.c_str(), ios::binary|ios::trunc);
     if (!*dest) {
-      cerr << subst(_("%1: Error opening `%2' for output (%3)"),
+      cerr << subst(_("%1: Could not open `%2' for output: %3"),
                     binName(), name, strerror(errno)) << endl;
       throw Cleanup(3);
     }
@@ -107,10 +140,7 @@ int JigdoFileCmd::addLabels(JigdoCache& cache) {
     entry.first.assign(*i, 0U, firstEquals);
     entry.second.assign(*i, firstEquals + 1, string::npos);
     // Add mapping to uriMap
-#   if DEBUG
-    cerr << "URI mapping: `" << entry.first << "' => `" << entry.second
-         << "'" << endl;
-#   endif
+    msg("URI mapping: `%1' => `%2'", entry.first, entry.second);
     uriMap.insert(entry);
   }
   optUris.clear();
@@ -180,12 +210,6 @@ int JigdoFileCmd::makeTemplate() {
                         "contain the complete image contents!"));
   }
 
-//   if (imageFile != "-") {
-//     struct stat fileInfo;
-//     if (stat(imageFile.c_str(), &fileInfo) == 0)
-//       imageSize = fileInfo.st_size;
-//   }
-
   // Give >1 error messages if >1 output files not present, hence no "||"
   if (willOutputTo(jigdoFile, optForce)
       + willOutputTo(templFile, optForce) > 0) throw Cleanup(3);
@@ -194,8 +218,21 @@ int JigdoFileCmd::makeTemplate() {
   bistream* image;
   auto_ptr<bistream> imageDel(openForInput(image, imageFile));
 
-  ostream* jigdo;
-  auto_ptr<ostream> jigdoDel(openForOutput(jigdo, jigdoFile));
+  auto_ptr<ConfigFile> cfDel(new ConfigFile());
+  ConfigFile* cf = cfDel.get();
+  if (!jigdoMergeFile.empty()) { // Load file to add to jigdo output
+    istream* jigdoMerge;
+    auto_ptr<istream> jigdoMergeDel(openForInput(jigdoMerge,
+                                                 jigdoMergeFile));
+    *jigdoMerge >> *cf;
+    if (jigdoMerge->bad()) {
+      string err = subst(_("%1 make-template: Could not read `%2' (%3)"),
+                         binaryName, jigdoMergeFile, strerror(errno));
+      optReporter->error(err);
+      return 3;
+    }
+  }
+  JigdoConfig jc(jigdoFile, cfDel.release(), *optReporter);
 
   bostream* templ;
   auto_ptr<bostream> templDel(openForOutput(templ, templFile));
@@ -209,13 +246,30 @@ int JigdoFileCmd::makeTemplate() {
     catch (RecurseError e) { optReporter->error(e.message); continue; }
     break;
   }
+  // Create and run MkTemplate operation
   auto_ptr<MkTemplate>
-    op(new MkTemplate(&cache, image, jigdo, templ, *optReporter,
+    op(new MkTemplate(&cache, image, &jc, templ, *optReporter,
                      optZipQuality, readAmount, optAddImage, optAddServers));
-  size_t lastDirSep = imageFile.find_last_of(DIRSEP);
+  op->setMatchExec(optMatchExec);
+  size_t lastDirSep = imageFile.rfind(DIRSEP);
   if (lastDirSep == string::npos) lastDirSep = 0; else ++lastDirSep;
   string imageFileLeaf(imageFile, lastDirSep);
-  if (op.get()->run(imageFileLeaf)) return 3;
+  lastDirSep = templFile.rfind(DIRSEP);
+  if (lastDirSep == string::npos) lastDirSep = 0; else ++lastDirSep;
+  string templFileLeaf(templFile, lastDirSep);
+  if (op->run(imageFileLeaf, templFileLeaf)) return 3;
+
+  // Write out jigdo file
+  ostream* jigdoF;
+  auto_ptr<ostream> jigdoDel(openForOutput(jigdoF, jigdoFile));
+  *jigdoF << jc.configFile();
+  if (jigdoF->bad()) {
+    string err = subst(_("%1 make-template: Could not write `%2' (%3)"),
+                       binaryName, jigdoFile, strerror(errno));
+    optReporter->error(err);
+    return 3;
+  }
+
   return 0;
 }
 //______________________________________________________________________
@@ -268,6 +322,8 @@ int JigdoFileCmd::listTemplate() {
                     "input.\n"), binaryName);
     exit_tryHelp();
   }
+
+  if (JigdoFileCmd::optHex) Base64String::hex = true;
 
   // Open file
   bistream* templ;
@@ -423,6 +479,7 @@ int JigdoFileCmd::printMissing(Command command) {
   }
   //____________________
 
+  string partsSection = "Parts";
   switch (command) {
 
   case PRINT_MISSING: {
@@ -435,13 +492,13 @@ int JigdoFileCmd::printMissing(Command command) {
       vector<string> words;
       size_t off;
       bool found = false;
-      for (ConfigFile::Find f(cf, "Parts", s, &off);
+      for (ConfigFile::Find f(cf, partsSection, s, &off);
            !f.finished(); off = f.next()) {
         // f.section() points to "[section]" line, or end() if 0th section
         // f.label()   points to "label=..." line, or end() if f.finished()
         // off is offset of part after "label=", or 0
         words.clear();
-        ConfigFile::split(words, f.label(), off);
+        ConfigFile::split(words, *f.label(), off);
         // Ignore everything but the first word
         if (printMissing_lookup(jc, words[0], false)) { found = true; break;}
       }
@@ -464,13 +521,13 @@ int JigdoFileCmd::printMissing(Command command) {
 
       vector<string> words;
       size_t off;
-      for (ConfigFile::Find f(cf, "Parts", s, &off);
+      for (ConfigFile::Find f(cf, partsSection, s, &off);
            !f.finished(); off = f.next()) {
         // f.section() points to "[section]" line, or end() if 0th section
         // f.label()   points to "label=..." line, or end() if f.finished()
         // off is offset of part after "label=", or 0
         words.clear();
-        ConfigFile::split(words, f.label(), off);
+        ConfigFile::split(words, *f.label(), off);
         // Ignore everything but the first word
         printMissing_lookup(jc, words[0], true);
       }
@@ -530,6 +587,9 @@ int JigdoFileCmd::md5sumFiles() {
     catch (RecurseError e) { optReporter->error(e.message); continue; }
     break;
   }
+
+  if (JigdoFileCmd::optHex) Base64String::hex = true;
+
   JigdoCache::iterator ci = cache.begin(), ce = cache.end();
   while (ci != ce) {
     Base64String m;

@@ -1,7 +1,7 @@
-/* $Id: scan.cc,v 1.36 2002/02/16 18:42:05 richard Exp $ -*- C++ -*-
+/* $Id: scan.cc,v 1.8 2003/09/03 19:28:13 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -11,11 +11,11 @@
 
 */
 
+#include <config.h>
+
 #include <iostream>
 #include <fstream>
 #include <string>
-namespace std { }
-using namespace std;
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
@@ -25,16 +25,14 @@ using namespace std;
 
 #include <bstream.hh>
 #include <compat.hh>
-#include <config.h>
 #include <configfile.hh>
+#include <log.hh>
 #include <scan.hh>
 #include <string.hh>
 #include <serialize.hh>
-
-#ifndef DEBUG_SCAN
-#  define DEBUG_SCAN (DEBUG && 0)
-#endif
 //______________________________________________________________________
+
+DEBUG_UNIT("scan")
 
 void JigdoCache::ProgressReporter::error(const string& message) {
   cerr << message << endl;
@@ -88,13 +86,9 @@ size_t FilePart::unserializeCacheEntry(const byte* data, size_t dataSize,
   // Ignore strange-looking entries
   if (blocks * serialSizeOf(md5Sum) != dataSize - PART_MD5SUM
       || blocks == 0) {
-#   if DEBUG_SCAN
-    if (blocks == 0)
-      cerr << "Cache: ERR #blocks == 0" << endl;
-    else
-      cerr << "Cache: ERR wrong entry size (" << (blocks * 16) << " vs "
-           << (dataSize - PART_MD5SUM) << endl;
-#   endif
+    if (blocks == 0) debug("ERR #blocks == 0");
+    else debug("ERR wrong entry size (%1 vs %2)",
+               blocks * 16, dataSize - PART_MD5SUM);
     return 0;
   }
   Paranoid(serialSizeOf(rsyncSum) == 8);
@@ -169,13 +163,13 @@ JigdoCache::JigdoCache(const string& cacheFileName, size_t expiryInSeconds,
     if (!cacheFileName.empty())
       cacheFile = new CacheFile(cacheFileName.c_str());
   } catch (DbError e) {
-    string err = subst(_("Could not open cache file: %1"), e.message);
+    string err = subst(_("Could not open cache file: %L1"), e.message);
     reporter.error(err);
   }
 }
 #else
-JigdoCache::JigdoCache(const string&, size_t, size_t bufLen = 128*1024,
-                       ProgressReporter& pr = noReport)
+JigdoCache::JigdoCache(const string&, size_t, size_t bufLen,
+                       ProgressReporter& pr)
   : blockLength(0), md5BlockLength(0), files(), nrOfFiles(0),
     locationPaths(), readAmount(bufLen), buffer(), reporter(pr) { }
 #endif
@@ -188,9 +182,7 @@ JigdoCache::~JigdoCache() {
     for (list<FilePart>::const_iterator i = files.begin(), e = files.end();
          i != e; ++i) {
       if (i->deleted() || !i->getFlag(FilePart::TO_BE_WRITTEN)) continue;
-#     if DEBUG_SCAN
-      cerr << "Cache: writing " << i->leafName() << endl;
-#     endif
+      debug("Writing %1", i->leafName());
       FilePart::SerializeCacheEntry serializer(*i, this, blockLength,
                                                md5BlockLength);
       try {
@@ -206,8 +198,14 @@ JigdoCache::~JigdoCache() {
       time_t expired = time(0);
       Paranoid(expired != static_cast<time_t>(-1));
       expired -= cacheExpiry;
-      try { cacheFile->expire(expired); }
-      catch (DbError e) { reporter.error(e.message); }
+      try {
+        cacheFile->expire(expired);
+      } catch (DbError e) {
+        string err = subst(_("Error during cache expiry: %1. The cache "
+                             "file may be corrupt, consider deleting it."),
+                           e.message);
+        reporter.error(err);
+      }
     }
 
     // Close db object, flushing changes to disc
@@ -226,7 +224,7 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
 
   // Do not forget to setParams() before calling this!
   Assert(c->md5BlockLength != 0);
-  size_t thisBlockLength = c->blockLength;
+  const size_t thisBlockLength = c->blockLength;
 
   sums.resize((size() + c->md5BlockLength - 1) / c->md5BlockLength);
   //____________________
@@ -242,21 +240,15 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
          md5BlockLength matches, but returned blockLength doesn't, we
          need to re-read the first block. */
       if (c->cacheFile->find(data, dataSize, leafName(), size(), mtime())) {
-#       if DEBUG_SCAN
-        cerr << "Cache: " << leafName() << " found, want block#" << blockNr
-             << endl;
-#       endif
+        debug("%1 found, want block#%2", leafName(), blockNr);
         size_t cachedBlockLength = unserializeCacheEntry(data, dataSize,
                                                          c->md5BlockLength);
         // Was all necessary data in cache? Yes => return it now.
         if (cachedBlockLength == thisBlockLength
             && (blockNr == 0 || mdValid())) {
-#         if DEBUG_SCAN
-          cerr << "Cache: " << leafName() << " loaded, blockLen ("
-               << thisBlockLength << ") matched, "
-               << (mdValid() ? sums.size() : 1) << '/' << sums.size()
-               << " in cache" << endl;
-#         endif
+          debug("%1 loaded, blockLen (%2) matched, %3/%4 in cache",
+                leafName(), thisBlockLength, (mdValid() ? sums.size() : 1),
+                sums.size());
           return &sums[blockNr];
         }
         /* blockLengths didn't match and/or the cache only contained
@@ -264,19 +256,16 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
            if we never queried the cache, except for the case when we
            need to re-read the first block because the blockLength
            changed, but *all* blocks' md5sums were in the cache. */
-#       if DEBUG_SCAN
-        cerr << "Cache: " << leafName() << " loaded, NO match (blockLen "
-             << cachedBlockLength << " vs " << thisBlockLength << "), "
-             << (mdValid() ? sums.size() : 1) << '/' << sums.size()
-             << " in cache" << endl;
-#       endif
+        debug("%1 loaded, NO match (blockLen %2 vs %3), %4/%5 in cache",
+              leafName(), cachedBlockLength, thisBlockLength,
+              (mdValid() ? sums.size() : 1), sums.size());
       }
     } catch (DbError e) {
       string err = subst(_("Error accessing cache: %1"), e.message);
       c->reporter.error(err);
     }
   }
-# endif
+# endif /* HAVE_LIBDB */
   //____________________
 
   // Open input file
@@ -291,7 +280,7 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
       err = _("Error opening file `-' "
               "(using standard input not allowed here)");
     } else {
-      err = subst(_("Error opening `%1' for input - excluded"), name);
+      err = subst(_("Could not open `%L1' for input - excluded"), name);
       if (errno != 0) {
         err += " (";
         err += strerror(errno);
@@ -321,39 +310,32 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
      if scanning >1 md5 block */
   uint64 nextReport = mdLeft;
   MD5Sum md;
-  if (blockNr != 0) md5Sum.reset();
+  md5Sum.reset();
   vector<MD5>::iterator sum = sums.begin();
   //____________________
 
   // Calculate RsyncSum of head of file and MD5Sums for all blocks
 
-  Assert(c->blockLength <= c->md5BlockLength);
+  Assert(thisBlockLength <= c->md5BlockLength);
   byte* buf = &c->buffer[0];
-
-  //size_t rsumLeft = c->blockLength;
-  size_t rsumLeft = c->md5BlockLength;
-  byte* rcur = buf;
-  size_t n = 0;
-  while (rsumLeft > 0 && input.good()) {
-    readBytes(input, rcur, rsumLeft);
+  byte* bufpos = buf;
+  byte* bufend = buf + (c->readAmount > thisBlockLength ?
+                        c->readAmount : thisBlockLength);
+  while (input && static_cast<size_t>(bufpos - buf) < thisBlockLength) {
+    readBytes(input, bufpos, bufend - bufpos);
     size_t nn = input.gcount();
-    n += nn; rsumLeft -= nn; rcur += nn;
+    bufpos += nn;
+    debug("Read %1", nn);
   }
+  size_t n = bufpos - buf;
+  // Create RsyncSum of 1st bytes of file, or leave at 0 if file too small
   rsyncSum.reset();
-  rsyncSum.addBack(buf, // Create RsyncSum of 1st bytes of file
-                   thisBlockLength);
-  //cerr << "getSumsRead rsyncSum done, " << n << " bytes read, "
-  //     << leafName() << endl;
+  if (n >= thisBlockLength) rsyncSum.addBack(buf, thisBlockLength);
   //__________
 
-  while (input.good() || off == 0) { // While not end of file
-    if (off != 0) {
-      Paranoid(blockNr != 0);
-      // Read more data
-      readBytes(input, buf, c->readAmount);
-      n = input.gcount();
-    }
-    //bytesSoFar += n;
+  while (true) { // Will break out if error or whole file read
+
+    // n is number of valid bytes in buf[]
     off += n;
     if (off > size()) break; // Argh - file size changed
 
@@ -371,13 +353,12 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
       byte* cur = buf + mdLeft;
       size_t nn = n - mdLeft;
       do {
-#       if DEBUG_SCAN
-        cerr << name << ": mdLeft (0), switching to next md "
-             << "at off " << off - nn + mdLeft << ", left " << nn
-             << ", writing sum#" << (sum - sums.begin()) << endl;
-#       endif
+        md.finishForReuse();
+        debug("%1: mdLeft (0), switching to next md at off %2, left %3, "
+              "writing sum#%4: %5", name, off - n + cur - buf, nn,
+              sum - sums.begin(), md.toString());
         Paranoid(sum != sums.end());
-        (*sum) = md.finishForReuse();
+        *sum = md;
         ++sum;
         size_t m = (nn < c->md5BlockLength ? nn : c->md5BlockLength);
         md.reset().update(cur, m);
@@ -388,33 +369,44 @@ const MD5* FilePart::getSumsRead(JigdoCache* c, size_t blockNr) {
 
     md5Sum.update(buf, n); // Create MD5 for the whole file
 
-    if (blockNr == 0 && sum != sums.begin()) // Only wanted the 1st block
-      break;
-  } // endwhile: While not end of file
+    if (blockNr == 0 && sum != sums.begin()) break; // Only wanted 1st block
+    if (!input) break; // End of file or error
 
-  Paranoid(sum != sums.end());
+    // Read more data
+    readBytes(input, buf, c->readAmount);
+    n = input.gcount();
+    debug("%1: read %2", name, n);
+
+  } // Endwhile (true), will break out if error or whole file read
+
+  Paranoid(sum != sums.end() // >=1 trailing bytes
+           || mdLeft == c->md5BlockLength); // 0 trailing bytes
   if (off == size() && input.eof()) {
-#   if DEBUG_SCAN
-    cerr << name << ": writing trailing sum#"
-         << (sum - sums.begin()) << endl;
-#   endif
+    // Whole file was read
     c->reporter.scanningFile(this, size()); // 100% scanned
-    (*sum) = md.finish(); // Digest of trailing bytes
+    if (mdLeft < c->md5BlockLength) {
+      (*sum) = md.finish(); // Digest of trailing bytes
+      debug("%1: writing trailing sum#%2: %3",
+            name, sum - sums.begin(), md.toString());
+    }
     md5Sum.finish(); // Digest of whole file
     setFlag(MD_VALID);
     return &sums[blockNr];
   } else if (blockNr == 0 && sum != sums.begin()) {
-#   if DEBUG_SCAN
-    cerr << name << ": file header read, sum#0 written" << endl;
-#   endif
+    // Only first md5 block of file was read
+    debug("%1: file header read, sum#0 written", name);
+#   if DEBUG
+    md5Sum.finish(); // else failed assert in FilePart::SerializeCacheEntry
+#   else
     md5Sum.abort(); // Saves the memory until whole file is read
+#   endif
     return &sums[0];
   }
   //____________________
 
   // Some error happened
-  string err = subst(_("Error while reading `%1' - file will be ignored"),
-                     name);
+  string err = subst(_("Error while reading `%1' - file will be ignored "
+                       "(%2)"), name, strerror(errno));
   markAsDeleted(c);
   c->reporter.error(err);
   return 0;
@@ -446,7 +438,6 @@ void JigdoCache::setParams(size_t blockLen, size_t md5BlockLen) {
 void JigdoCache::addFile(const string& name) {
   // Do not forget to setParams() before calling this!
   Assert(md5BlockLength != 0);
-  //cerr << "addFile(" << name << endl;
   // Assumes nonempty filenames
   Paranoid(name.length() > 0);
 
@@ -484,7 +475,6 @@ void JigdoCache::addFile(const string& name) {
   }
   compat_swapFileUriChars(fileUri); // Directory separator is always '/'
   ConfigFile::quote(fileUri);
-  //cerr << "addFile: " << fileUri << ' ' << path << '|' << nameRest << endl;
   //____________________
 
   // If necessary, create a label for the path before "//"

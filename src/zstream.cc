@@ -1,7 +1,7 @@
-/* $Id: zstream.cc,v 1.20 2002/02/21 00:38:52 richard Exp $ -*- C++ -*-
+/* $Id: zstream.cc,v 1.6 2004/06/16 15:21:49 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -11,23 +11,22 @@
 
 */
 
+#include <config.h>
+
 #include <errno.h>
 #include <string.h>
-
 #include <algorithm>
 #include <fstream>
 #include <new>
-namespace std { }
-using namespace std;
 
-#include <config.h>
+#include <log.hh>
+#include <md5sum.hh>
+#include <serialize.hh>
 #include <string.hh>
 #include <zstream.hh>
-
-#ifndef DEBUG_ZSTREAM
-#  define DEBUG_ZSTREAM (DEBUG && 0)
-#endif
 //______________________________________________________________________
+
+DEBUG_UNIT("zstream")
 
 namespace {
 
@@ -75,7 +74,7 @@ void Zibstream::throwZerror(int status, const char* zmsg) {
 void Zobstream::open(bostream& s, size_t chunkLimit, int level,
                      int windowBits, int memLevel, size_t todoBufSz) {
   Assert(!is_open());
-  todoBufSize = (MIN_TODOBUF_SIZE > todoBufSz ? MIN_TODOBUF_SIZE : todoBufSz);
+  todoBufSize = (MIN_TODOBUF_SIZE > todoBufSz ? MIN_TODOBUF_SIZE :todoBufSz);
   chunkLim = chunkLimit;
 
   todoCount = 0;
@@ -92,7 +91,6 @@ void Zobstream::open(bostream& s, size_t chunkLimit, int level,
 
 void Zobstream::close() {
   if (!is_open()) return;
-  //cerr<<"zobstream:close()" << endl;
   zip(todoBuf, todoCount, Z_FINISH); // Flush out remain. buffer contents
 
   int status = deflateEnd(&z);
@@ -111,45 +109,10 @@ void Zobstream::close() {
 }
 //______________________________________________________________________
 
-namespace {
-
-  // Write lower 48 bits of x to s in little-endian order
-  void write48(bostream& s, uint64 x) {
-    s << static_cast<byte>(x & 0xff)
-      << static_cast<byte>((x >> 8) & 0xff)
-      << static_cast<byte>((x >> 16) & 0xff)
-      << static_cast<byte>((x >> 24) & 0xff)
-      << static_cast<byte>((x >> 32) & 0xff)
-      << static_cast<byte>((x >> 40) & 0xff);
-  }
-
-  uint64 read48(bistream& s) {
-    byte buf[6];
-    byte* x = buf;
-    size_t toRead = 6;
-    while (s && toRead > 0) {
-      readBytes(s, x, toRead);
-      size_t n = s.gcount();
-      x += n;
-      toRead -= n;
-    }
-    return static_cast<uint64>(buf[0])
-      | (static_cast<uint64>(buf[1]) << 8)
-      | (static_cast<uint64>(buf[2]) << 16)
-      | (static_cast<uint64>(buf[3]) << 24)
-      | (static_cast<uint64>(buf[4]) << 32)
-      | (static_cast<uint64>(buf[5]) << 40);
-  }
-
-} // namespace
-//________________________________________
-
 // Write compressed, flushed data to output stream
 void Zobstream::writeZipped() {
-# if DEBUG_ZSTREAM
-  cerr << "Zobstream: Writing " << z.total_out << " bytes compressed, was "
-       << z.total_in << " uncompressed" << endl;
-# endif
+  debug("Writing %1 bytes compressed, was %2 uncompressed",
+        z.total_out, z.total_in);
 
   // #Bytes     Value   Description
   // ----------------------------------------------------------------------
@@ -157,14 +120,17 @@ void Zobstream::writeZipped() {
   //  6       dataLen "Length of part, i.e. length of compressed data + 16"
   //  6       dataUnc "Number of bytes of *uncompressed* data of this part"
   // dataLen-16       "Compressed data"
-  (*stream) << static_cast<unsigned char>(0x44)  // D
-            << static_cast<unsigned char>(0x41)  // A
-            << static_cast<unsigned char>(0x54)  // T
-            << static_cast<unsigned char>(0x41); // A
+  byte buf[16];
+  byte* p = buf;
+  serialize4(0x41544144u, p); // DATA
   uint64 l = z.total_out + 16;
-  write48(*stream, l);
+  serialize6(l, p + 4);
   l = z.total_in;
-  write48(*stream, l);
+  serialize6(l, p + 10);
+  writeBytes(*stream, buf, 16);
+  if (!stream->good())
+    throw Zerror(0, string(_("Could not write template data")));
+  if (md5sum != 0) md5sum->update(buf, 16);
 
   ZipData* zd = zipBuf;
   size_t len;
@@ -172,6 +138,7 @@ void Zobstream::writeZipped() {
     Paranoid(zd != 0);
     len = (z.total_out < ZIPDATA_SIZE ? z.total_out : ZIPDATA_SIZE);
     writeBytes(*stream, zd->data, len);
+    if (md5sum != 0) md5sum->update(zd->data, len);
     if (!stream->good())
       throw Zerror(0, string(_("Could not write template data")));
     zd = zd->next;
@@ -190,7 +157,7 @@ void Zobstream::writeZipped() {
 }
 //________________________________________
 
-void Zobstream::zip(byte* start, size_t len, int flush = Z_NO_FLUSH) {
+void Zobstream::zip(byte* start, size_t len, int flush) {
   Assert(is_open());
 
   // If big enough, finish and write out this chunk
@@ -289,6 +256,7 @@ Zibstream& Zibstream::read(byte* dest, size_t n) {
 
   //cerr << "Zibstream::read: " << n << " to read, avail_in=" << z.avail_in
   //     << endl;
+  SerialIstreamIterator in(*stream);
   while (z.avail_out > 0) {
     //____________________
 
@@ -299,12 +267,9 @@ Zibstream& Zibstream::read(byte* dest, size_t n) {
       int status = inflate(&z, Z_NO_FLUSH);
       gcountVal = z.next_out - dest;
       dataUnc -= z.next_out - oldNextOut;
-#     if DEBUG_ZSTREAM
-      cerr << "Zibstream::read: avail_out=" << z.avail_out
-           << " dataLen=" << dataLen
-           << " dataUnc=" << dataUnc << " status=" << status
-           << " - inflated " << z.next_out - oldNextOut << endl;
-#     endif
+      debug("read: avail_out=%1 dataLen=%2 dataUnc=%3 status=%4 - "
+            "inflated %5", z.avail_out, dataLen, dataUnc, status,
+            z.next_out - oldNextOut);
       Assert(dataUnc > 0 || (status == Z_STREAM_END || status == Z_OK));
       if (z.avail_out == 0) break;
       if (status != Z_OK && status != Z_STREAM_END)
@@ -320,7 +285,7 @@ Zibstream& Zibstream::read(byte* dest, size_t n) {
       const char* cur = hdr;
       byte x;
       while (*cur != '\0' && *stream) {
-        *stream >> x; // Any errors handled below, after end of while()
+        x = stream->get(); // Any errors handled below, after end of while()
         if (*cur != x) { // Reached end of file or non-DATA part
           stream->seekg(hdr - cur, ios::cur);
           delete[] buf;
@@ -329,8 +294,9 @@ Zibstream& Zibstream::read(byte* dest, size_t n) {
         }
         ++cur;
       }
-      dataLen = read48(*stream) - 16;
-      dataUnc = read48(*stream);
+      unserialize6(dataLen, in);
+      dataLen -= 16;
+      unserialize6(dataUnc, in);
 #     if 0
       cerr << "Zibstream::read: avail_out=" << z.avail_out
            << " dataLen=" << dataLen
