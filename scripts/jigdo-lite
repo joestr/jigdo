@@ -51,7 +51,7 @@ userAgent="jigdo-lite/1.1 (`wget --version 2>/dev/null | (read ver; echo $ver)`)
 fetchAndMerge() {
     (mkdir "$tmpDir"; cd "$tmpDir"; fetch "$@")
     # Merge into the image
-    $jigdoFile $jigdoOpts make-image $ijtOpts "$tmpDir"
+    $jigdoFile $jigdoOpts --no-cache make-image $ijtOpts "$tmpDir"
     jigdoErr="$?"
     if test "$jigdoErr" -ge 2; then
         echo "jigdo-file failed with code $jigdoErr - aborting."
@@ -126,7 +126,19 @@ hrule() {
 fetchTemplate() {
     if $fetchedTemplate; then return 0; fi
     echo 'Downloading .template file'
-    fetch --continue "$templateURI"
+    if isURI "$templateURI"; then
+        # Absolute template URL
+        echo 'Downloading .template file'
+        fetch --continue -- "$templateURI"
+    elif isURI "$jigdo"; then
+        # Template URI is relative to absolute jigdo URL
+        echo 'Downloading .template file'
+        fetch --continue -- `echo "$jigdo" | sed 's%[^/]*$%%'`"$templateURI"
+    else
+        # Template URI is relative to local jigdo filename
+        template=`echo "$jigdo" | sed 's%[^/]*$%%'`"$templateURI"
+    fi
+
     fetchedTemplate=true
     # Does template exist now?
     if test ! -r "$template"; then

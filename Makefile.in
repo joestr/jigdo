@@ -101,8 +101,8 @@ install-jigdo:
 		$(INSTALL_DATA) "$(srcdir)/COPYING" \
 		    "$(DESTDIR)$(datadir)/jigdo/COPYING"
 install-po:
-		@test "$(catalogs)" \
-                && for file in $(catalogs); do \
+		@if test "$(catalogs)"; then \
+                for file in $(catalogs); do \
 		    lang=`echo $$file | sed -e 's/\.gmo$$//'`; \
 		    dir="$(DESTDIR)$(datadir)/locale/$$lang/LC_MESSAGES"; \
 		    echo "$(INSTALL) -d \"$$dir\""; \
@@ -112,7 +112,7 @@ install-po:
 		    echo "$(INSTALL_DATA) $$s \"$$dir/$(PACKAGE).mo\""; \
 		    $(INSTALL_DATA) "$$s" "$$dir/$(PACKAGE).mo" \
 		        || exit 1; \
-		done
+		done; fi
 
 Makefile:	Makefile.in configure VERSION
 		sh config.status # update Makefile from Makefile.in

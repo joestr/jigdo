@@ -1,0 +1,41 @@
+jigdo (0.6.5-2) stable; urgency=low
+
+  * Backported some changes from 0.6.8 to stable:
+  * Relative template URLs allowed, closes: #149885
+  * jigdo-lite/mirror use "jigdo-file --no-cache" when reading
+    downloaded files from tmp dir, closes: #150973
+
+ -- Richard Atterer <atterer@debian.org>  Thu, 19 Dec 2002 15:44:31 +0100
+
+jigdo (0.6.5-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Richard Atterer <atterer@debian.org>  Wed, 17 Apr 2002 15:12:01 +0200
+
+jigdo (0.6.4-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Richard Atterer <atterer@debian.org>  Fri,  1 Mar 2002 23:52:44 +0100
+
+jigdo (0.6.3-1) unstable; urgency=medium
+
+  * New upstream release
+  * Fixes build problems on 64-bit machines, closes: #133533
+
+ -- Richard Atterer <atterer@debian.org>  Sat, 23 Feb 2002 22:08:17 +0100
+
+jigdo (0.6.2-2) unstable; urgency=medium
+
+  * Unversioned dependency on wget, to allow wget-ssl to be used
+    instead of wget. Closes: #132903, #133008
+
+ -- Richard Atterer <atterer@debian.org>  Sat,  9 Feb 2002 18:25:22 +0100
+
+jigdo (0.6.2-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Richard Atterer <atterer@debian.org>  Mon,  4 Feb 2002 17:54:16 +0100
+
