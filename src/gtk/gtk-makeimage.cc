@@ -1,4 +1,4 @@
-/* $Id: gtk-makeimage.cc,v 1.14 2003/12/21 19:22:37 atterer Exp $ -*- C++ -*-
+/* $Id: gtk-makeimage.cc,v 1.19 2005/04/10 16:36:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -24,7 +24,8 @@ GtkMakeImage::GtkMakeImage(const string& uriStr, const string& destDir)
   : progress(), status(), treeViewStatus(), dest(),
     imageInfo(_("\nDownloading .jigdo data - please wait...")),
     imageShortInfo(),
-    mid(this, uriStr, destDir) {
+    mid(uriStr, destDir) {
+  mid.io.addListener(*this);
   // Remove all trailing '/' from dest dir, even if result empty
   unsigned destLen = destDir.length();
   while (destLen > 0 && destDir[destLen - 1] == DIRSEP) --destLen;
@@ -32,6 +33,7 @@ GtkMakeImage::GtkMakeImage(const string& uriStr, const string& destDir)
 }
 
 GtkMakeImage::~GtkMakeImage() {
+  mid.killAllChildren();
   /* Delete all children. A simpler frontend would always delete them
      immediately when makeImageDl_finished() is called, but with GTK+, we
      leave them instantiated a few seconds (if child was successful) or until
@@ -157,43 +159,48 @@ void GtkMakeImage::updateWindow() {
 void GtkMakeImage::job_deleted() { }
 void GtkMakeImage::job_succeeded() { }
 
-void GtkMakeImage::job_failed(string* message) {
+void GtkMakeImage::job_failed(const string& message) {
+  debug("job_failed: %1", message);
   treeViewStatus = subst(_("<b>%E1</b>"), message);
-  status.swap(*message);
+  status = message;
   progress = _("Failed:");
   updateWindow();
   gtk_tree_store_set(jobList()->store(), row(), JobList::COLUMN_STATUS,
                      treeViewStatus.c_str(), -1);
 }
 
-void GtkMakeImage::job_message(string* message) {
-  treeViewStatus.swap(*message);
+void GtkMakeImage::job_message(const string& message) {
+  debug("job_message: %1", message);
+  treeViewStatus = message;
+  status = message;
   gtk_tree_store_set(jobList()->store(), row(),
                      JobList::COLUMN_STATUS, treeViewStatus.c_str(),
                      -1);
 }
 
-Job::DataSource::IO* GtkMakeImage::makeImageDl_new(
+void GtkMakeImage::makeImageDl_new(
     Job::DataSource* childDownload, const string& uri,
     const string& destDesc) {
-// # if DEBUG
-//   msg("GtkMakeImage::makeImageDl_new", 0);
-// # endif
+  debug("makeImageDl_new: %1", uri);
   GtkSingleUrl* child = new GtkSingleUrl(uri, destDesc, childDownload);
   GUI::jobList.prepend(child, this); // New child of "this" is "child"
   bool status = child->run();
   /* NB run() cannot result in "delete child;" for child mode, so we always
      return a valid pointer here. */
   Assert(status == SUCCESS);
-  return child;
+  childDownload->io.addListener(*child);
 }
 
-void GtkMakeImage::makeImageDl_finished(Job::DataSource* /*childDownload*/,
-                                        Job::DataSource::IO* yourIo) {
-  GtkSingleUrl* child = dynamic_cast<GtkSingleUrl*>(yourIo);
-  Assert(child != 0);
-  debug("Child finished");
-  child->childIsFinished();
+void GtkMakeImage::makeImageDl_finished(Job::DataSource* src) {
+  // mid.io.listeners()
+  for (IList<Job::DataSource::IO>::iterator i = src->io.listeners().begin(),
+         e = src->io.listeners().end(); i != e; ++i) {
+    GtkSingleUrl* child = dynamic_cast<GtkSingleUrl*>(&*i);
+    if (child != 0) {
+      debug("makeImageDl_finished: %1", src->location());
+      child->childIsFinished();
+    }
+  }
 }
 
 void GtkMakeImage::makeImageDl_haveImageSection() {

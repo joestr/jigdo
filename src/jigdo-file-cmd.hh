@@ -1,4 +1,4 @@
-/* $Id: jigdo-file-cmd.hh,v 1.6 2004/04/16 14:20:29 atterer Exp $ -*- C++ -*-
+/* $Id: jigdo-file-cmd.hh,v 1.13 2005/07/05 12:26:20 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Implementation of the different jigdo-file commands. To be used only
   by main() in jigdo-file.cc
@@ -27,7 +29,8 @@
 #include <mktemplate.hh>
 //______________________________________________________________________
 
-/// class for "pointer to any *Reporter class", with disambiguation members
+/** class for "pointer to any *Reporter class", with disambiguation
+    members */
 struct AnyReporter : public MkTemplate::ProgressReporter,
                      public JigdoCache::ProgressReporter,
                      public JigdoDesc::ProgressReporter,
@@ -45,7 +48,7 @@ struct AnyReporter : public MkTemplate::ProgressReporter,
 };
 //______________________________________________________________________
 
-/// Class providing functionality only to jigdo-file.cc
+/** Class providing functionality only to jigdo-file.cc */
 class JigdoFileCmd {
   friend int main(int argc, char* argv[]);
   //________________________________________
@@ -79,8 +82,13 @@ class JigdoFileCmd {
   static size_t md5BlockLength;
   static size_t readAmount;
   static int optZipQuality;
+  static bool optBzip2;
   static bool optForce; // true => Silently delete existent output
   static bool optMkImageCheck; // true => check MD5sums
+  static bool optCheckFiles; // true => check if files exist
+  static bool optScanWholeFile; // false => read only first block
+  // true => skip smaller matches if a larger match could be possible
+  static bool optGreedyMatching;
   static bool optAddImage; // true => Add [Image] section to output .jigdo
   static bool optAddServers; // true => Add [Servers] to output .jigdo
   static bool optHex; // true => Use hex not base64 output for md5/ls cmds
@@ -97,8 +105,10 @@ class JigdoFileCmd {
   static Command cmdOptions(int argc, char* argv[]);
   //________________________________________
 
-  /** Functions corresponding to the jigdo-file commands, defined in
+  /** @name
+      Functions corresponding to the jigdo-file commands, defined in
       jigdo-file-cmd.cc */
+  //@{
   static int makeTemplate();
   static int makeImage();
   static int printMissing(Command command = PRINT_MISSING);
@@ -106,13 +116,17 @@ class JigdoFileCmd {
   static int verifyImage();
   static int listTemplate();
   static int md5sumFiles();
+  //@}
 
-  /* Helper functions for the above functions, only to be used in
-     jigdo-file-cmd.cc */
+  /** @name
+      Helper functions for the above functions, only to be used in
+      jigdo-file-cmd.cc */
+  //@{
   static int addLabels(JigdoCache& cache);
   static void addUris(ConfigFile& config);
   static bool printMissing_lookup(JigdoConfig& jc, const string& query,
                                   bool printAll);
+  //@}
 };
 //______________________________________________________________________
 

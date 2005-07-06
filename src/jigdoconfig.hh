@@ -1,4 +1,4 @@
-/* $Id: jigdoconfig.hh,v 1.2 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
+/* $Id: jigdoconfig.hh,v 1.5 2005/04/09 14:44:50 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Representation for config data in a .jigdo file - based on ConfigFile
 
@@ -25,6 +27,7 @@
 #include <configfile.hh>
 //______________________________________________________________________
 
+/** Representation for config data in a .jigdo file - based on ConfigFile */
 class JigdoConfig {
 private:
   /* multimap doesn't make guarantees about order of inserted values
@@ -33,6 +36,8 @@ private:
   //________________________________________
 
 public:
+  /** To be implemented by anyone who is interested in errors/info from the
+      JigdoConfig */
   class ProgressReporter {
   public:
     virtual ~ProgressReporter() { }
@@ -41,11 +46,13 @@ public:
   };
   //________________________________________
 
+#if 0 /* Use same function from net/uri.hh */
   /** Helper function: Given a string, return 0 if the string has no "Label:"
       prefix, otherwise return the offset of the ':'. The "Label" portion of
       the string can contain *any* character except '/' and
       whitespace/control characters */
   static inline unsigned findLabelColon(const string& s);
+#endif
   //________________________________________
 
   /** Open file for input and create a ConfigFile object */
@@ -62,10 +69,10 @@ public:
   ConfigFile& configFile() { return *config; }
   //________________________________________
 
-  /** Prepare internal map from label name to URIs. Is called
-      automatically during JigdoConfig(), but must be called manually
-      afterwards whenever any entry in the ConfigFile's "[Servers]"
-      section changes. */
+  /** Prepare internal map from label name to URIs. Is called automatically
+      during JigdoConfig(), but must be called manually afterwards whenever
+      any entry in the ConfigFile's "[Servers]" section changes.  May throw
+      an Error if the jigdo file format version is not supported. */
   void rescan();
 
   /** Change reporter for error messages */
@@ -123,22 +130,12 @@ private:
                                 const string& label, bool& printError);
   inline void rescan_makeSubst(list<ServerLine>& entries, Map::iterator mapl,
                                const ServerLine& l, bool& printError);
+  void scanVersionInfo(); // Check for supported file format version number
 
   ConfigFile* config;
   Map serverMap;
   ForwardReporter freporter;
 };
-//______________________________________________________________________
-
-unsigned JigdoConfig::findLabelColon(const string& s) {
-  string::const_iterator i = s.begin(), e = s.end();
-  while (i != e) {
-    if (*i == '/' || static_cast<unsigned char>(*i) <= ' ') return 0;
-    if (*i == ':') return i - s.begin();
-    ++i;
-  }
-  return 0;
-}
 //______________________________________________________________________
 
 JigdoConfig::ForwardReporter::ForwardReporter(

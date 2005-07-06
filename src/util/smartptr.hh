@@ -1,25 +1,17 @@
-/* $Id: smartptr.hh,v 1.3 2003/09/03 19:28:13 atterer Exp $ -*- C++ -*-
+/* $Id: smartptr.hh,v 1.7 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2000-2003  |  richard@
+  |_) /|  Copyright (C) 2000-2004  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2 or
   later. See the file COPYING for details.
 
-  Smart pointer, i.e. pointer-like object that maintains a count for
+*//** @file
+
+  Smart pointer, i.e.\ pointer-like object that maintains a count for
   how many times an object is referenced, and only deletes the object
   when the last smart pointer to it is destroyed.
-
-  To make it possible to create smart pointers to objects of a class,
-  the class must inherit from SmartPtrBase.
-
-  NB: SmartPtrBase must only be inherited from *once*, so derive
-  virtually if it appears multiple times:
-
-  class MyClass : public virtual SmartPtrBase {
-    ...
-  };
 
 */
 
@@ -34,11 +26,14 @@
 
 struct SmartPtr_lockStatic;
 
-/* The version of SmartPtrBase below needs the following:
-     class Base    : public SmartPtrBase { ... };
-     class Derived : public Base { ... };
-   in order to allow a Derived object's address to be assigned to a
-   SmartPtr<Base>. Its only fault is that its member must be public. */
+/** The version of SmartPtrBase below needs the following:<pre>
+      class Base    : public SmartPtrBase { ... };
+      class Derived : public Base { ... };</pre>
+    in order to allow a Derived object's address to be assigned to a
+    SmartPtr<Base>. Its only fault is that its member must be public (or we
+    lose GCC 2.95 compatibility; friend templates only work as of 3.4).
+
+    The reference count is set to 0 by the ctor. */
 struct SmartPtrBase {
   //friend template class<X> SmartPtr<X>;
   friend struct SmartPtr_lockStatic;
@@ -63,18 +58,33 @@ struct SmartPtrBase {
 //  };
 //______________________________________________________________________
 
-/* If static objects are accessed through smart pointers, ensure that
-   there are no attempts to delete them, by defining a non-static
-   SmartPtr_lockStatic(object), which MUST be DEFINED (not declared)
-   AFTER the object being locked, in the SAME translation
-   unit. Otherwise, order of construction is not defined. */
+/** If static objects are accessed through smart pointers, ensure that there
+    are no attempts to delete them, by defining a non-static
+    SmartPtr_lockStatic(object), which MUST be DEFINED (not declared) AFTER
+    the object being locked, in the SAME translation unit. Otherwise, order
+    of construction is not defined. */
 struct SmartPtr_lockStatic {
   SmartPtr_lockStatic(SmartPtrBase& obj) { ++obj.smartPtr_refCount; }
   ~SmartPtr_lockStatic() { }
 };
 //______________________________________________________________________
 
-// There are no implicit conversions from/to the actual pointer.
+/** Smart pointer, i.e. pointer-like object that maintains a count for how
+    many times an object is referenced, and only deletes the object when the
+    last smart pointer to it is destroyed.
+
+    To make it possible to create smart pointers to objects of a class, the
+    class must inherit from SmartPtrBase.
+
+    NB: SmartPtrBase must only be inherited from *once*, so derive virtually
+    if it appears multiple times:
+
+    <pre>
+    class MyClass : public virtual SmartPtrBase {
+      ...
+    };</pre>
+
+  There are no implicit conversions from/to the actual pointer. */
 template<class X>
 class SmartPtr {
 public:

@@ -1,4 +1,4 @@
-/* $Id: gui.cc,v 1.9 2004/04/16 14:20:29 atterer Exp $ -*- C++ -*-
+/* $Id: gui.cc,v 1.15 2005/07/02 14:53:59 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/�|  Richard Atterer          |  atterer.net
@@ -19,6 +19,7 @@
 
 #include <fstream>
 #include <ctype.h>
+#include <errno.h>
 
 #include <gtk-single-url.hh>
 #include <gtk-makeimage.hh>
@@ -67,6 +68,7 @@ namespace {
    glade-generated data structures, connecting button press events to
    the corresponding function etc. */
 void GUI::create() {
+  debug("create");
   window.create();
   filesel.create();
   GUI::jobList.postGtkInit();
@@ -96,8 +98,8 @@ void GUI::create() {
   string banner = subst(_(
     "<span weight=\"bold\" foreground=\"black\">"
     "<span size=\"x-large\">Jigsaw Download %F1</span>\n"
-    "Copyright 2001-2004 Richard Atterer\n"
-    "http://atterer.net/jigdo</span>"), JIGDO_VERSION);
+    "Copyright 2001-%2 Richard Atterer\n"
+    "http://atterer.net/jigdo</span>"), JIGDO_VERSION, CURRENT_YEAR);
   gtk_label_set_markup(aboutJigdoLabel, banner.c_str());
   gtk_label_set_justify(aboutJigdoLabel, GTK_JUSTIFY_CENTER);
   //gtk_label_set_justify(GTK_LABEL(GUI::window.aboutJigdoButtonLabel),
@@ -142,15 +144,16 @@ void GUI::create() {
 
 # if DEBUG
   gtk_entry_set_text(GTK_ENTRY(window.open_URL),
-                     //"ftp://localhost/image"
-                     //"http://localhost:8000/~richard/ironmaiden/part32"
-#                    if WINDOWS
-                     "http://10.0.0.5:8000/~richard/ironmaiden/image.jigdo"
-#                    else
-                     "http://127.0.0.1:8000/~richard/ironmaiden/image.jigdo"
-#                    endif
-                     );
+      //"ftp://localhost/image"
+      //"http://localhost:8000/~richard/ironmaiden/part32"
+#     if WINDOWS
+      "http://192.168.0.5:8000/~richard/ironmaiden/image.jigdo"
+#     else
+      "http://127.0.0.1:8000/~richard/ironmaiden/image.jigdo"
+#     endif
+      );
 # endif
+  debug("create end");
 }
 //______________________________________________________________________
 
@@ -196,9 +199,9 @@ namespace {
     gtk_text_buffer_insert_with_tags(textBuf, &iter,
       _("\nJigsaw Download License\n"), -1, large, center, NULL);
     string copy = subst(_("\n"
-    "\tCopyright © 2001-2003 Richard Atterer <richard%1atterer.net>\n"
+    "\tCopyright © 2001-%1 Richard Atterer <richard%2atterer.net>\n"
     "\tJigsaw Download homepage: http://atterer.net/jigdo\n"
-    "\n"), '@');
+    "\n"), CURRENT_YEAR, '@');
     gtk_text_buffer_insert_with_tags(textBuf, &iter, copy.c_str(), -1,
                                      center, NULL);
     gtk_text_buffer_insert(textBuf, &iter, _(
@@ -210,28 +213,6 @@ namespace {
     "to link the jigdo code with the OpenSSL project's \"OpenSSL\" library "
     "(or with modified versions of it that use the same license as the "
     "\"OpenSSL\" library), and to distribute the linked executables.\n"),
-     -1);
-    gtk_text_buffer_insert_with_tags(textBuf, &iter,
-                                     "______________________________\n\n",
-                                     -1, center, NULL);
-    gtk_text_buffer_insert(textBuf, &iter, _(
-    "Jigsaw Download uses the World Wide Web Consortium's \"libwww\" "
-    "library (see <http://www.w3.org/Library/>), to which the "
-    "following license applies:\n"
-    "\n"
-    "Copyright © 1995-1998 World Wide Web Consortium, (Massachusetts "
-    "Institute of Technology, Institut National de Recherche en "
-    "Informatique et en Automatique, Keio University). All Rights Reserved. "
-    "This program is distributed under the W3C's Intellectual Property "
-    "License. This program is distributed in the hope that it will be "
-    "useful, but WITHOUT ANY WARRANTY; without even the implied warranty of "
-    "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See W3C License "
-    "<http://www.w3.org/Consortium/Legal/> for more details.\n"
-    "\n"
-    "Copyright © 1995 CERN. \"This product includes computer software "
-    "created and made available by CERN. This acknowledgment shall be "
-    "mentioned in full in any product which includes the CERN computer "
-    "software included herein or parts thereof.\"\n"),
      -1);
     gtk_text_buffer_insert_with_tags(textBuf, &iter,
                                      "______________________________\n\n",

@@ -1,3 +1,16 @@
+jigdo (0.7.2-1) unstable; urgency=low
+
+  * New upstream release
+  * Fixed de.po file
+    Closes: #314028: [INTL:de] German PO file corrections
+  * Closes: #292573: jigdo-file: Bad format string in error message
+  * Correctly deal with copy: URLs when reading /etc/apt/sources.list
+    Closes: #310881: jigdo-lite doesn't know copy:// urls
+  * Added support for --noask switch to jigdo-lite
+    Closes: #242729: jigdo-lite always asks for mirror
+
+ -- Richard Atterer <atterer@debian.org>  Wed,  6 Jul 2005 15:18:36 +0200
+
 jigdo (0.7.1-5) unstable; urgency=low
 
   * Added build-depends on GCC 3.4, use it for compilation

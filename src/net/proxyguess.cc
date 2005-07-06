@@ -1,4 +1,4 @@
-/* $Id: proxyguess.cc,v 1.8 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
+/* $Id: proxyguess.cc,v 1.14 2005/07/02 17:21:35 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -15,6 +15,26 @@
 
 */
 
+// This is what libcurl says about env vars (url.c:2326):
+    /* If proxy was not specified, we check for default proxy environment
+     * variables, to enable i.e Lynx compliance:
+     *
+     * http_proxy=http://some.server.dom:port/
+     * https_proxy=http://some.server.dom:port/
+     * ftp_proxy=http://some.server.dom:port/
+     * gopher_proxy=http://some.server.dom:port/
+     * no_proxy=domain1.dom,host.domain2.dom
+     *   (a comma-separated list of hosts which should
+     *   not be proxied, or an asterisk to override
+     *   all proxy variables)
+     * all_proxy=http://some.server.dom:port/
+     *   (seems to exist for the CERN www lib. Probably
+     *   the first to check for.)
+     *
+     * For compatibility, the all-uppercase versions of these variables are
+     * checked if the lowercase versions don't exist.
+     */
+
 #include <config.h>
 
 #include <fstream>
@@ -23,14 +43,21 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 
-#include <glibwww.hh>
+#include <glib.h>
+#include <glibcurl.h>
 #include <log.hh>
 #include <proxyguess.hh>
 //______________________________________________________________________
 
 DEBUG_UNIT("proxyguess")
+
+#ifndef TESTING_PROXYGUESS
+#warning TODO glibcurl_add_proxy
+void glibcurl_add_proxy(const char*, const char*) { }
+void glibcurl_add_noproxy(const char*) { }
+#endif
 
 #if WINDOWS
 
@@ -73,7 +100,7 @@ namespace {
         }
         if (host != "local") {
           debug("No proxy for %1", host);
-          glibwww_add_noproxy(host.c_str());
+          glibcurl_add_noproxy(host.c_str());
         }
         host.erase();
       }
@@ -99,8 +126,8 @@ namespace {
           string proxy = "http://";
           proxy.append(reinterpret_cast<const char*>(buf));
           debug("General proxy: %1", proxy);
-          glibwww_add_proxy("http", proxy.c_str());
-          glibwww_add_proxy("ftp", proxy.c_str());
+          glibcurl_add_proxy("http", proxy.c_str());
+          glibcurl_add_proxy("ftp", proxy.c_str());
         } else {
           // Per-protocol proxy settings
           string proto(entry, 0, equals);
@@ -108,7 +135,7 @@ namespace {
             string proxy = "http://";
             proxy.append(entry, equals + 1, string::npos);
             debug("%1 proxy: %2", proto, proxy);
-            glibwww_add_proxy(proto.c_str(), proxy.c_str());
+            glibcurl_add_proxy(proto.c_str(), proxy.c_str());
           }
         }
         entry.erase();
@@ -156,6 +183,7 @@ void proxyGuess() {
 
 namespace {
 
+  /** Local struct: Info about a browser configuration file */
   struct BrowserConfig {
     /* Init filename and timestamp */
     BrowserConfig(const string& name, time_t timestamp);
@@ -226,7 +254,7 @@ namespace {
     if (*proxy == '#') return false; // Assuming comment, not setting proxy
     if (*proxy == '\0') return false;
     debug("%1 proxy: %2", protocol, proxy);
-    glibwww_add_proxy(protocol, proxy);
+    glibcurl_add_proxy(protocol, proxy);
     return true;
   }
 
@@ -243,7 +271,7 @@ namespace {
         ++list;
       }
       debug("No proxy for %1", host);
-      glibwww_add_noproxy(host.c_str());
+      glibcurl_add_noproxy(host.c_str());
       host.erase();
     }
   }

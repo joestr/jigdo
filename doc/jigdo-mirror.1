@@ -3,7 +3,7 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "JIGDO-MIRROR" "1" "20 June 2004" "" ""
+.TH "JIGDO-MIRROR" "1" "10 July 2005" "" ""
 
 .SH NAME
 jigdo-mirror \- Maintain a mirror of images offered with jigdo
@@ -22,18 +22,18 @@ which only the jigdo and template files are available.
 .PP
 As the first step of using \fBjigdo-mirror\fR,
 you need to set up normal HTTP/FTP/rsync mirroring both of the
-`\fI.jigdo\fR'/`\fI.template\fR'
+`\fI\&.jigdo\fR\&'/`\fI\&.template\fR\&'
 files and of the parts that are needed for the reconstruction of
 the images. For example, in the case that you want to mirror
 Debian CD images with \fBjigdo-mirror\fR, you need a
 mirror of the
-`\fI.jigdo\fR'/`\fI.template\fR'
+`\fI\&.jigdo\fR\&'/`\fI\&.template\fR\&'
 files and a Debian mirror on the local machine.
 .PP
 At regular intervals (preferably immediately after the
 normal mirroring has finished), schedule a run of
-\fBjigdo-mirror\fR. It will search through a given
-directory for any `\fI.jigdo\fR' files and attempt
+\fBjigdo-mirror\fR\&. It will search through a given
+directory for any `\fI\&.jigdo\fR\&' files and attempt
 to create all images offered by each file.
 .PP
 The script requires you to set a number of variables -
@@ -44,7 +44,7 @@ will be overwritten whenever you upgrade
 \fBjigdo-mirror\fR, it is highly recommended
 \fBnot\fR to change the settings directly in this
 script. Instead, personal settings should be saved in a file
-called \fI.jigdo-mirror\fR in your home directory,
+called \fI\&.jigdo-mirror\fR in your home directory,
 or in a different file whose name is then passed to the script as
 its first (and only) command line argument.
 .SH "SEE ALSO"
@@ -53,7 +53,7 @@ its first (and only) command line argument.
 \fBjigdo-lite\fR(1)
 .PP
 CD images for Debian Linux can be downloaded with
-jigdo <URL:http://www.debian.org/CD/jigdo-cd/>.
+jigdo <URL:http://www.debian.org/CD/jigdo-cd/>\&.
 .SH "AUTHOR"
 .PP
 Jigsaw

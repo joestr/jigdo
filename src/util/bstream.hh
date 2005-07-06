@@ -1,4 +1,4 @@
-/* $Id: bstream.hh,v 1.15 2004/06/18 23:22:47 atterer Exp $ -*- C++ -*-
+/* $Id: bstream.hh,v 1.19 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2004  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -7,7 +7,9 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
-  I/O streams for bytes (byte is unsigned char, not regular char)
+*//** @file
+
+  I/O streams for bytes (byte is unsigned char, not regular char).
 
   This was first solved with typedefs like "typedef
   basic_istream<byte> bistream;". That turns out to be difficult,
@@ -145,6 +147,7 @@ uint64 bistream::tellg() const {
 }
 
 bostream& bostream::write(const char* p, streamsize n) {
+  Paranoid(f != 0);
   fwrite(p, 1, n, f);
   return *this;
 }
@@ -162,13 +165,14 @@ bifstream::bifstream(const char* name, ios::openmode m) : bistream() {
   open(name, m);
 }
 
-void bifstream::open(const char* name, ios::openmode m) {
+void bifstream::open(const char* name, ios::openmode DEBUG_ONLY_PARAM(m)) {
   Paranoid((m & ios::binary) != 0 && f == 0);
   f = fopen(name, "rb");
 }
 
 bofstream::bofstream(const char* name, ios::openmode m) : bostream() {
-  open(name, m);
+  // When opened this way, any existing file is truncated
+  open(name, m | ios::trunc);
 }
 
 #endif /* HAVE_WORKING_FSTREAM */

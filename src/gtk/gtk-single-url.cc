@@ -1,4 +1,4 @@
-/* $Id: gtk-single-url.cc,v 1.12 2003/09/12 23:08:01 atterer Exp $ -*- C++ -*-
+/* $Id: gtk-single-url.cc,v 1.19 2005/04/10 16:36:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -14,6 +14,7 @@
 #include <config.h>
 
 #include <time.h>
+#include <errno.h>
 
 #include <autoptr.hh>
 #include <gtk-single-url.hh>
@@ -29,29 +30,31 @@ DEBUG_UNIT("gtk-single-url")
 GtkSingleUrl::GtkSingleUrl(const string& uriStr, const string& destFile)
   : childMode(false), uri(uriStr), dest(destFile), progress(), status(),
     treeViewStatus(), destStream(0), messageBox(), job(0), singleUrl(0),
-    state(CREATED) { }
+    state(CREATED) {
+  debug("GtkSingleUrl %1, not child", this);
+}
 
 // Child mode, using supplied DataSource
 GtkSingleUrl::GtkSingleUrl(const string& uriStr, const string& destDesc,
                            Job::DataSource* download)
   : childMode(true), uri(uriStr), dest(destDesc), progress(), status(),
     treeViewStatus(), destStream(0), messageBox(), job(download),
-    singleUrl(0) { }
+    singleUrl(0), state(CREATED) {
+  debug("GtkSingleUrl %1, is child", this);
+}
 
 GtkSingleUrl::~GtkSingleUrl() {
+  debug("~GtkSingleUrl %1", childMode);
   callRegularly(0);
   if (jobList()->isWindowOwner(this))
     setNotebookPage(GUI::window.pageOpen);
   if (!childMode) {
     // Only delete if job owned, i.e. if we're not a child of another job
+    debug("Deleting job %1", job);
     delete job;
     Paranoid(job == 0); // Was set to 0 during above stmt by job_deleted()
   }
-  if (job != 0) {
-    // Ensure we're no longer called if anything happens to the download
-    job->io.remove(this);
-    Paranoid(job->io.get() != this); // Check whether remove() really worked
-  }
+  debug("~GtkSingleUrl done");
 }
 //______________________________________________________________________
 
@@ -105,7 +108,7 @@ bool GtkSingleUrl::run() {
 }
 //______________________________________________________________________
 
-void GtkSingleUrl::openOutputAndRun(bool pragmaNoCache) {
+void GtkSingleUrl::openOutputAndRun(/*bool pragmaNoCache*/) {
   // Open output file
   Paranoid(!childMode);
   Paranoid(destStream == 0);
@@ -124,9 +127,11 @@ void GtkSingleUrl::openOutputAndRun(bool pragmaNoCache) {
 
   // Allocate job and run it
   status = _("Waiting...");
-  if (job == 0) job = singleUrl = new Job::SingleUrl(this, uri);
+  if (job == 0) job = singleUrl = new Job::SingleUrl(uri);
+  debug("singleUrl=%1", singleUrl);
+  singleUrl->io.addListener(*this);
   singleUrl->setDestination(destStream.get(), 0, 0);
-  singleUrl->setPragmaNoCache(pragmaNoCache);
+  //singleUrl->setPragmaNoCache(pragmaNoCache);
   singleUrl->run();
 }
 //________________________________________
@@ -147,7 +152,10 @@ void GtkSingleUrl::openOutputAndResume() {
       status = subst(_("Resuming download - overlap is %1kB"),
                      Job::SingleUrl::RESUME_SIZE / 1024);
       updateWindow();
-      if (job == 0) job = singleUrl = new Job::SingleUrl(this, uri);
+      if (job == 0) job = singleUrl = new Job::SingleUrl(uri);
+      debug("singleUrl=%1", singleUrl);
+      iList_remove();
+      singleUrl->io.addListener(*this);
       singleUrl->setResumeOffset(fileInfo.st_size);
       singleUrl->setDestination(destStream.get(), 0, 0);
       singleUrl->run();
@@ -165,7 +173,7 @@ void GtkSingleUrl::openOutputAndResume() {
 }
 //______________________________________________________________________
 
-/* Auto-resume, c alled e.g. after the connection dropped unexpectedly, to
+/* Auto-resume, called e.g. after the connection dropped unexpectedly, to
    resume the download. */
 void GtkSingleUrl::startResume() {
   Paranoid(!childMode);
@@ -198,6 +206,8 @@ void GtkSingleUrl::startResume() {
   status = subst(_("Resuming download - overlap is %1kB"),
                  Job::SingleUrl::RESUME_SIZE / 1024);
   updateWindow();
+  iList_remove();
+  singleUrl->io.addListener(*this);
   singleUrl->setResumeOffset(job->progress()->currentSize());
   singleUrl->setDestination(destStream.get(), 0, 0);
   singleUrl->run();
@@ -292,13 +302,14 @@ void GtkSingleUrl::updateWindow() {
   if (job != 0) {
     if (state == PAUSED)
       canStart = TRUE;
-    else if (!childMode && (state == SUCCEEDED || state == STOPPED
+    else if (!childMode && (/*state == SUCCEEDED ||*/ state == STOPPED
                             ||state == ERROR && singleUrl->resumePossible()))
       canStart = TRUE;
   }
   gtk_widget_set_sensitive(GUI::window.download_startButton, canStart);
   gtk_widget_set_sensitive(GUI::window.download_pauseButton,
-    (job != 0 && state == RUNNING ? TRUE : FALSE));
+                           FALSE);
+  // once libcurl allows pausing: (job != 0 && state == RUNNING ? TRUE : FALSE));
   gtk_widget_set_sensitive(GUI::window.download_stopButton,
     (job != 0 && !childMode && (state == RUNNING || state == PAUSED)
      ? TRUE : FALSE));
@@ -373,6 +384,7 @@ void GtkSingleUrl::resumeResponse(GtkDialog*, int r, gpointer data) {
 
 /* The job whose io ptr references us is being deleted. */
 void GtkSingleUrl::job_deleted() {
+  debug("job_deleted job=singleUrl=0");
   job = singleUrl = 0;
   return;
 }
@@ -380,6 +392,7 @@ void GtkSingleUrl::job_deleted() {
 
 // Called when download succeeds
 void GtkSingleUrl::job_succeeded() {
+  debug("job_succeeded");
   callRegularly(0);
 
   // Can't see the same problem as with job_failed(), but just to be safe...
@@ -387,12 +400,13 @@ void GtkSingleUrl::job_succeeded() {
   if (!childMode) singleUrl->setDestination(0, 0, 0);
   string s;
   Progress::appendSize(&s, job->progress()->currentSize());
+  progress.erase();
   status = subst(_("Download is complete - fetched %1 (%2 bytes)"),
                  s, job->progress()->currentSize());
   if (state != STOPPED) state = SUCCEEDED;
   updateWindow();
   s = subst(_("Finished - fetched %1"), s);
-  job_message(&s);
+  job_message(s);
 }
 //______________________________________________________________________
 
@@ -411,7 +425,7 @@ void GtkSingleUrl::failedPermanently(string* message) {
 }
 //______________________________________________________________________
 
-void GtkSingleUrl::job_failed(string* message) {
+void GtkSingleUrl::job_failed(const string& message) {
   /* Important: close the file here. Otherwise, the following can happen: 1)
      Download aborts with an error, old JobLine still displays error message,
      isn't deleted yet; its stream stays open. 2) User restarts download, a
@@ -420,15 +434,17 @@ void GtkSingleUrl::job_failed(string* message) {
      JobLine doesn't overwrite all data from the first one, we end up with
      file contents like "data from 2nd download" + "up to a page full of null
      bytes" + "stale data from 1st download". */
+  Paranoid(job != 0);
   if (!childMode) singleUrl->setDestination(0, 0, 0);
   destStream.clear();
   if (state != STOPPED) state = ERROR;
-  debug("job_failed: %1", message);
-
   bool resumePossible = (job != 0
                          && !childMode
                          && state == ERROR
                          && singleUrl->resumePossible());
+  debug("job_failed: %1 job=%2 state=%3 resumePossible=%4",
+        message, job, state, resumePossible);
+
   if (resumePossible) {
     treeViewStatus = subst(_("Try %1 of %2 after <b>%E3</b>"),
                            singleUrl->currentTry() + 1,
@@ -437,7 +453,7 @@ void GtkSingleUrl::job_failed(string* message) {
     treeViewStatus = subst(_("<b>%E1</b>"), message);
   }
   //debug("job_failed: %1", message);
-  status.swap(*message);
+  status = message;
   if (progress.empty()) progress = _("Failed:");
   updateWindow();
   gtk_tree_store_set(jobList()->store(), row(), JobList::COLUMN_STATUS,
@@ -448,8 +464,8 @@ void GtkSingleUrl::job_failed(string* message) {
 }
 //______________________________________________________________________
 
-void GtkSingleUrl::job_message(string* message) {
-  treeViewStatus.swap(*message);
+void GtkSingleUrl::job_message(const string& message) {
+  treeViewStatus = message;
   gtk_tree_store_set(jobList()->store(), row(),
                      JobList::COLUMN_STATUS, treeViewStatus.c_str(),
                      -1);
@@ -464,7 +480,7 @@ void GtkSingleUrl::dataSource_dataSize(uint64) {
 
 void GtkSingleUrl::dataSource_data(const byte* /*data*/, unsigned /*size*/,
                                   uint64 /*currentSize*/) {
-  debug("dataSource_data %1", job->progress()->currentSize());
+  //debug("dataSource_data %1", job->progress()->currentSize());
   if (!needTicks())
     callRegularly(&GtkSingleUrl::showProgress);
 
@@ -724,7 +740,7 @@ void GtkSingleUrl::restart() {
   // Start the new download
   status = _("Download was restarted - waiting...");
   treeViewStatus = _("Restarted - waiting");
-  openOutputAndRun(true);
+  openOutputAndRun(/*true*/);
   state = RUNNING;
   progress.erase();
   updateWindow();
@@ -734,5 +750,6 @@ void GtkSingleUrl::restart() {
 }
 
 void GtkSingleUrl::deleteThis() {
+  debug("deleteThis %1", this);
   delete this;
 }

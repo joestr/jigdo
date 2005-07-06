@@ -1,4 +1,4 @@
-/* $Id: gtk-makeimage.hh,v 1.7 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
+/* $Id: gtk-makeimage.hh,v 1.11 2005/04/10 16:36:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -7,7 +7,14 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
+*//** @file
+
   Download and processing of .jigdo files - GTK+ frontend
+
+  Beware of the interesting ownership relations here: As the front-end,
+  GtkMakeImage creates and owns a MakeImageDl. That MakeImageDl creates child
+  downloads of its own which are owned by the MakeImageDl. GtkSingleUrls are
+  attached to those child downloads.
 
 */
 
@@ -20,6 +27,7 @@
 #include <makeimagedl.hh>
 //______________________________________________________________________
 
+/** Frontend for Job::MakeImageDl */
 class GtkMakeImage : public JobLine, private Job::MakeImageDl::IO {
 public:
   GtkMakeImage(const string& uriStr, const string& destDir);
@@ -49,13 +57,11 @@ private:
   // Virtual methods from Job::MakeImageDl::IO:
   virtual void job_deleted();
   virtual void job_succeeded();
-  virtual void job_failed(string* message);
-  virtual void job_message(string* message);
-  virtual Job::DataSource::IO* makeImageDl_new(
-      Job::DataSource* childDownload, const string& uri,
-      const string& destDesc);
-  virtual void makeImageDl_finished(Job::DataSource* childDownload,
-                                    Job::DataSource::IO* yourIo);
+  virtual void job_failed(const string& message);
+  virtual void job_message(const string& message);
+  virtual void makeImageDl_new(Job::DataSource* childDownload,
+                               const string& uri, const string& destDesc);
+  virtual void makeImageDl_finished(Job::DataSource* childDownload);
   virtual void makeImageDl_haveImageSection();
 
   // Update info in main window

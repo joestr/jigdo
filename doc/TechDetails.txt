@@ -81,7 +81,8 @@ The image template files consist of three types of parts:
 
 After the header of a template file, one or more raw data parts and
 one description part follow. Each part consists of a 4-byte ID ("DATA"
-or "DESC"), followed by 6 bytes of length. The length values are
+or "BZIP" for the zlib/bzip2-compressed data parts, "DESC" for the
+description), followed by 6 bytes of length. The length values are
 little-endian (i.e. least-significant byte first) because that *is*
 the proper end to open an egg. The length includes the ID and length
 field itself, so for an empty part (containing just the ID and the
@@ -190,7 +191,8 @@ written to the image.
 Raw data
 --------
 
-Binary data, a stream compressed with zlib (see RFC1950).
+Binary data, a stream compressed with zlib (see RFC1950) for "DATA" or
+libbz2 for "BZIP".
 
 For each type==2 entry in the description data, the uncompressed
 stream contains skipLen bytes of data. This is data that did not match
@@ -205,17 +207,23 @@ contains no type==2 entries.
 
 #Bytes     Value   Description
 ----------------------------------------------------------------------
- 4         dataID  "ID for the part: 'DATA' = the hex bytes 44 41 54 41"
+ 4         dataID  "ID for the part: 'DATA' = the hex bytes 44 41 54 41
+                                  or 'BZIP' = the hex bytes 42 5a 49 50"
  6         dataLen "Length of part, i.e. length of compressed data + 16"
  6         dataUnc "Number of bytes of *uncompressed* data of this part"
 dataLen-16         "Compressed data"
 ----------------------------------------------------------------------
 
-jigdo-file always takes care to subdivide the complete raw data into
-parts which are not larger than about 256kB each compressed. This is
-done to support certain applications of jigdo where seeking in the
+gzip: jigdo-file always takes care to subdivide the complete raw data
+into parts which are not larger than about 256kB each compressed. This
+is done to support certain applications of jigdo where seeking in the
 image is necessary. (Additionally, this allows jigdo-file to write the
 final template file to a non-seekable output, e.g. to stdout.)
+
+bzip2: The data is subdivided into chunks whose uncompressed size is
+almost exactly the size of the bzip2 chunk for that compression
+setting. For example, with the -9 switch, each chunk is about 900000
+bytes long uncompressed. (More accurately, it is 899950 bytes long.)
 
 Example for an application which needs to seek: A CGI program which
 creates an image on the fly as it is being sent to a browser will need
@@ -232,3 +240,6 @@ File format version history
 1.0 (jigdo-file/0.5.0): Initial format
 1.1 (jigdo-file/0.6.3): Format change in template files: New type 5
     obsoletes type 1. New type 6 obsoletes type 3.
+1.2 (jigdo-file/0.7.2): Format change in template files: In addition
+    to raw data that is gzipped ("DATA"), allow bzip2 ("BZIP") raw
+    data.

@@ -1,4 +1,4 @@
-/* $Id: jigdodownload.hh,v 1.7 2003/08/15 11:38:30 atterer Exp $ -*- C++ -*-
+/* $Id: jigdodownload.hh,v 1.11 2005/07/04 10:25:10 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Download .jigdo data, take care of handling [Include] directives.
 
@@ -50,7 +52,9 @@ public:
   virtual const IOPtr<DataSource::IO>& io() const;
 
 private:
-  /** Methods from SingleUrl::IO */
+  /** @name
+      Methods from SingleUrl::IO */
+  //@{
   virtual void job_deleted();
   virtual void job_succeeded();
   virtual void job_failed(string* message);
@@ -58,6 +62,7 @@ private:
   virtual void dataSource_dataSize(uint64 n);
   virtual void dataSource_data(const byte* data, unsigned size,
                                uint64 currentSize);
+  //@}
 
   // Virtual methods from Gunzip::IO
   virtual void gunzip_deleted();

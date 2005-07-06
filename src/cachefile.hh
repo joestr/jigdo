@@ -1,4 +1,4 @@
-/* $Id: cachefile.hh,v 1.1.1.1 2003/07/04 22:29:26 atterer Exp $ -*- C++ -*-
+/* $Id: cachefile.hh,v 1.3 2005/07/02 22:05:03 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,10 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*/
+
+/** @file
 
   Cache with MD5 sums of file contents - used by JigdoCache in scan.hh
 
@@ -15,15 +19,14 @@
   part after any "//", as returned by FilePart::leafName(). The binary
   structure has the following format:
 
+  This is accessed and interpreted by CacheFile:<pre>
   Size Meaning
-
-  This is accessed and interpreted by CacheFile:
    4   lastAccess - timestamp of last read or write access to this data
    4   fileMtime - timestamp to detect modifications, and for entry expiry
-   6   fileSize - for calculation of nr of blocks, and for entry expiry
+   6   fileSize - for calculation of nr of blocks, and for entry expiry</pre>
 
   This is not handled by CacheFile; it is passed as an opaque string of
-  bytes to scan.hh classes:
+  bytes to scan.hh classes:<pre>
    4   blockLength (of rsync sum)
    4   md5BlockLength
    4   blocks (number of valid md5 blocks in this entry)
@@ -31,7 +34,7 @@
   16   fileMD5Sum (only valid if
                    blocks == (fileSize+md5BlockLength-1)/md5BlockLength )
   followed by n entries:
-  16   md5sum of block of size md5BlockLength
+  16   md5sum of block of size md5BlockLength</pre>
 
   Why is mtime and size not part of the key? Because we only want to
   store one entry per file, not an additional entry whenever the file
@@ -53,9 +56,10 @@
 #include <string.h> /* memcpy(), memset() */
 
 #include <debug.hh>
+#include <status.hh>
 //______________________________________________________________________
 
-// libdb3 errors
+/** libdb errors */
 struct DbError : public Error {
   explicit DbError(int c) : Error(db_strerror(c)), code(c) { }
   DbError(int c, const string& m) : Error(m), code(c) { }
@@ -64,22 +68,33 @@ struct DbError : public Error {
 };
 //______________________________________________________________________
 
+/** Cache with MD5 sums of file contents */
 class CacheFile {
 public:
-  /// Create new database or open existing database
+  /** Create new database or open existing database */
   CacheFile(const char* dbName);
   inline ~CacheFile();
 
-  /** Look for an entry in the database which matches the specified
-      filename (which must be absolute), file modification time and
-      file size. If no entry is found, return false. Otherwise, return
-      true and overwrite resultData/resultSize with ptr/len of the
-      binary string associated with this file. The first byte of
-      resultData is the first byte of the "blockLength" entry (see
-      start of this file). The result pointer is only valid until the
-      next database operation. */
-  bool find(const byte*& resultData, size_t& resultSize,
-            const string& fileName, uint64 fileSize, time_t mtime);
+  /** Look for an entry in the database which matches the specified filename
+      (which must be absolute), file modification time and file size. If no
+      entry is found, return FAILED. Otherwise, return OK and overwrite
+      resultData/resultSize with ptr/len of the binary string associated with
+      this file. The first byte of resultData is the first byte of the
+      "blockLength" entry (see start of this file). The result pointer is
+      only valid until the next database operation. */
+  Status find(const byte*& resultData, size_t& resultSize,
+              const string& fileName, uint64 fileSize, time_t mtime);
+
+  /** Look for an entry in the database which matches the specified filename
+      (which must be absolute).
+      If no entry is found, return FAILED. Otherwise, return OK and overwrite
+      resultData/resultSize with ptr/len of the binary string associated with
+      this file. The first byte of resultData is the first byte of the
+      "blockLength" entry (see start of this file). The result pointer is
+      only valid until the next database operation. */
+  Status findName(const byte*& resultData, size_t& resultSize,
+                  const string& fileName,
+                  long long int& resultFileSize, time_t& resultMtime);
 
   /** Insert/overwrite entry for the given file (name must be
       absolute, file must have the supplied mtime and size). The data
@@ -147,6 +162,10 @@ public:
   CacheFile(const char*) { }
   ~CacheFile() { }
   bool find(const byte*&, size_t&, const string&, time_t, uint64) {
+    return false;
+  }
+  bool find_name(const byte*&, size_t&, const string&,
+                 long long int&, time_t&) {
     return false;
   }
   template<class Functor>

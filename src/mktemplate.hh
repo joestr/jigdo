@@ -1,4 +1,4 @@
-/* $Id: mktemplate.hh,v 1.5 2003/08/15 11:38:29 atterer Exp $ -*- C++ -*-
+/* $Id: mktemplate.hh,v 1.9 2005/07/05 12:26:20 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Create location list (.jigdo) and image template (.template)
 
@@ -55,30 +57,35 @@ public:
   /** A create operation with no files known to it yet.
       @param jcache Cache for the files (will not be deleted in dtor)
       @param imageStream The large image file
-      @param jigdoStream Stream for outputting location list
+      @param jigdoInfo Where to output .jigdo data to
       @param templateStream Stream for outputting binary image template
       @param pr Function object which is called at regular intervals
       during run() to inform about files scanned, nr of bytes scanned,
       matches found etc.
-      @param minLen Minimum length of a part for it to be "worth it"
-      to exclude it from image template, i.e. only include it by MD5
-      reference. Any value smaller than 4k is silently set to 4k.
+      @param zipQuality 0 (fast) to 9 (smallest output)
       @param readAmnt Number of bytes that are read at a time with one
       read() call by the operation before the data is processed.
       Should not be too large because the OS copes best when small
       bits of I/O are interleaved with small bits of CPU work. In
       practice, the default seems to work well.
       @param addImage Add a [Image] section to the output .jigdo.
-      @param addServers Add a [Servers] section to the output .jigdo. */
+      @param addServers Add a [Servers] section to the output .jigdo.
+      @param useBzip2 false=>gzip, true=>bzip2 */
   MkTemplate(JigdoCache* jcache, bistream* imageStream,
              JigdoConfig* jigdoInfo, bostream* templateStream,
              ProgressReporter& pr = noReport, int zipQuality = 9,
              size_t readAmnt = 128U*1024, bool addImage = true,
-             bool addServers = true);
+             bool addServers = true, bool useBzip2 = false);
   inline ~MkTemplate();
 
   /** Set command(s) to be executed when a file matches. */
   inline void setMatchExec(const string& me);
+
+  /** Set and get whether to skip smaller matches if a larger match could be
+      possible (with the risk to skip both). True <=> prefer small matches;
+      false <=> skip small, prefer large */
+  inline void setGreedyMatching(bool x) { greedyMatching = x; }
+  inline bool getGreedyMatching() const { return greedyMatching; }
 
   /** First scan through all the individual files, creating checksums,
       then read image file and find matches. Write .template and .jigdo
@@ -95,7 +102,7 @@ public:
   bool run(const string& imageLeafName = "image",
            const string& templLeafName = "template");
 
-  /// Default reporter: Only prints error messages to stderr
+  /** Default reporter: Only prints error messages to stderr */
   static ProgressReporter noReport;
 
 private:
@@ -179,6 +186,8 @@ private:
   uint64 off; // Current absolute offset in image
   uint64 unmatchedStart;
 
+  bool greedyMatching;
+
   JigdoCache* cache;
   bistream* image;
   bostream* templ;
@@ -198,6 +207,7 @@ private:
   // true => add a [Image/Servers] section to the output .jigdo file
   bool addImageSection;
   bool addServersSection;
+  bool useBzLib;
   string matchExec;
   //____________________
 
@@ -216,14 +226,12 @@ private:
 class MkTemplate::ProgressReporter {
 public:
   virtual ~ProgressReporter() { }
-  /// General-purpose error reporting
+  /** General-purpose error reporting */
   virtual void error(const string& message);
   /** Called during second pass, when the image file is scanned.
-      @param offset Offset in image file
-      @param total Total size of image file, or 0 if unknown (i.e.
-      fed to stdin */
+      @param offset Offset in image file */
   virtual void scanningImage(uint64 offset);
-  /// Error while reading the image file - aborting immediately
+  // Error while reading the image file - aborting immediately
 //   virtual void abortingScan();
   /** Called during second pass, when MkTemplate has found an area in
       the image whose MD5Sum matches that of a file
@@ -236,8 +244,8 @@ public:
 };
 //______________________________________________________________________
 
-/* Line content with whitespace and '=' removed and left/right side
-   swapped, i.e. " xyz= foo" becomes "fooxyz". */
+/** Line content with whitespace and '=' removed and left/right side
+    swapped, i.e. " xyz= foo" becomes "fooxyz". */
 struct MkTemplate::PartLine {
   string text;
   size_t split; // Offset of first char after "foo"

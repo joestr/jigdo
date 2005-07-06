@@ -1,4 +1,4 @@
-/* $Id: log.hh,v 1.6 2003/09/16 23:32:10 atterer Exp $ -*- C++ -*-
+/* $Id: log.hh,v 1.10 2005/07/02 14:53:59 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Logfile / debugging output
 
@@ -102,13 +104,17 @@
 #endif
 //______________________________________________________________________
 
+/** Usually created by the DEBUG_UNIT macro, with an instance name of "debug"
+    - an object which can be called to output debugging info. */
 class Logger : NoCopy {
 public:
 
-  /** Logged strings are output via a OutputFunction* pointer. */
-  typedef void (Logger::OutputFunction)(const string& unitName,
+# ifndef DOXYGEN_SKIP
+  /* Logged strings are output via a OutputFunction* pointer. */
+  typedef void (OutputFunction)(const string& unitName,
       unsigned char unitNameLen, const char* format, int args,
       const Subst arg[]);
+# endif
   /** Default output function prints to stderr */
   static void defaultPut(const string& unitName, unsigned char unitNameLen,
                          const char* format, int args, const Subst arg[]);
@@ -126,6 +132,7 @@ public:
   /** Enable/disable messages for specific units. By default, messages are
       disabled.
       @param unitName Name, or null for all units
+      @param enable true to enable, false to disable
       @return true if successful (i.e. unit exists) */
   static bool setEnabled(const char* unitName, bool enable = true);
 

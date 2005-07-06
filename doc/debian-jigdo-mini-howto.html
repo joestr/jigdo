@@ -1,8 +1,9 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01
+Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
 <HTML>
  <HEAD>
   <TITLE>Debian Jigdo mini-HOWTO</TITLE><META NAME="GENERATOR"
-  CONTENT="Modular DocBook HTML Stylesheet Version 1.7"></HEAD>
+  CONTENT="Modular DocBook HTML Stylesheet Version 1.79"></HEAD>
  <BODY CLASS="ARTICLE" BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000FF"
   VLINK="#840084" ALINK="#0000FF">
   <DIV>
@@ -14,7 +15,7 @@
       <P><CODE>&#60;<A HREF="mailto:p@dirac.org">p@dirac.org</A
        >&#62;</CODE></P></DIV></DIV>
     <P>Copyright &copy; 2001 Peter Jay Salzman</P>
-    <P>2004-01-08 ver 1.1<BR></P>
+    <P>2005-06-13 ver 1.5a<BR></P>
     <DIV>
      <DIV><A NAME="AEN21"></A>
       <P><B>Abstract</B></P>
@@ -72,45 +73,57 @@
      <DT>6. <A HREF="#FAQ">Frequently Asked Questions</A></DT>
      <DD>
       <DL>
-       <DT>6.1. <A HREF="#USEPROXY">How do I make jigdo use my proxy?</A
+       <DT>6.1. <A HREF="#JIGDOASKSTWICE">Why does jidgo ask <SPAN><I
+        >twice</I></SPAN> for scanning for existing files? Is it enough to
+        say yes once ?</A></DT>
+       <DT>6.2. <A HREF="#PROBLEMFILES">Jigdo Seems To Have Problems
+        Downloading Certain Filenames.</A></DT>
+       <DT>6.3. <A HREF="#USEPROXY">How do I make jigdo use my proxy?</A
         ></DT>
-       <DT>6.2. <A HREF="#AEN312">Jigdo-lite fails with an error - have I
+       <DT>6.4. <A HREF="#AEN330">Jigdo-lite fails with an error - have I
         downloaded all those MBs in vain?</A></DT>
-       <DT>6.3. <A HREF="#DISACKNOWLEDGEMENTS">[11 Aug 2002]: Why aren't
+       <DT>6.5. <A HREF="#DISACKNOWLEDGEMENTS">[11 Aug 2002]: Why aren't
         the translations of this HOWTO on LDP?</A></DT>
-       <DT>6.4. <A HREF="#AEN347">jigdo takes a bit long to download the
+       <DT>6.6. <A HREF="#AEN365">jigdo takes a bit long to download the
         files because wget keeps disconnecting and then reconnecting to the
         FTP server for each file. Is there a way to make it faster?</A
         ></DT>
-       <DT>6.5. <A HREF="#INTERRUPTED">What do I do if my jigdo download
+       <DT>6.7. <A HREF="#INTERRUPTED">What do I do if my jigdo download
         gets interrupted?</A></DT>
-       <DT>6.6. <A HREF="#AEN354">My jigdo download won't complete because
+       <DT>6.8. <A HREF="#AEN372">My jigdo download won't complete because
         the .jigdo file is broken. When I download a new, fixed .jigdo
         file, do I need to download all the data over again?</A></DT>
-       <DT>6.7. <A HREF="#AEN362">Can I use jigdo to download images for
-        DVD?</A></DT>
-       <DT>6.8. <A HREF="#AEN367">Can I burn the <TT>.iso.tmp</TT> file to
+       <DT>6.9. <A HREF="#DVDSIZEDIMAGES">Can I use jigdo to download
+        images for DVD?</A></DT>
+       <DT>6.10. <A HREF="#AEN388">Can I burn the <TT>.iso.tmp</TT> file to
         CD?</A></DT>
-       <DT>6.9. <A HREF="#AEN374">Why doesn't jigdo work? It downloads some
-        packages and deletes them. I know it doesn't write them to the <TT
-        >iso.tmp</TT> file because the file size doesn't change!</A></DT>
-       <DT>6.10. <A HREF="#TROUBLEWITHJIGDOEASY">I'm having trouble getting
+       <DT>6.11. <A HREF="#AEN395">Why doesn't jigdo work? It downloads
+        some packages and deletes them. I know it doesn't write them to the
+        <TT>iso.tmp</TT> file because the file size doesn't change!</A
+        ></DT>
+       <DT>6.12. <A HREF="#TROUBLEWITHJIGDOEASY">I'm having trouble getting
         jigdo-easy to work.</A></DT>
-       <DT>6.11. <A HREF="#NEEDTOUPGRADE">[10 Feb 2003]: I'm having trouble
+       <DT>6.13. <A HREF="#NEEDTOUPGRADE">[10 Feb 2003]: I'm having trouble
         getting jigdo to download Sarge or Sid.</A></DT>
-       <DT>6.12. <A HREF="#WGETOPTIONS">Jigdo-lite is too verbose. How can
+       <DT>6.14. <A HREF="#SCANMULTIPLEIMAGES">For image updates, I want
+        jigdo-lite to scan 14 loop-mounted images in one go. How can I do
+        this?</A></DT>
+       <DT>6.15. <A HREF="#WGETOPTIONS">Jigdo-lite is too verbose. How can
         I supress some or all of its messages?</A></DT>
-       <DT>6.13. <A HREF="#OTHERPLATFORMS">Can I use jigdo on platforms
+       <DT>6.16. <A HREF="#OTHERPLATFORMS">Can I use jigdo on platforms
         other than Linux?</A></DT>
-       <DT>6.14. <A HREF="#AEN405">On MS Windows, why do I get a "<VAR>No
-        such file or directory</VAR>" error message?</A></DT>
-       <DT>6.15. <A HREF="#AEN411">On MS Windows, why won't my image grow
-        larger than 2GB?</A></DT></DL></DD>
+       <DT>6.17. <A HREF="#AEN442">On MS Windows, why do I get a "<TT>No
+        such file or directory</TT>" error message?</A></DT>
+       <DT>6.18. <A HREF="#AEN448">On MS Windows, why won't my image grow
+        larger than 2GB?</A></DT>
+       <DT>6.19. <A HREF="#AEN453">On MS Windows, <TT>jigdo-lite.bat</TT>
+        fails with an error message saying "sh" was not found.</A></DT
+       ></DL></DD>
      <DT>7. <A HREF="#ERRATA">Errata</A></DT>
      <DD>
       <DL>
        <DT>7.1. <A HREF="#JIGDO-EASY">jigdo-easy</A></DT>
-       <DT>7.2. <A HREF="#AEN422">GUI Interface</A></DT>
+       <DT>7.2. <A HREF="#AEN473">GUI Interface</A></DT>
        <DT>7.3. <A HREF="#JIGDO-FILE-CACHE">jigdo-file-cache.db</A></DT>
        <DT>7.4. <A HREF="#LINKS">Resources</A></DT></DL></DD></DL></DIV>
    <DIV>
@@ -355,11 +368,11 @@
       and <TT>file-3</TT> were contained in the ISO image. It removed the
       contents of the these files and replaced them with each file's md5
       checksum (the <TT>md5-0</TT>, <TT>md5-1</TT>, etc).</P>
-     <P>The "<VAR>x</VAR>" data (directory information, zero padding, etc)
+     <P>The "<TT>x</TT>" data (directory information, zero padding, etc)
       within the ISO image is compressed and written to the .template file.
       Finally, any files within the ISO image that weren't supplied as
       loose files (like <TT>file-2</TT>) are also compressed and written to
-      the .template file. This is shown as "<VAR>c</VAR>" data in the
+      the .template file. This is shown as "<TT>c</TT>" data in the
       .template file visualization.</P>
      <P>Loose files which were supplied to jigdo-file that aren't found in
       the ISO image (like <TT>file-4</TT>) are ignored.</P></DIV>
@@ -413,7 +426,7 @@
       the examples of this HOWTO.</P>
      <P>Note to Woody users: The version of jigdo-lite which comes with
       Woody (rev 1) is not capable of downloading Sarge or Sid. See <A
-      HREF="#NEEDTOUPGRADE">Section 6.11</A>. A bugfixed version of jigdo
+      HREF="#NEEDTOUPGRADE">Section 6.13</A>. A bugfixed version of jigdo
       0.6.5 was submitted for the future release of r2.</P></DIV>
     <DIV><HR>
      <H3><A NAME="DOWNLOADTHE.TEMPLATEAND.JIGDOFILES">4.2. Download The
@@ -522,8 +535,8 @@
       Merging parts from `file:' URIs, if any...
       Found 0 of the 826 files required by the template
       Will not create image or temporary file - try again with different input files
-      --09:35:12--  http://linux.csua.berkeley.edu/debian/pool/main/p/pack/pack_3.10-1_i386.deb
-          =&#62; `sarge-i386-1.iso.tmpdir/linux.csua.berkeley.edu/debian/pool/main/p/pack/pack_3.10-1_i386.deb
+      --09:35:12--  http://mirror/debian/pool/main/p/pack/pack_3.10-1_i386.deb
+          =&#62; `sarge-i386-1.iso.tmpdir/mirror/debian/pool/main/p/pack/pack_3.10-1_i386.deb
       Resolving linux.csua.berkeley.edu... done.
       Connecting to linux.csua.berkeley.edu[128.32.112.231]:80... connected.
       HTTP request sent, awaiting response... 200 OK
@@ -532,7 +545,7 @@
       19% [======&#62;                              ] 378,304      149.87K/s    ETA 00:09
       </PRE>
      <P>There'll be a lot of messages flying across your screen; if this is
-      confusing to you, see <A HREF="#WGETOPTIONS">Section 6.12</A>. While
+      confusing to you, see <A HREF="#WGETOPTIONS">Section 6.15</A>. While
       jigdo-lite is downloading the packages, switch to another console (or
       open another xterm) and do an <B>ls</B> in the directory you're
       running jigdo-lite in. Now there should be 6 files in the
@@ -553,8 +566,8 @@
       >sarge-i386-1.iso.tmp</TT> won't appear until the first time <TT
       >sarge-i386-1.iso.tmpdir/</TT> gets flushed.</P>
      <P><TT>jigdo-file-cache.db</TT> is a Berekeley DB file containing
-      md5sums of any files read in when you specify a directory at the <VAR
-      >Files to scan:</VAR> prompt. It's described in <A
+      md5sums of any files read in when you specify a directory at the <TT
+      >Files to scan:</TT> prompt. It's described in <A
       HREF="#JIGDO-FILE-CACHE">Section 7.3</A>.</P>
      <P>At this point, go play some Quake III because this will take some
       time (you may want to play on a different machine because jigdo is
@@ -631,9 +644,9 @@
     <P>jigdo-lite is asking us to give it the location of your mounted CD
      (if you're updating a CD) or your loop mounted ISO file (if you're
      using the ISO file). I'm using an ISO file loop mounted on <TT
-     >/mnt</TT>, so I'll enter <VAR>/mnt</VAR>. If you're updating a CD,
-     enter the mount directory of your CD, which is most likely <VAR
-     >/cdrom</VAR>. In either case, jigdo-lite will scan the directory of
+     >/mnt</TT>, so I'll enter <TT>/mnt</TT>. If you're updating a CD,
+     enter the mount directory of your CD, which is most likely <TT
+     >/cdrom</TT>. In either case, jigdo-lite will scan the directory of
      your mounted media, determine which files need updating and re-use the
      files which don't need updating. You may see something like:</P><PRE>      Files to scan: /mnt/other
       
@@ -648,10 +661,10 @@
      Jigdo-lite wants to generate a file called <TT>woody-i386-1.iso</TT>
      but there's already a file by that name in the current directory (the
      outdated image). Jigdo-lite doesn't want to destroy that file, so it
-     bails and lets me know that I can either delete that file or use <VAR
-     >--force</VAR> to overwrite the file. You could also rename or move
-     the file too, but I guess jigdo-lite assumes we already know this.
-     &nbsp; :-)</P>
+     bails and lets me know that I can either delete that file or use <TT
+     >--force</TT> to overwrite the file. You could also rename or move the
+     file too, but I guess jigdo-lite assumes we already know this. &nbsp;
+     :-)</P>
     <P>Don't be timid about moving or renaming the image file just because
      it's loop mounted. The filesystem uses inodes under the hood, and even
      if you move or rename the file, the inode stays the same. You won't
@@ -694,7 +707,7 @@
       Found 1200 of the 1224 files required by the template                          
       ...</PRE>
     <P>jigdo-lite remembers that I wanted to scan <TT>/mnt</TT> and tells
-     me I can either type <VAR>1</VAR> to scan that directory or type the
+     me I can either type <TT>1</TT> to scan that directory or type the
      directory in again. Since I'm a perverse person, I type the name of
      the directory again.</P>
     <P>The ellipsis represent some text that changes rapidly. The first
@@ -733,11 +746,51 @@
      please <A HREF="mailto:p@dirac.org" TARGET="_top">contact me</A> and
      let me know so I can remove the question from the mini-HOWTO.</P>
     <DIV><HR>
-     <H3><A NAME="USEPROXY">6.1. How do I make jigdo use my proxy?</A></H3
+     <H3><A NAME="JIGDOASKSTWICE">6.1. Why does jidgo ask <SPAN><I
+      >twice</I></SPAN> for scanning for existing files? Is it enough to
+      say yes once ?</A></H3>
+     <P>It keeps asking this as long as you enter a path to scan. The idea
+      is that you may want to scan several old CDs, so you can insert one
+      after the other into the drive and keep supplying the path "<TT
+      >D:\</TT>" (or whatever). </P></DIV>
+    <DIV><HR>
+     <H3><A NAME="PROBLEMFILES">6.2. Jigdo Seems To Have Problems
+      Downloading Certain Filenames.</A></H3>
+     <P>When downloading Debian images under Windows, jigdo-lite may appear
+      to have trouble downloading one or more of the following files:</P><PRE>      libbusiness-onlinepayment-bankofamerica-perl_xxx_all.deb
+      libbusiness-onlinepayment-authorizenet-perl_xxx_all.deb
+      libbusiness-onlinepayment-payconnect-perl_xxx_all.deb
+      libmasonx-request-withapachesession-perl_xxx_all.deb
+      libtemplate-plugin-calendar-simple-perl_xxx_all.deb
+      </PRE>
+     <P>Move the jigdo download directory up by as many directories as
+      possible, closer to the drives's root directory.</P>
+     <P>The NTFS filesystem has a 255 character limit on a file's pathname.
+      When jigdo-lite downloads files from the internet, it makes a copy of
+      the server directory structure in its download directory. With their
+      very long names, the above Debian packages may exceed the allowed
+      path length, which leads to error messages like "<TT>Cannot write to
+      `[very long pathname]' (No such file or directory)</TT>".</P>
+     <P>Some people may now wonder: Why does jigdo-lite use wget's "<TT
+      >--force-directories</TT>" switch, which creates these problematic
+      directory hierarchies?</P>
+     <P>Early versions of jigdo-lite did not use it, but then some folks
+      requested that jigdo-lite always use the "<TT>--continue</TT>" switch
+      to avoid half-downloaded .deb files being ignored and deleted when
+      you interrupt and restart jigdo-lite.</P>
+     <P>Unfortunately, it turned out that this led to problems: The Debian
+      servers contained several identically named files (e.g. "<TT
+      >root.bin</TT>") in different directories, and if you interrupted
+      jigdo-lite at roughly the right time during the download, the chances
+      were high that the resumed download would append data to the wrong
+      half-downloaded file, corrupting it and making the entire jigdo
+      download fail.</P></DIV>
+    <DIV><HR>
+     <H3><A NAME="USEPROXY">6.3. How do I make jigdo use my proxy?</A></H3
      >
      <P>Load the file <TT>~/.jigdo-lite</TT> (or <TT
       >jigdo-lite-settings.txt</TT> for the Microsoft Windows version) into
-      a text editor and find the line that starts with "<VAR>wgetOpts</VAR
+      a text editor and find the line that starts with "<TT>wgetOpts</TT
       >". The following switches can be added to the line:</P><PRE>      -e ftp_proxy=http://LOCAL-PROXY:PORT/
       -e http_proxy=http://LOCAL-PROXY:PORT/
       --proxy-user=USER
@@ -746,17 +799,17 @@
      <P>Of course, substitute the correct values for your proxy server. The
       last two options are only necessary if your proxy uses password
       authentication. The switches need to be added to the end of the
-      wgetOpts line before the final <VAR>'</VAR> character. All options
-      must be on one line.</P>
-     <P>Alternatively, under Linux you can also set up the <VAR
-      >ftp_proxy</VAR> and <VAR>http_proxy</VAR> environment variables, for
-      example in the file <TT>/etc/environment</TT> or <TT>~/.bashrc</TT
-      >.</P></DIV>
+      wgetOpts line before the final <TT>'</TT> character. All options must
+      be on one line.</P>
+     <P>Alternatively, under Linux you can also set up the <CODE
+      >ftp_proxy</CODE> and <CODE>http_proxy</CODE> environment variables,
+      for example in the file <TT>/etc/environment</TT> or <TT
+      >~/.bashrc</TT>.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN312">6.2. Jigdo-lite fails with an error - have I
+     <H3><A NAME="AEN330">6.4. Jigdo-lite fails with an error - have I
       downloaded all those MBs in vain?</A></H3>
      <P>Of course this Should Not Happen(tm), but for various reasons you
-      may end up in a state where a large "<VAR>.iso.tmp</VAR>" file has
+      may end up in a state where a large "<TT>.iso.tmp</TT>" file has
       already been generated and jigdo-lite appears to have problems,
       telling you repeatedly to try restarting the download. There are
       several possible things to try in this case:</P>
@@ -778,15 +831,15 @@
       TARGET="_top">testing</A> images, then determine the correct path and
       filename. Directory listings can be obtained with commands like <B
       >rsync rsync://cdimage.debian.org/debian-cd/</B>.</P>
-     <P>Next, remove the "<VAR>.tmp</VAR>" extension from jigdo-lite's
+     <P>Next, remove the "<TT>.tmp</TT>" extension from jigdo-lite's
       temporary file by renaming it, and pass both the remote URL and the
       local filename to rsync: <B>rsync
       rsync://server.org/path/binary-i386-1.iso binary-i386-1.iso</B> You
-      may want to use rsync's <VAR>--verbose</VAR> and <VAR
-      >--progress</VAR> switches to get status messages, and <VAR
-      >--block-size=8192</VAR> to increase its speed.</P></LI><LI>
+      may want to use rsync's <TT>--verbose</TT> and <TT>--progress</TT>
+      switches to get status messages, and <TT>--block-size=8192</TT> to
+      increase its speed.</P></LI><LI>
      <P>If all else fails, your downloaded data is still not lost. Under
-      Linux, you can loop-mount the <VAR>.tmp</VAR> file to access the
+      Linux, you can loop-mount the <TT>.tmp</TT> file to access the
       packages that were already downloaded, and reuse them for generating
       an image from a newer jigdo file (such as the latest daily testing
       snapshot if your failed download was also a testing snapshot). To do
@@ -796,7 +849,7 @@
       and enter the path of the mnt directory at the "Files to scan"
       prompt.</P></LI></UL></DIV>
     <DIV><HR>
-     <H3><A NAME="DISACKNOWLEDGEMENTS">6.3. [11 Aug 2002]: Why aren't the
+     <H3><A NAME="DISACKNOWLEDGEMENTS">6.5. [11 Aug 2002]: Why aren't the
       translations of this HOWTO on LDP?</A></H3>
      <P>I've been having trouble getting the translations of this HOWTO
       submitted to the non-English LDP editors.</P>
@@ -817,7 +870,7 @@
       HREF="http://www.dirac.org/linux/debian/jigdo" TARGET="_top"
       >http://www.dirac.org/linux/debian/jigdo</A>.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN347">6.4. jigdo takes a bit long to download the files
+     <H3><A NAME="AEN365">6.6. jigdo takes a bit long to download the files
       because wget keeps disconnecting and then reconnecting to the FTP
       server for each file. Is there a way to make it faster?</A></H3>
      <P>The download speed can be increased by using an HTTP instead of an
@@ -830,13 +883,13 @@
       speeds can only be achieved with HTTP pipelining - the jigdo GUI
       application will support pipelining.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="INTERRUPTED">6.5. What do I do if my jigdo download gets
+     <H3><A NAME="INTERRUPTED">6.7. What do I do if my jigdo download gets
       interrupted?</A></H3>
      <P>If your download gets interrupted, all you need to do is restart
       jigdo-lite and hit &lt;ENTER&gt; at all the question prompts.
       Jigdo-lite will pick up where it left off.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN354">6.6. My jigdo download won't complete because the
+     <H3><A NAME="AEN372">6.8. My jigdo download won't complete because the
       .jigdo file is broken. When I download a new, fixed .jigdo file, do I
       need to download all the data over again?</A></H3>
      <P>You may find that the .jigdo file you downloaded is broken. It's
@@ -857,24 +910,27 @@
       .iso.tmp file so it doesn't interfere with jigdo-lite which will want
       to create a new .iso.tmp file.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN362">6.7. Can I use jigdo to download images for
-      DVD?</A></H3>
+     <H3><A NAME="DVDSIZEDIMAGES">6.9. Can I use jigdo to download images
+      for DVD?</A></H3>
      <P>Absolutely; the process is identical to downloading CD images. The
       only thing you need to do differently is to download the .jigdo and
       .template files for DVDs instead of CDs. You can find the DVD .jigdo
       and .template files at <A HREF="http://www.debian.org/CD/jigdo-cd/"
       TARGET="_top">http://www.debian.org/CD/jigdo-cd/</A>.</P>
-     <P>Note that you need Linux 2.4 or later to create DVD-sized files.
-      Under Windows, DVD-sized images can't be created at all at the moment
-      because the C++ library of the mingw gcc port doesn't have big file
-      support yet.</P></DIV>
+     <P>On Linux, you need kernel 2.4 or later to create DVD-sized
+      files.</P>
+     <P>Under MS Windows, you need to use <TT>jigdo-win-0.7.1a</TT>
+      (released 21 July 2004) or later to create DVD-sized images. This is
+      because of a bug in the large file support of Mingw32, the compiler
+      used to create the MS Windows executables. The bug got fixed on this
+      date, and <TT>jigdo-win-0.7.1a</TT> was released.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN367">6.8. Can I burn the <TT>.iso.tmp</TT> file to
+     <H3><A NAME="AEN388">6.10. Can I burn the <TT>.iso.tmp</TT> file to
       CD?</A></H3>
      <P>Thanks to Gordon Huff and David Anselmi, we now know the answer is
       "yes you can". But more importantly, Gordon gave a good reason why
       you'd want to do this in the first place. Paraphrasing Gordon:</P><A
-     NAME="AEN371"></A><BLOCKQUOTE>
+     NAME="AEN392"></A><BLOCKQUOTE>
      <P>My friend's Win98 has a *nice* cable connection. I arrive in the
       morning, start jigdo (more than one, actually) and then we go to the
       store, tie back the kiwi plant, put up the Christmas lights and
@@ -884,23 +940,23 @@
       get home, I use the iso's that didn't finish to update my jigdo setup
       at home which is a dial-up.</P></BLOCKQUOTE></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN374">6.9. Why doesn't jigdo work? It downloads some
+     <H3><A NAME="AEN395">6.11. Why doesn't jigdo work? It downloads some
       packages and deletes them. I know it doesn't write them to the <TT
       >iso.tmp</TT> file because the file size doesn't change!</A></H3>
      <P>Jigdo works just fine - the .iso.tmp file is created at the
       beginning with its final size, but filled with zero bytes. Later,
       parts of it are overwritten with the downloaded data.</P>
      <P>You can tell that jigdo is making progress by looking at the
-      messages "<VAR>Found X of the Y files required by the template</VAR
-      >" that are printed from time to time. The second value "<VAR>Y</VAR
-      >" should decrease. When it reaches zero, the download is
+      messages "<TT>Found X of the Y files required by the template</TT>"
+      that are printed from time to time. The first value "<TT>X</TT>"
+      should increase. When <TT>X</TT> equals <TT>Y</TT>, the download is
       finished.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="TROUBLEWITHJIGDOEASY">6.10. I'm having trouble getting
+     <H3><A NAME="TROUBLEWITHJIGDOEASY">6.12. I'm having trouble getting
       jigdo-easy to work.</A></H3>
      <P>See <A HREF="#JIGDO-EASY">Section 7.1</A>.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="NEEDTOUPGRADE">6.11. [10 Feb 2003]: I'm having trouble
+     <H3><A NAME="NEEDTOUPGRADE">6.13. [10 Feb 2003]: I'm having trouble
       getting jigdo to download Sarge or Sid.</A></H3>
      <P>If you're using Potato or Woody: because of a change in jigdo, the
       version of jigdo-lite that comes with Potato and Woody (r0 and r1)
@@ -915,16 +971,39 @@
       your problem, you should send them a request for help (<A
       HREF="#LINKS">Section 7.4</A>).</P></DIV>
     <DIV><HR>
-     <H3><A NAME="WGETOPTIONS">6.12. Jigdo-lite is too verbose. How can I
+     <H3><A NAME="SCANMULTIPLEIMAGES">6.14. For image updates, I want
+      jigdo-lite to scan 14 loop-mounted images in one go. How can I do
+      this?</A></H3>
+     <P>When updating CD images, it's tiresome to keep loop-mounting and
+      unmounting images. However, by default the Linux kernel only supports
+      eight loop devices, and jigdo-lite's menu of previously entered paths
+      only has five entries.</P>
+     <P>To scan many loop-mounted images, you must first tell the Linux
+      kernel to support more than the default eight devices. This is done
+      by giving the "<TT>max_loop</TT>" parameter to the module when
+      loading it, e.g. with "<TT>modprobe loop max_loop=16</TT>" on the
+      command line or by adding the line "<TT>options loop max_loop=16</TT
+      >" to <TT>/etc/modules.conf</TT>. In Debian, you must put this line
+      into a file named e.g. <TT>/etc/modutils/local-loop</TT> and then run
+      <B>update-modules</B> because direct changes to <TT
+      >/etc/modules.conf</TT> will be overwritten.</P>
+     <P>Having mounted the individual images, you can pass the parent
+      directory of their mount points to jigdo-lite for scanning. For
+      example, if the images are mounted under <TT
+      >/mnt/myloopmounts/image1/</TT> etc., pass "<TT
+      >/mnt/myloopmounts</TT>" as the path to scan. If passing the parent
+      directory is inconvenient, you can also create a directory and fill
+      it with symlinks to the mount points.</P></DIV>
+    <DIV><HR>
+     <H3><A NAME="WGETOPTIONS">6.15. Jigdo-lite is too verbose. How can I
       supress some or all of its messages?</A></H3>
      <P>Jigdo-lite uses wget, and wget's output can be quite verbose. If
-      this is unsettling, you can make wget more quiet by adding <VAR
-      >--non-verbose</VAR> to the <VAR>wgetOpts</VAR> switch in your <TT
+      this is unsettling, you can make wget more quiet by adding <TT
+      >--non-verbose</TT> to the <TT>wgetOpts</TT> switch in your <TT
       >~/.jigdo-lite</TT> file. If you want wget to print no messages at
-      all, use <VAR>--quiet</VAR> in the <VAR>wgetOpts</VAR> switch.</P
-     ></DIV>
+      all, use <TT>--quiet</TT> in the <TT>wgetOpts</TT> switch.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="OTHERPLATFORMS">6.13. Can I use jigdo on platforms other
+     <H3><A NAME="OTHERPLATFORMS">6.16. Can I use jigdo on platforms other
       than Linux?</A></H3>
      <P>Certainly. If you're interested in Potato or Woody under Microsoft
       Windows, old SunOS, HP-UX and IRIX you can use jigdo-easy. See <A
@@ -935,26 +1014,33 @@
       downloaded from the main jigdo site (<A HREF="#LINKS">Section 7.4</A
       >).</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN405">6.14. On MS Windows, why do I get a "<VAR>No such
-      file or directory</VAR>" error message?</A></H3>
+     <H3><A NAME="AEN442">6.17. On MS Windows, why do I get a "<TT>No such
+      file or directory</TT>" error message?</A></H3>
      <P>You might find that under MS Windows, jigdo-lite will download some
-      files but then fail to read their contents, which will produce a
-      "<VAR>No such file or directory</VAR>" error message. </P>
+      files but then fail to read their contents, which will produce a "<TT
+      >No such file or directory</TT>" error message. </P>
      <P>It seems that this occurs if the length of the filenames that jigdo
       processes exceeds a certain limit. The solution is to move the
       half-finished download up in the directory hierarchy, closer to the
       top-level directory of the drive.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN411">6.15. On MS Windows, why won't my image grow
+     <H3><A NAME="AEN448">6.18. On MS Windows, why won't my image grow
       larger than 2GB?</A></H3>
-     <P>When creating DVD images under Microsoft Windows with jigdo-win,
-      you should be aware that there's a 2GB filesize limit. This is due to
-      the C++ library of mingw32 compiler which is used to compile
-      jigdo-win. Apparently, the library doesn't have big file support due
-      to some oversight of its developers. This means the 2GB filesize
-      limit exists even under NTFS.</P>
-     <P>It's hoped that this limitation will be corrected with a future
-      release of ming32.</P></DIV></DIV>
+     <P>You're using an old version of jigdo. Please upgrade to <TT
+      >jigdo-win-0.7.1a </TT> or newer. See <A HREF="#DVDSIZEDIMAGES"
+      >Section 6.9</A>.</P></DIV>
+    <DIV><HR>
+     <H3><A NAME="AEN453">6.19. On MS Windows, <TT>jigdo-lite.bat</TT>
+      fails with an error message saying "sh" was not found.</A></H3>
+     <P>This means that the <TT>PATH</TT> command in the <TT>.bat</TT> file
+      failed. For some reason, this is the case if you unpacked jigdo on a
+      Windows network share using a path like "<TT
+      >\\SomeServer\Files\jigdo</TT>". Solution: Use "<B>Map network
+      drive</B>" (in the explorer "tools" menu) to assign a drive letter
+      like "<TT>Z:</TT>", then double-click on the <TT>.bat</TT> file
+      inside "<TT>Z:\jigdo</TT>". Alternatively, a workaround is to move
+      everything in the <TT>jigdo-bin</TT> subdirectory up to where the <TT
+      >.bat</TT> file is.</P></DIV></DIV>
    <DIV><HR>
     <H2><A NAME="ERRATA">7. Errata</A></H2>
     <DIV>
@@ -965,26 +1051,26 @@
       but because of changes made to Jigdo, will only work with Potato and
       Woody. Jigdo-easy will not be able to download Sarge and Sid. See <A
       HREF="#LINKS">Section 7.4</A> and <A HREF="#OTHERPLATFORMS">Section
-      6.13</A>.</P></DIV>
+      6.16</A>.</P></DIV>
     <DIV><HR>
-     <H3><A NAME="AEN422">7.2. GUI Interface</A></H3>
+     <H3><A NAME="AEN473">7.2. GUI Interface</A></H3>
      <P>A GTK+ interface to jigdo is currently being worked on. It's not
       fully functional yet, but will be available at some point. There will
       be a Linux as well as a Windows GUI client.</P></DIV>
     <DIV><HR>
      <H3><A NAME="JIGDO-FILE-CACHE">7.3. jigdo-file-cache.db</A></H3>
      <P>The cache contains the md5sums of files read when you supply a
-      directory at the <VAR>Files to scan:</VAR> prompt. If you have
+      directory at the <TT>Files to scan:</TT> prompt. If you have
       jigdo-file scan the same directory a second time, the scan will be
       very fast.</P>
      <P>This could be useful in the following case: rev0 gets updated to
       rev1. With the rev1 CD images, some packages may have been pushed
-      from CD <VAR>n</VAR> to CD <VAR>n+1</VAR>, or vice versa. If you had
-      a particularly slow link (e.g. modem), you'd try to avoid downloading
+      from CD <TT>n</TT> to CD <TT>n+1</TT>, or vice versa. If you had a
+      particularly slow link (e.g. modem), you'd try to avoid downloading
       these packages again. For this reason, when downloading the new
-      version of CD <VAR>n</VAR>, you'd let jigdo-lite scan the three CDs
-      <VAR>n-1</VAR>, <VAR>n</VAR> and <VAR>n+1</VAR> (or even all 8 CDs if
-      you want to be 100% sure).</P>
+      version of CD <TT>n</TT>, you'd let jigdo-lite scan the three CDs <TT
+      >n-1</TT>, <TT>n</TT> and <TT>n+1</TT> (or even all 8 CDs if you want
+      to be 100% sure).</P>
      <P>If you have jigdo-lite scan the same CDs over and over again while
       updating each of the 8 CD images, the cache will prevent all the data
       on the CDs from being read multiple times.</P>
@@ -1021,8 +1107,8 @@
         >http://packages.debian.org/testing/utils/jigdo-file.html</A></DT>
        <DD>
         <P>If you're using Potato or Woody, please upgrade jigdo-file to
-         version <VAR>0.7.0-2</VAR>, which comes with testing or unstable
-         (<A HREF="#NEEDTOUPGRADE">Section 6.11</A>).</P></DD>
+         version <TT>0.7.0-2</TT>, which comes with testing or unstable (<A
+          HREF="#NEEDTOUPGRADE">Section 6.13</A>).</P></DD>
        <DT><A HREF="http://lists.debian.org/search.html" TARGET="_top"
         >http://lists.debian.org/search.html</A></DT>
        <DD>

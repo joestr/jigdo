@@ -1,4 +1,4 @@
-/* $Id: serialize.hh,v 1.1.1.1 2003/07/04 22:29:32 atterer Exp $ -*- C++ -*-
+/* $Id: serialize.hh,v 1.5 2005/07/04 10:25:10 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -7,6 +7,9 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
+*/
+/** @file
+
   Convert objects into byte streams and vice versa
 
   Classes that support serialization should implement the indicated
@@ -14,13 +17,14 @@
   is assumed that 'byte' has been typdef'd to an unsigned type which
   represents one byte.
 
+  <pre>
   MyClass {
     template<class Iterator>
     inline Iterator serialize(Iterator i) const;
     template<class ConstIterator>
     inline ConstIterator unserialize(ConstIterator i);
     inline size_t serialSizeOf() const;
-  };
+  };</pre>
 
 */
 
@@ -44,16 +48,16 @@ inline Iterator serialize(const Object& o, Iterator i) {
   return o.serialize(i);
 }
 
-/* Assign the contents of the byte stream pointed to by i to the object.
-   template<class Object, class ConstIterator> */
+/** Assign the contents of the byte stream pointed to by i to the object.
+    template<class Object, class ConstIterator> */
 template<class Object, class ConstIterator>
 inline ConstIterator unserialize(Object& o, ConstIterator i) {
   return o.unserialize(i);
 }
 
-/* Return number of bytes needed by this object when serialized. If a
-   whole tree of objects is serialized, this may include the
-   accumulated serialized sizes of the child objects, too. */
+/** Return number of bytes needed by this object when serialized. If a
+    whole tree of objects is serialized, this may include the
+    accumulated serialized sizes of the child objects, too. */
 template<class Object>
 inline size_t serialSizeOf(const Object& o) {
   return o.serialSizeOf();
@@ -72,7 +76,6 @@ inline size_t serialSizeOf(const Object& o) {
     allows mixing of Serial*streamIterator with calls to read() on the
     respective stream, without any problems. (This does not work with
     GCC's version, which uses get().) */
-
 class SerialIstreamIterator {
 public:
   typedef bistream istream_type;
@@ -80,8 +83,8 @@ public:
   typedef const byte* pointer;
   typedef const byte& reference;
 
-  SerialIstreamIterator() : stream(0) { }
-  SerialIstreamIterator(istream_type& s) : stream(&s) { }
+  SerialIstreamIterator() : stream(0), val(0) { }
+  SerialIstreamIterator(istream_type& s) : stream(&s), val(0) { }
   SerialIstreamIterator& operator++() { stream->get(); return *this; }
   SerialIstreamIterator operator++(int) {
     SerialIstreamIterator i = *this; stream->get(); return i; }
@@ -96,6 +99,7 @@ private:
 };
 //____________________
 
+/** @see SerialIstreamIterator */
 class SerialOstreamIterator {
 public:
   typedef bostream ostream_type;
@@ -120,8 +124,9 @@ private:
 // Serializations of common data types. Stores in little-endian.
 //________________________________________
 
-// Numeric types - append the number of bytes to use (e.g. 4 for 32-bit)
-
+/** @name
+    Numeric types - append the number of bytes to use (e.g. 4 for 32-bit) */
+//@{
 template<class NumType, class Iterator>
 inline Iterator serialize1(NumType x, Iterator i) {
   *i = x & 0xff; ++i;
@@ -208,6 +213,7 @@ inline ConstIterator unserialize8(NumType& x, ConstIterator i) {
   x |= static_cast<NumType>(*i) << 56; ++i;
   return i;
 }
+//@}
 //______________________________________________________________________
 
 #endif

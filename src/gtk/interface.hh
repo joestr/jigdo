@@ -1,5 +1,6 @@
 // Automatically created from `interface.cc.tmp' by glade-filter.awk
 
+#include <unistd-jigdo.h>
 #ifndef INTERFACE_HH
 #define INTERFACE_HH
 
@@ -14,8 +15,8 @@ namespace GUI {
     GtkWidget *windowVbox;
     GtkWidget *toolbarHandle;
     GtkWidget *toolbar;
+    GtkIconSize tmp_toolbar_icon_size;
     GtkWidget *toolbarOpen;
-    GtkWidget *tmp_toolbar_icon;
     GtkWidget *toolbarReuse;
     GtkWidget *toolbarSettings;
     GtkWidget *toolbarExit;
@@ -76,7 +77,6 @@ namespace GUI {
     GtkWidget *pageJigdoLabel;
     GtkWidget *progressScroll;
     GtkWidget *jobs;
-    GtkAccelGroup *accel_group;
     GtkTooltips *tooltips;
   };
 

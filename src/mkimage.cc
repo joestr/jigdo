@@ -1,4 +1,4 @@
-/* $Id: mkimage.cc,v 1.12 2004/06/18 23:22:47 atterer Exp $ -*- C++ -*-
+/* $Id: mkimage.cc,v 1.15 2005/07/09 19:14:46 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -18,7 +18,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 
 #include <iomanip>
 #include <iostream>
@@ -31,7 +31,7 @@
 #include <scan.hh>
 #include <serialize.hh>
 #include <string.hh>
-#include <zstream.hh>
+#include <zstream-gz.hh>
 
 //______________________________________________________________________
 
@@ -75,6 +75,8 @@ bool JigdoDesc::isTemplate(bistream& file) {
 
 void JigdoDesc::seekFromEnd(bistream& file) throw(JigdoDescError) {
   file.seekg(-6, ios::end);
+  debug("JigdoDesc::seekFromEnd0: now at file offset %1",
+        static_cast<uint64>(file.tellg()));
   uint64 descLen;
   SerialIstreamIterator f(file);
   unserialize6(descLen, f);
@@ -84,6 +86,8 @@ void JigdoDesc::seekFromEnd(bistream& file) throw(JigdoDescError) {
   }
 
   file.seekg(-descLen, ios::end);
+  debug("JigdoDesc::seekFromEnd2: now at file offset %1",
+        static_cast<uint64>(file.tellg()));
 
   size_t toRead = 4;
   byte buf[4];
@@ -92,12 +96,14 @@ void JigdoDesc::seekFromEnd(bistream& file) throw(JigdoDescError) {
   do {
     readBytes(file, b, toRead);
     size_t n = file.gcount();
+    debug("JigdoDesc::seekFromEnd3: read %1, now at file offset %2",
+          n, static_cast<uint64>(file.tellg()));
     //cerr<<"read "<<n<<' '<<file.tellg()<<endl;
     b += n;
     toRead -= n;
   } while (file.good() && toRead > 0);
   if (buf[0] != 'D' || buf[1] != 'E' || buf[2] != 'S' || buf[3] != 'C') {
-    debug("JigdoDesc::seekFromEnd2 %1 %2 %3 %4",
+    debug("JigdoDesc::seekFromEnd4 %1 %2 %3 %4",
           int(buf[0]), int(buf[1]), int(buf[2]), int(buf[3]));
     throw JigdoDescError(_("Invalid template data - corrupted file?"));
   }
@@ -445,7 +451,7 @@ namespace {
        unmatched image data is already compressed, which means that
        when it is compressed again by jigdo, it will get slightly
        larger. */
-    Zibstream data(*templ, readAmount + 8*1024);
+    auto_ptr<Zibstream> data(new Zibstream(*templ, readAmount + 8*1024));
 #   if HAVE_WORKING_FSTREAM
     if (img == 0) img = &cout; // EEEEEK!
 #   else
@@ -475,12 +481,12 @@ namespace {
             debug("mkimage writeAll(): %1 of unmatched data", toWrite);
             memClear(buf, readAmount);
             while (*img && toWrite > 0) {
-              if (!data) {
+              if (!*data) {
                 reporter.error(_("Premature end of template data"));
                 return 3;
               }
-              data.read(buf, (toWrite < readAmount ? toWrite : readAmount));
-              size_t n = data.gcount();
+              data->read(buf, (toWrite < readAmount ? toWrite : readAmount));
+              size_t n = data->gcount();
               writeBytes(*img, buf, n);
               reportBytesWritten(n, off, nextReport, totalBytes, reporter);
               toWrite -= n;
