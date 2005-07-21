@@ -6,7 +6,8 @@
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --with-gui --enable-nls \
+	CC=gcc-3.4 CXX=g++-3.4 \
+	    ./configure --prefix=/usr --with-gui --enable-nls \
 	    --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
 	touch configure-stamp
 
