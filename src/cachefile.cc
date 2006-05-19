@@ -1,4 +1,4 @@
-/* $Id: cachefile.cc,v 1.7 2005/07/02 22:05:03 atterer Exp $ -*- C++ -*-
+/* $Id: cachefile.cc,v 1.8 2005/07/21 11:31:43 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
