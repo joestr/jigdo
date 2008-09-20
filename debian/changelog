@@ -1,3 +1,14 @@
+jigdo (0.7.3-2) unstable; urgency=medium
+
+  * Switched to libdb4.6. Closes: #470211
+  * Switched to libcurl4
+  * jigdo-mirror passes --no-verbose to wget rather than --non-verbose.
+    Closes: #422059
+  * Hack Makefile(.in) not to strip if DEB_BUILD_OPTIONS=nostrip.
+    Closes: #437240
+
+ -- Richard Atterer <atterer@debian.org>  Sat, 20 Sep 2008 22:16:25 +0200
+
 jigdo (0.7.3-1.1) unstable; urgency=medium
 
   * Non-maintainer upload.
