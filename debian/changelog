@@ -1,3 +1,21 @@
+jigdo (0.7.3-3) unstable; urgency=low
+
+  * Brown paper bag bugfix release
+  * Non-versioned dependency on libdb-dev rather than libdb4.6-dev.
+    Closes: #548482
+  * No longer build GUI application and "jigdo" package, since the GUI
+    will remain unfinished. :~-| Only build "jigdo-file" package.
+    Closes: #515285, #413574, #370384, #516053
+  * Updated debian-mirrors.jigdo from current Mirrors.masterlist
+  * Workaround for problem with "jigdo-file md5sum" together with
+    "--no-check-files". Closes: #418694, #528644
+    Quite possibly also Closes: #507993
+  * Refer to "GPL-2" rather than "GPL" file in copyright file (lintian)
+  * Avoid warning of man about the jigdo-file.1 manpage (lintian)
+  * Fixed doc-base section of debian-jigdo-mini-howto (lintian)
+
+ -- Richard Atterer <atterer@debian.org>  Mon, 28 Dec 2009 17:46:15 +0100
+
 jigdo (0.7.3-2) unstable; urgency=medium
 
   * Switched to libdb4.6. Closes: #470211
