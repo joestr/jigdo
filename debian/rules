@@ -3,6 +3,11 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
+CFLAGS:=$(shell dpkg-buildflags --get CFLAGS)
+CXXFLAGS:=$(shell dpkg-buildflags --get CXXFLAGS)
+LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
+
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
@@ -10,25 +15,35 @@ configure-stamp:
 	    --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
 	touch configure-stamp
 
-build: configure-stamp build-stamp
-build-stamp:
+build: build-arch build-indep
+build-arch: build-stamp
+build-indep: build-stamp
+
+build-stamp: configure-stamp
 	dh_testdir
-	$(MAKE)
+	$(MAKE) \
+             EXTRA_CFLAGS="${CPPFLAGS} ${CFLAGS}" \
+             EXTRA_CXXFLAGS="${CPPFLAGS} ${CXXFLAGS}" \
+             EXTRA_LDFLAGS="${LDFLAGS}"
+
 	$(MAKE) X="`pkg-config glib-2.0 --cflags`" \
+             EXTRA_CFLAGS="${CPPFLAGS} ${CFLAGS}" \
+             EXTRA_CXXFLAGS="${CPPFLAGS} ${CXXFLAGS}" \
+             EXTRA_LDFLAGS="${LDFLAGS}" \
 	     GLIBLIBS="`pkg-config glib-2.0 --libs`" -C src test || true
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp
-	-$(MAKE) distclean
+	rm -f build-stamp configure-stamp config.log
+	[ ! -f Makefile ] || $(MAKE) distclean
 	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k
+	dh_prep
 	$(MAKE) DESTDIR=debian/jigdo-file install-po \
 	    install-jigdo-file install-jigdo-lite install-jigdo-mirror
 

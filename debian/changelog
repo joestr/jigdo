@@ -1,3 +1,13 @@
+jigdo (0.7.3-4) unstable; urgency=low
+
+  * New maintainer (Closes: #833158). Thanks to Richard for all his hard
+    work!
+  * Updated Standards-Version and fixed various lintian warnings
+  * Add hardening flags to the build
+  * Update to use and depend on debhelper 9+
+
+ -- Steve McIntyre <93sam@debian.org>  Wed, 10 Aug 2016 13:11:43 +0100
+
 jigdo (0.7.3-3) unstable; urgency=low
 
   * Brown paper bag bugfix release
