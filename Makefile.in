@@ -15,7 +15,7 @@ datadir =	@datadir@
 
 PACKAGE =	jigdo
 INSTALL =	@INSTALL@
-INSTALL_EXE =	@INSTALL@ #-s
+INSTALL_EXE =	@INSTALL@ -s
 INSTALL_DATA =	@INSTALL@ -m 644
 INSTALL_SCRIPT = @INSTALL@ -m 755
 AWK =		@AWK@
@@ -32,7 +32,7 @@ catalogs =	@CATALOGS@
 # "gfx" symlink is needed for the pixmaps to be found by jigdo
 all doc mostlyclean dep depend: Makefile
 		-test -h gfx -o -d gfx || ln -s "$(srcdir)/gfx" gfx
-		cd src && $(MAKE) $@ EXTRA_CFLAGS="$(EXTRA_CFLAGS)" EXTRA_CXXFLAGS="$(EXTRA_CXXFLAGS)" EXTRA_LDFLAGS="$(EXTRA_LDFLAGS)"
+		cd src && $(MAKE) $@
 		cd doc && $(MAKE) $@
 		cd po  && $(MAKE) $@
 check test: Makefile

@@ -71,7 +71,7 @@ jigdoFile="jigdo-file --cache=$tmpDir/jigdo-cache.db --cache-expiry=1w --report=
 maxMissing=100
 
 filesPerFetch=10
-wgetOpts="--passive-ftp --no-directories --no-verbose"
+wgetOpts="--passive-ftp --no-directories --non-verbose"
 
 # To find the template file, first the leafname of the template's URL
 # is extracted from the .jigdo file. Next, for a .jigdo file named

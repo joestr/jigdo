@@ -1,15 +1,15 @@
 Source: jigdo
 Section: utils
-Priority: extra
+Priority: optional
 Maintainer: Steve McIntyre <93sam@debian.org>
 Build-Depends: debhelper (>= 9), zlib1g-dev, libbz2-dev, libdb-dev (>= 4.8), libglib2.0-dev
-Standards-Version: 3.9.8
+Standards-Version: 4.1.1
 
 Package: jigdo-file
 Architecture: any
 Depends: wget, ${shlibs:Depends}, ${misc:Depends}
 Conflicts: jigdo (<< 0.6.9)
-Homepage: http://atterer.net/jigdo/
+Homepage: http://atterer.org/jigdo/
 Description: Download Debian CD images from any Debian mirror
  Using the jigdo-lite script contained in this package, you can use
  your nearest "regular" Debian mirror to download Debian CD images,

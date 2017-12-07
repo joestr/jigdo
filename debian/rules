@@ -3,16 +3,18 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+include /usr/share/dpkg/architecture.mk
+
 CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
 CFLAGS:=$(shell dpkg-buildflags --get CFLAGS)
 CXXFLAGS:=$(shell dpkg-buildflags --get CXXFLAGS)
 LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
+PKG_CONFIG ?= $(DEB_HOST_GNU_TYPE)-pkg-config
 
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --without-gui --enable-nls \
-	    --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
+	dh_auto_configure -- --without-gui --enable-nls
 	touch configure-stamp
 
 build: build-arch build-indep
@@ -26,11 +28,13 @@ build-stamp: configure-stamp
              EXTRA_CXXFLAGS="${CPPFLAGS} ${CXXFLAGS}" \
              EXTRA_LDFLAGS="${LDFLAGS}"
 
-	$(MAKE) X="`pkg-config glib-2.0 --cflags`" \
+ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
+	$(MAKE) X="`$(PKG_CONFIG) glib-2.0 --cflags`" \
              EXTRA_CFLAGS="${CPPFLAGS} ${CFLAGS}" \
              EXTRA_CXXFLAGS="${CPPFLAGS} ${CXXFLAGS}" \
              EXTRA_LDFLAGS="${LDFLAGS}" \
-	     GLIBLIBS="`pkg-config glib-2.0 --libs`" -C src test || true
+	     GLIBLIBS="`$(PKG_CONFIG) glib-2.0 --libs`" -C src test || true
+endif
 	touch build-stamp
 
 clean:

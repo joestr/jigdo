@@ -1,0 +1,7 @@
+00.richard_fixes.patch
+01.hardening.patch
+02.address_change.patch
+03.jigdo-lite-https.patch
+04.jigdo-lite-tmpdir.patch
+05.jigdo-lite-grep-options.patch
+06.jigdo-lite-store-filesPerFetch.patch

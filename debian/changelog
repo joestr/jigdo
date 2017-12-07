@@ -1,3 +1,25 @@
+jigdo (0.7.3-5) unstable; urgency=medium
+
+  * Switch addresses from atterer.org to atterer.org in various places
+    (Closes: #609816)
+  * jigdo-lite: use tmpDir when creating images. Closes: #578325
+    Thanks to Mateusz Poszwa for the patch.
+  * jigdo-lite: Cope with https URLs. Closes: #865864.
+    Thanks to s3v for the patch for inspiration.
+  * jigdo-lite: Unset GREP_OPTIONS at the start. Closes: #767318
+  * jigdo-lite: Read/store the filesPerFetch setting from the config
+    file. Closes: #826781
+  * jigdo-file: Fix building with glibc >= 2.25. Closes: #880981
+    Thanks to Matthias Klose for the patch.
+  * Various packaging changes:
+    + Switch source format to 3.0 (quilt) and split up patches a little
+    + Update to Standards-Version: 4.1.1
+    + Switch Priority to optional
+    + Improve cross-building. Closes: #864516. Thanks to Helmut Grohne for
+      the patch
+
+ -- Steve McIntyre <93sam@debian.org>  Thu, 07 Dec 2017 16:38:20 +0000
+
 jigdo (0.7.3-4) unstable; urgency=low
 
   * New maintainer (Closes: #833158). Thanks to Richard for all his hard
