@@ -514,7 +514,7 @@ imageDownload() {
   list="$image.list"
 
   # Create name of temporary dir, by stripping extension from $image
-  imageTmp="`echo $image | sed 's%\.\(tmp|iso|raw\)%%'`"
+  imageTmp="$tmpDir/`echo $image | sed 's%\.\(tmp|iso|raw\)%%'`.tmpdir"
   if test -f "$imageTmp" -o "x$imageTmp" = "x$image"; then
     imageTmp="$imageTmp.tmpdir"
   fi
