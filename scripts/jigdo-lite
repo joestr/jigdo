@@ -14,6 +14,8 @@ filesPerFetch=10
 maxMissing=30 # Don't try fallback servers if x% or more of files missing
 rcFile="$HOME/.jigdo-lite"
 
+unset GREP_OPTIONS
+
 if test "x$OSTYPE" = "xmsys"; then
   windows=true
   OSTYPE=Windows
