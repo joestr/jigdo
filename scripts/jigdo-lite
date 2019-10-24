@@ -251,6 +251,8 @@ saveOptions() {
     "$tmpDir" "$jigdoOpts" >>"$rcFile"
   printf "wgetOpts='%s'${nl}scanMenu='%s'${nl}" \
     "$wgetOpts" "$scanMenu" >>"$rcFile"
+  printf "filesPerFetch='%s'${nl}" \
+    "$filesPerFetch" >>"$rcFile"
 }
 #______________________________________________________________________
 
