@@ -1,7 +1,7 @@
-/* $Id: recursedir-test.cc,v 1.6 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: recursedir-test.cc,v 1.1.1.1 2003/07/04 22:29:18 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -11,9 +11,9 @@
 
 */
 
+#include <config.h>
+
 #include <iostream>
-namespace std { }
-using namespace std;
 
 #define DEBUG 1
 #include <debug.hh>

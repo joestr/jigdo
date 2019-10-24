@@ -1,7 +1,7 @@
-/* $Id: jigdo-file.cc,v 1.48 2002/02/22 00:35:27 richard Exp $ -*- C++ -*-
+/* $Id: jigdo-file.cc,v 1.8 2004/04/16 14:20:29 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2000-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2000-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -14,12 +14,7 @@
 #include <config.h>
 
 #include <fstream>
-using namespace std;
-#ifdef HAVE_GETOPT_H
-#  include <getopt.h>
-#else
-#  include <glibc-getopt.h>
-#endif
+#include <glibc-getopt.h>
 #include <errno.h>
 #if ENABLE_NLS
 #  include <locale.h>
@@ -36,6 +31,7 @@ using namespace std;
 #include <debug.hh>
 #include <jigdo-file-cmd.hh>
 #include <jigdoconfig.hh>
+#include <log.hh>
 #include <mkimage.hh>
 #include <mktemplate.hh>
 #include <recursedir.hh>
@@ -47,11 +43,12 @@ RecurseDir JigdoFileCmd::fileNames;
 string JigdoFileCmd::imageFile;
 string JigdoFileCmd::jigdoFile;
 string JigdoFileCmd::templFile;
+string JigdoFileCmd::jigdoMergeFile;
 string JigdoFileCmd::cacheFile;
 size_t JigdoFileCmd::optCacheExpiry = 60*60*24*30; // default: 30 days
 vector<string> JigdoFileCmd::optLabels;
 vector<string> JigdoFileCmd::optUris;
-size_t JigdoFileCmd::blockLength    =   4*1024U;
+size_t JigdoFileCmd::blockLength    =   1*1024U;
 size_t JigdoFileCmd::md5BlockLength = 128*1024U - 55;
 size_t JigdoFileCmd::readAmount     = 128*1024U;
 int JigdoFileCmd::optZipQuality = Z_BEST_COMPRESSION;
@@ -59,16 +56,21 @@ bool JigdoFileCmd::optForce = false;
 bool JigdoFileCmd::optMkImageCheck = true;
 bool JigdoFileCmd::optAddImage = true;
 bool JigdoFileCmd::optAddServers = true;
+bool JigdoFileCmd::optHex = false;
+string JigdoFileCmd::optDebug;
 AnyReporter* JigdoFileCmd::optReporter = 0;
-#if !WINDOWS
-string JigdoFileCmd::binaryName; // of the program
+string JigdoFileCmd::optMatchExec;
+#if WINDOWS
+  const char* const JigdoFileCmd::binaryName = "jigdo-file";
+#else
+  string JigdoFileCmd::binaryName;
 #endif
 //______________________________________________________________________
 
 namespace {
 
 // Absolute minimum for --min-length (i.e. blockLength), in bytes
-const size_t MINIMUM_BLOCKLENGTH = 1024;
+const size_t MINIMUM_BLOCKLENGTH = 256;
 
 char optHelp = '\0';
 bool optVersion = false;
@@ -88,16 +90,8 @@ public:
   // Length of "100% 9999k/9999k " part before "scanning ..." etc message
   static const unsigned PROGRESS_WIDTH = 23;
 
-  virtual void error(const string& message) {
-    //string m(binaryName); m += ": "; m += message;
-    //print(m);
-    print(message);
-  }
-  virtual void info(const string& message) {
-    //string m(binaryName); m += ": "; m += message;
-    //print(m);
-    print(message);
-  }
+  virtual void error(const string& message) { print(message); }
+  virtual void info(const string& message) { print(message); }
   virtual void coutInfo(const string& message);
   virtual void scanningFile(const FilePart* file, uint64 offInFile) {
     if (!printProgress) return;
@@ -288,7 +282,7 @@ inline void printUsage(bool detailed, size_t blockLength,
   if (detailed) {
     cout << _(
     "\n"
-    "Copyright (C) 2001-2002 Richard Atterer <richard@atterer.net>\n"
+    "Copyright (C) 2001-2003 Richard Atterer <http://atterer.net>\n"
     "This program is free software; you can redistribute it and/or modify\n"
     "it under the terms of the GNU General Public License, version 2. See\n"
     "the file COPYING or <http://www.gnu.org/copyleft/gpl.html> for details.\n"
@@ -300,11 +294,11 @@ inline void printUsage(bool detailed, size_t blockLength,
     "Commands:\n"
     "  make-template mt Create template and jigdo from image and files\n"
     "  make-image mi    Recreate image from template and files (can merge\n"
-    "                   files in >1 steps, uses `IMG%2tmp' for --image=IMG)\n"),
+    "                   files in >1 steps, uses `IMG%2tmp' for --image=IMG)\n"
+    "  print-missing pm After make-image, print files still missing for\n"
+    "                   the image to be completely recreated\n"),
     binName(), EXTSEPS);
   if (detailed) cout << _(
-    "  print-missing pm After make-image, print files still missing for\n"
-    "                   the image to be completely recreated\n"
     "  print-missing-all pma\n"
     "                   Print all URIs for each missing file\n"
     "  scan sc          Update cache with information about supplied files\n");
@@ -335,7 +329,7 @@ inline void printUsage(bool detailed, size_t blockLength,
     "                   `Label:a/file%4txt' in output jigdo\n"
     "      --uri Label=http://www.site.com\n"
     "                   [make-template] Add mapping from Label to given\n"
-    "                   URI instead of default `file:' URI.\n"
+    "                   URI instead of default `file:' URI\n"
     "                   [print-missing] Override mapping in input jigdo\n"
     "  -0 to -9         Set amount of compression in output template\n"
     "      --cache=FILE Store/reload information about any files scanned\n"),
@@ -346,36 +340,49 @@ inline void printUsage(bool detailed, size_t blockLength,
       "      --cache-expiry=SECONDS[h|d|w|m|y]\n"
       "                   Remove cache entries if last access was longer\n"
       "                   ago than given amount of time [default 30 days]\n"
-      "  -h  --help       Output short help.\n"
-      "  -H  --help-all   Output this help.\n");
+      "  -h  --help       Output short help\n"
+      "  -H  --help-all   Output this help\n");
   } else {
-    cout << _("  -h  --help       Output this help.\n"
-              "  -H  --help-all   Output more detailed help.\n");
+    cout << _("  -h  --help       Output this help\n"
+              "  -H  --help-all   Output more detailed help\n");
   }
-  cout << _("  -v  --version    Output version info.") << endl;
+  cout << _("  -v  --version    Output version info") << endl;
   if (detailed) {
     cout << subst(_(
     "\n"
     "Further options: (can append 'k', 'M', 'G' to any BYTES argument)\n"
-    "  --no-force   Do not delete existent output files [default]\n"
+    "  --merge=FILE     [make-template] Add FILE contents to output jigdo\n"
+    "  --no-force       Do not delete existent output files [default]\n"
     "  --min-length=BYTES [default %1]\n"
-    "               [make-template] Minimum length of files to search for\n"
-    "               in image data\n"
+    "                   [make-template] Minimum length of files to search\n"
+    "                   for in image data\n"
     "  --md5-block-size=BYTES [default %2]\n"
-    "               Uninteresting internal parameter -\n"
-    "               jigdo-file enforces: min-length < md5-block-size\n"
+    "                   Uninteresting internal parameter -\n"
+    "                   jigdo-file enforces: min-length < md5-block-size\n"
     "  --readbuffer=BYTES [default %3k]\n"
-    "               Amount of data to read at a time\n"
+    "                   Amount of data to read at a time\n"
     "  --check-files [default]\n"
-    "               [make-image] Verify checksum of files written to image\n"
-    "  --no-check-files\n"
-    "               [make-image] Do not verify checksums\n"
+    "                   [make-image] Verify checksum of files written to\n"
+    "                   image\n"
+    "  --no-check-files [make-image] Do not verify checksums\n"
     "  --image-section [default]\n"
     "  --no-image-section\n"
     "  --servers-section [default]\n"
     "  --no-servers-section\n"
-    "               [make-template] When creating the jigdo file, do or\n"
-    "               do not add the sections \"[Image]\" or \"[Servers]\"."),
+    "                   [make-template] When creating the jigdo file, do\n"
+    "                   or do not add the sections `[Image]' or `[Servers]'\n"
+    "  --debug[=all|=UNIT1,UNIT2...|=help]\n"
+    "                   Print debugging information for all units, or for\n"
+    "                   specified units, or print list of units.\n"
+    "                   Can use `~', e.g. `all,~libwww'\n"
+    "  --no-debug       No debugging info [default]\n"
+    "  --match-exec=CMD [make-template] Execute command when files match\n"
+    "                   CMD is passed to a shell, with environment set up:\n"
+    "                   LABEL, LABELPATH, MATCHPATH, LEAF, MD5SUM, FILE\n"
+    "                   e.g. 'mkdir -p \"${LABEL:-.}/$MATCHPATH\" && ln -f \"$FILE\" \"${LABEL:-.}/$MATCHPATH$LEAF\"'\n"
+    "  --no-hex [default]\n"
+    "  --hex            [md5sum, list-template] Output checksums in \n"
+    "                   hexadecimal, not Base64\n"),
     blockLength, md5BlockLength, readAmount / 1024) << endl;
   }
   return;
@@ -437,9 +444,9 @@ size_t scanTimespan(const char* str) {
    Only deduceName() should call deduceName2(). */
 void deduceName2(string& dest, const char* ext, const string& src) {
   Paranoid(dest.empty());
-  string::size_type lastDot = src.find_last_of(EXTSEP);
+  string::size_type lastDot = src.rfind(EXTSEP);
   if (lastDot != string::npos) {
-    if (src.find_first_of(DIRSEP, lastDot + 1) != string::npos)
+    if (src.rfind(DIRSEP, lastDot + 1) != string::npos)
       lastDot = string::npos;
   }
   dest.assign(src, 0U, lastDot);
@@ -457,10 +464,12 @@ enum {
   LONGOPT_BUFSIZE = 0x100, LONGOPT_NOFORCE, LONGOPT_MINSIZE,
   LONGOPT_MD5SIZE, LONGOPT_MKIMAGECHECK, LONGOPT_NOMKIMAGECHECK,
   LONGOPT_LABEL, LONGOPT_URI, LONGOPT_ADDSERVERS, LONGOPT_NOADDSERVERS,
-  LONGOPT_ADDIMAGE, LONGOPT_NOADDIMAGE, LONGOPT_NOCACHE, LONGOPT_CACHEEXPIRY
+  LONGOPT_ADDIMAGE, LONGOPT_NOADDIMAGE, LONGOPT_NOCACHE, LONGOPT_CACHEEXPIRY,
+  LONGOPT_MERGE, LONGOPT_HEX, LONGOPT_NOHEX, LONGOPT_DEBUG, LONGOPT_NODEBUG,
+  LONGOPT_MATCHEXEC
 };
 
-/// Deal with command line switches
+// Deal with command line switches
 JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
 # if !WINDOWS
   binaryName = argv[0];
@@ -470,30 +479,36 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
 
   while (true) {
     static const struct option longopts[] = {
-      { "help",               no_argument,       0, 'h' },
-      { "help-all",           no_argument,       0, 'H' },
-      { "version",            no_argument,       0, 'v' },
-      { "files-from",         required_argument, 0, 'T' }, // "-T" like tar's
-      { "image",              required_argument, 0, 'i' },
-      { "jigdo",              required_argument, 0, 'j' },
-      { "template",           required_argument, 0, 't' },
       { "cache",              required_argument, 0, 'c' },
       { "cache-expiry",       required_argument, 0, LONGOPT_CACHEEXPIRY },
-      { "no-cache",           no_argument,       0, LONGOPT_NOCACHE },
+      { "check-files",        no_argument,       0, LONGOPT_MKIMAGECHECK },
+      { "debug",              optional_argument, 0, LONGOPT_DEBUG },
+      { "files-from",         required_argument, 0, 'T' }, // "-T" like tar's
       { "force",              no_argument,       0, 'f' },
-      { "no-force",           no_argument,       0, LONGOPT_NOFORCE },
-      { "min-length",         required_argument, 0, LONGOPT_MINSIZE },
+      { "help",               no_argument,       0, 'h' },
+      { "help-all",           no_argument,       0, 'H' },
+      { "hex",                no_argument,       0, LONGOPT_HEX },
+      { "image",              required_argument, 0, 'i' },
+      { "image-section",      no_argument,       0, LONGOPT_ADDIMAGE },
+      { "jigdo",              required_argument, 0, 'j' },
+      { "label",              required_argument, 0, LONGOPT_LABEL },
       { "md5-block-size",     required_argument, 0, LONGOPT_MD5SIZE },
+      { "match-exec",         required_argument, 0, LONGOPT_MATCHEXEC },
+      { "merge",              required_argument, 0, LONGOPT_MERGE },
+      { "min-length",         required_argument, 0, LONGOPT_MINSIZE },
+      { "no-cache",           no_argument,       0, LONGOPT_NOCACHE },
+      { "no-check-files",     no_argument,       0, LONGOPT_NOMKIMAGECHECK },
+      { "no-debug",           no_argument,       0, LONGOPT_NODEBUG },
+      { "no-force",           no_argument,       0, LONGOPT_NOFORCE },
+      { "no-hex",             no_argument,       0, LONGOPT_NOHEX },
+      { "no-image-section",   no_argument,       0, LONGOPT_NOADDIMAGE },
+      { "no-servers-section", no_argument,       0, LONGOPT_NOADDSERVERS },
       { "readbuffer",         required_argument, 0, LONGOPT_BUFSIZE },
       { "report",             required_argument, 0, 'r' },
-      { "check-files",        no_argument,       0, LONGOPT_MKIMAGECHECK },
-      { "no-check-files",     no_argument,       0, LONGOPT_NOMKIMAGECHECK },
       { "servers-section",    no_argument,       0, LONGOPT_ADDSERVERS },
-      { "no-servers-section", no_argument,       0, LONGOPT_NOADDSERVERS },
-      { "image-section",      no_argument,       0, LONGOPT_ADDIMAGE },
-      { "no-image-section",   no_argument,       0, LONGOPT_NOADDIMAGE },
-      { "label",              required_argument, 0, LONGOPT_LABEL },
+      { "template",           required_argument, 0, 't' },
       { "uri",                required_argument, 0, LONGOPT_URI },
+      { "version",            no_argument,       0, 'v' },
       { 0, 0, 0, 0 }
     };
 
@@ -512,14 +527,15 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
     case 'i': imageFile = optarg; break;
     case 'j': jigdoFile = optarg; break;
     case 't': templFile = optarg; break;
+    case LONGOPT_MERGE: jigdoMergeFile = optarg; break;
     case 'c': cacheFile = optarg; break;
     case LONGOPT_NOCACHE: cacheFile.erase(); break;
     case LONGOPT_CACHEEXPIRY: optCacheExpiry = scanTimespan(optarg); break;
     case 'f': optForce = true; break;
     case LONGOPT_NOFORCE: optForce = false; break;
-    case LONGOPT_MINSIZE:       blockLength = scanMemSize(optarg); break;
-    case LONGOPT_MD5SIZE:    md5BlockLength = scanMemSize(optarg); break;
-    case LONGOPT_BUFSIZE: readAmount = scanMemSize(optarg); break;
+    case LONGOPT_MINSIZE:    blockLength = scanMemSize(optarg); break;
+    case LONGOPT_MD5SIZE: md5BlockLength = scanMemSize(optarg); break;
+    case LONGOPT_BUFSIZE:     readAmount = scanMemSize(optarg); break;
     case 'r':
       if (strcmp(optarg, "default") == 0) {
         optReporter = &reporterDefault;
@@ -544,12 +560,17 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
     case LONGOPT_NOADDIMAGE: optAddImage = false; break;
     case LONGOPT_LABEL: optLabels.push_back(string(optarg)); break;
     case LONGOPT_URI: optUris.push_back(string(optarg)); break;
+    case LONGOPT_HEX: optHex = true; break;
+    case LONGOPT_NOHEX: optHex = false; break;
+    case LONGOPT_DEBUG:
+      if (optarg) optDebug = optarg; else optDebug = "all";
+      break;
+    case LONGOPT_NODEBUG: optDebug.erase(); break;
+    case LONGOPT_MATCHEXEC: optMatchExec = optarg; break;
     case '?': error = true;
     case ':': break;
     default:
-#     if DEBUG
-      cerr << "getopt returned " << static_cast<int>(c) << endl;
-#     endif
+      msg("getopt returned %1", static_cast<int>(c));
       break;
     }
   }
@@ -562,6 +583,12 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
                                     md5BlockLength, readAmount);
     throw Cleanup(0);
   }
+
+# if WINDOWS
+  Logger::scanOptions(optDebug, binName());
+# else
+  Logger::scanOptions(optDebug, binName().c_str());
+# endif
   //______________________________
 
   // Silently correct invalid blockLength/md5BlockLength args
@@ -655,11 +682,11 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
   }
   //____________________
 
-# if DEBUG
-  cerr << "Image file:  " << imageFile << endl;
-  cerr << "Jigdo:       " << jigdoFile << endl;
-  cerr << "Template:    " << templFile << endl;
-# endif
+  if (msg) {
+    msg("Image file: %1", imageFile);
+    msg("Jigdo:      %1", jigdoFile);
+    msg("Template:   %1", templFile);
+  }
 
   return result;
 }
@@ -687,6 +714,11 @@ int main(int argc, char* argv[]) {
   bindtextdomain(PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain(PACKAGE);
 # endif
+# if DEBUG
+  Logger::setEnabled("general");
+# else
+  Debug::abortAfterFailedAssertion = false;
+# endif
 
   try {
     set_new_handler(outOfMemory);
@@ -711,9 +743,7 @@ int main(int argc, char* argv[]) {
   }
   catch (bad_alloc) { outOfMemory(); }
   catch (Cleanup c) {
-#   if DEBUG
-    cerr << "[Cleanup " << c.returnValue << ']' << endl;
-#   endif
+    msg("[Cleanup %1]", c.returnValue);
     return c.returnValue;
   }
   catch (Error e) {
@@ -726,8 +756,6 @@ int main(int argc, char* argv[]) {
     JigdoFileCmd::optReporter->error(err);
     return 3;
   }
-# if DEBUG
-  cerr << "[exit(" << returnValue << ")]" << endl;
-# endif
+  msg("[exit(%1)]", returnValue);
   return returnValue;
 }

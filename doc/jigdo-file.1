@@ -3,14 +3,14 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "JIGDO-FILE" "1" "16 April 2002" "" ""
+.TH "JIGDO-FILE" "1" "20 June 2004" "" ""
+
 .SH NAME
 jigdo-file \- Prepare files for Jigsaw Download (distribution of huge files, e.g. CD images).
 .SH SYNOPSIS
 
 \fBjigdo-file\fR \fB \fI COMMAND\fB
-\fR [ \fB--image=\fIcdrom.iso\fB\fR] [ \fB--jigdo=\fIcdrom.jigdo\fB\fR] [ \fB--template=\fIcdrom.template\fB\fR] [ \fB--force\fR] [ \fBMORE OPTIONS\fR] [ \fB [ \fIFILES\fB\fI ...\fB] [ --files-from=\fIf\fB] \fR] 
-
+\fR [ \fB--image=\fIcdrom.iso\fB\fR ] [ \fB--jigdo=\fIcdrom.jigdo\fB\fR ] [ \fB--template=\fIcdrom.template\fB\fR ] [ \fB--force\fR ] [ \fBMORE OPTIONS\fR ] [ \fB\fIFILES\fB\fR\fI ...\fR | \fB--files-from=\fIf\fB\fR ]
  \fBCommon COMMANDs: make-template,
 make-image, verify\fR
 
@@ -57,10 +57,10 @@ servers only needs to be added to the
 `\fI.jigdo\fR' file by you before distributing
 it.
 .PP
-See later sections for a more detailed description of how
-jigdo works, and also to get a better idea of what applications it
-supports (such as customized versions of images released by
-others).
+The `DETAILS' section below contains technical details on
+how jigdo works. The `EXAMPLES' section lists a number of common
+scenarios and may help you to get an idea of what jigdo is useful
+for.
 .SH "OPTIONS"
 .PP
 Many options are specific to a particular
@@ -190,6 +190,31 @@ f\fR' if possible - otherwise, if you instruct
 symlink to that filename, \fBjigdo-file\fR will
 read the file contents twice.
 .TP
+\fB--hex\fR
+Output checksums in hexadecimal instead of Base64-like
+format. This should not be used with the
+\fBmake-template\fR command, because the
+resulting `\fI.jigdo\fR' file violates the
+`\fI.jigdo\fR' file format. Its intended use
+is to make \fBjigdo-file\fR more interoperable
+with other Unix shell utilities like \fBmd5sum\fR(1).
+.TP
+\fB--no-hex\fR
+\fBThis is the default.\fR Use jigdo's
+own Base64-like encoding of checksums.
+.TP
+\fB--debug[=help|=all|=\fIUNIT,~UNIT...\fB ]\fR
+Switch on or off debugging output. Just `--debug' is
+equivalent to `--debug=all'. The argument is a
+comma-separated list of unit names for which debugging
+output is to be enabled, or disabled if the name is preceded
+by `~'. The special name `all' means all units. By default,
+debugging output is switched off except for the units
+`assert' and `general'. The exact list of available units
+for which debugging can be switched on depends on whether
+jigdo was compiled with debugging support - the list can be
+printed with `--debug=help'.
+.TP
 \fB\fIFILES\fB\fR
 Names of files or directories to use as input. These
 are the parts that are contained in the image. In case one
@@ -229,9 +254,11 @@ If a \fIFILES\fR argument contains
 the characters `//' (Unix) or
 `\\.\\' (Windows), this has special meaning. In
 the final jigdo file that users will download, each of the parts
-is referenced in the `[Parts]' section with a URI of the form
-`Label:some/filename'. The `[Servers]' section gives a mapping
-of labels to servers on the internet, with lines like
+is referenced in the `[Parts]' section with a
+URI of the form `Label:some/filename'. (See `FORMAT OF .JIGDO
+FILES' below for a detailed description.) The
+`[Servers]' section gives a mapping of labels
+to servers on the internet, with lines like
 `Label=http://myserver.org/jigdofiles/'. Using this information,
 \fBjigdo\fR will create the final download URI for
 the part, `http://myserver.org/jigdofiles/some/filename'.
@@ -264,17 +291,19 @@ names like `http', `ftp'.
 \fB--uri \fILabel=http://some.server.org/\fB\fR
 By default, using \fB--label\fR as
 described above will cause lines of the form
-`Label=file:/path/' to be written to the `[Servers]'
-section of the output jigdo file. If you want to override
-the `file:' URI so that the line reads
-`Label=http://some.server.org/', you can do so by
-specifying \fB--uri\fR along with
-\fB--label\fR.
-
-Note that \fB--uri\fR only has an effect
-if the corresponding \fB--label\fR with the
-same label name is present, and gets used by the
-program.
+`Label=file:/path/' to be written to the
+`[Servers]' section of the output jigdo
+file. If you want to override the `file:' URI so that the
+line reads `Label=http://some.server.org/', you can do so
+by specifying \fB--uri\fR along with
+\fB--label\fR. Giving just \fB--uri
+\fILabel=...\fB\fR without the
+corresponding \fB--label
+\fILabel=...\fB\fR has no
+effect, and even if you specify both, an entry is only
+added to the `[Servers]' section if the
+label is referenced by at least one
+`[Parts]' entry.
 
 The supplied value is not quoted by the program; if
 it contains characters such as space or any of the
@@ -283,6 +312,10 @@ characters #"'\\ then you must quote it.
 protect it from the shell, e.g. \\\\\\\\ or
 \&'\\\\' to get a single backslash in the
 URI.)
+
+The mapping specified with an \fB--uri\fR
+option is ignored if it is already present in the output
+jigdo file.
 
 Users of the Windows version may notice that the
 `\\' directory separators are converted
@@ -307,7 +340,7 @@ the same as for \fBgzip\fR(1).
 \fB--min-length=\fIBYTES\fB\fR
 Set minimum length of a part for
 \fBjigdo-file\fR to look for it in the image.
-The default is 4k. Parts smaller than this will never be
+The default is 1k. Parts smaller than this will never be
 found in the image, so their data will be included in the
 template file. The search algorithm used requires such a
 minimum length, otherwise template generation could become
@@ -315,34 +348,151 @@ extremely slow. If you know for sure that all your
 \fIFILES\fR are larger than a certain
 amount, you can increase \fBjigdo-file\fR's
 speed slightly by specifying the amount with this option.
-There is a hard-wired absolute minimum of 1k - anything
-lower will silently be set to 1k.
+There is a hard-wired absolute minimum of 256 bytes -
+anything lower will silently be set to 256.
+.TP
+\fB--merge=\fIFILE\fB\fR
+Include the contents of
+\fIFILE\fR in the output
+`\fI.jigdo\fR' file. The file can contain
+data which you want added to the output (for example, a
+`[Servers]' section with a list of your
+servers as entries), or it can be the jigdo file output by
+an earlier run of \fBjigdo-file\fR.
+
+It is possible to specify the same file for input
+with \fB--merge\fR and for output with
+\fB--jigdo\fR. However, you will also need to
+use \fB--force\fR to make the program overwrite
+the old version of the jigdo file with the new one.
+\fIFILE\fR can be `-' for standard
+input.
+
+When \fBadding\fR new information to
+the supplied file, \fBjigdo-file\fR will not
+insert new lines into the `[Parts]'
+section if an entry for the same MD5 checksum (but not
+necessarily with the same URI!) already exists, and it
+will not insert new lines into the
+`[Servers]' section if a completely
+identical entry already exists.
+
+When \fBreading in\fR the existing
+\fIFILE\fR, the behaviour is slightly
+different: The program \fBpreserves\fR
+entries in the `[Parts]' section with
+identical checksum, but different URIs. For completely
+identical entries (same checksum and URI), only one entry
+is preserved and the duplicates are removed. The
+`[Servers]' section is left
+untouched.
 .TP
 \fB--image-section\fR
 \fBThis is the default.\fR Causes
-\fBjigdo-file\fR to include an `[Image]'
-section in the `\fI.jigdo\fR' file.
+\fBjigdo-file\fR to add an
+`[Image]' section to the
+`\fI.jigdo\fR' file.
+
+As an exception, a new `[Image]'
+section is \fBnot\fR added if you use
+\fB--merge\fR and the file to merge contains an
+`[Image]' section with a line which
+reads `Template-MD5Sum=' (end of line
+after the `='). In this case, the generated template
+data's MD5 checksum value is just added after the `=' of
+the first line of this form in the file - no whole new
+`[Image]' section is appended. This
+behaviour is useful because it allows you to pass via
+\fB--merge\fR an `[Image]'
+section with arbitrary content and then have the MD5
+checksum automatically added by
+\fBjigdo-file\fR. The section `FORMAT OF
+\&.JIGDO FILES' below explains the
+`[Image]' section contents in greater
+detail.
 .TP
 \fB--no-image-section\fR
-Do \fBnot\fR include an `[Image]'
-section in the `\fI.jigdo\fR' file. You
-need to add one yourself if you use this option.
+Do \fBnot\fR include an
+`[Image]' section in the
+`\fI.jigdo\fR' file. You need to add one
+yourself if you use this option. However, doing that is
+not easy (you also need to add a
+`Template-MD5Sum' line with the correct
+checksum, or \fBjigdo\fR will complain), so
+use of this option is discouraged.
 .TP
 \fB--servers-section\fR
 \fBThis is the default.\fR Causes
-\fBjigdo-file\fR to append a `[Servers]'
-section at the end of the `\fI.jigdo\fR'
-file. This default section uses `file:' URIs, which allows
-for immediate reassembly of the image from the local
-filesystem, and is also useful if you want to edit the
-file manually and replace the `file:' URIs with other
-URIs.
+\fBjigdo-file\fR to add a
+`[Servers]' section to the
+`\fI.jigdo\fR' file. This default section
+uses `file:' URIs, which allows for immediate reassembly
+of the image from the local filesystem, and is also useful
+if you want to edit the file manually and replace the
+`file:' URIs with other URIs.
 .TP
 \fB--no-servers-section\fR
-Do \fBnot\fR add a `[Servers]'
-section at the end of the `\fI.jigdo\fR'
-file. Useful e.g. if you are going to append the section
-with a script.
+Do \fBnot\fR add a
+`[Servers]' section at the end of the
+`\fI.jigdo\fR' file. Useful e.g. if you are
+going to append the section with a script.
+.TP
+\fB--match-exec=\fISHELLCOMMAND\fB\fR
+Whenever a file is found in the image, execute the
+supplied command string by passing it to a shell.
+\fBjigdo-file\fR sets up a number of
+environment variables with information about the file
+match. For example, if the file
+`\fI/path//a/b/file\fR' was found in the
+image and `Label:a/b/file' is going to be written to the
+`\fI.jigdo\fR' file:
+.RS
+.TP 0.2i
+\(bu
+\fBLABEL\fR="Label" - Name of the label for the file. The example assumes
+that `\fB--label\fR
+Label=/path' was specified by you.
+In the absence of such an option, \fBLABEL\fR
+will be set but empty.
+.TP 0.2i
+\(bu
+\fBLABELPATH\fR="/path/" - The path corresponding to the label,
+or in other words, the prefix of the matched file's
+path that will \fBnot\fR appear in the
+output `\fI.jigdo\fR' file. Is set even
+without any `\fB--label\fR' option present.
+Ends with a slash.
+.TP 0.2i
+\(bu
+\fBMATCHPATH\fR="a/b/" - The rest of the path, without the
+leafname of the matched file. Is either empty or ends
+with a slash.
+.TP 0.2i
+\(bu
+\fBLEAF\fR="file"
+- The leafname of the matched file.
+.TP 0.2i
+\(bu
+\fBMD5SUM\fR="lNVdUSqbo2yqm33webrhnw" - The md5sum of the
+matched file, in Base64-like format.
+.TP 0.2i
+\(bu
+\fBFILE\fR="/path//a/b/file" - For convenience, the
+complete path of the file. The variable is always set
+to $LABELPATH$MATCHPATH$LEAF.
+.RE
+
+Please be careful to correctly quote the string
+passed to this option, otherwise your supplied command
+will not work with filenames that contain spaces. As an
+example, to create a backup of hard links to the matched
+files, use the following option:
+--match-exec='mkdir -p "${LABEL:-.}/$MATCHPATH"
+&& ln -f "$FILE" "${LABEL:-.}/$MATCHPATH$LEAF"'
+
+By default, no command is executed. Use
+--match-exec="" to remove a command string which was set
+with an earlier use of this option.
 .SS "MAKE-IMAGE, MI"
 .PP
 Reads `\fI.template\fR' and
@@ -406,28 +556,29 @@ this provides most of the functionality of
 \fBjigdo\fR on the command line.
 .PP
 For each part that is not yet present in the temporary
-image file, the file checksum is looked up in the `[Parts]'
-section of the jigdo file. Any label in the corresponding entry
-is then expanded according to the label definitions in the
-`[Servers]' section and printed on standard output.
-\fBjigdo\fR allows you to specify several
-alternative locations for each label in this section, but
-\fBprint-missing\fR will only output the first one
-for each missing part.
+image file, the file checksum is looked up in the
+`[Parts]' section of the jigdo file. Any
+label in the corresponding entry is then expanded according to
+the label definitions in the `[Servers]'
+section and printed on standard output. \fBjigdo\fR
+allows you to specify several alternative locations for each
+label in this section, but \fBprint-missing\fR will
+only output the first one for each missing part.
 .PP
-If the checksum cannot be found in the `[Parts]' section
-(this Should Not Happen unless you deleted that section), a
-lookup is instead made for
+If the checksum cannot be found in the
+`[Parts]' section (this Should Not Happen
+unless you deleted that section), a lookup is instead made for
 `MD5Sum:\fI<checksum>\fR', just like
 with \fBjigdo\fR. (Thus, if you want to get rid of
-the `[Parts]' section, you can do so if you rename each part to
-its own checksum.)
+the `[Parts]' section, you can do so if you
+rename each part to its own checksum.)
 .TP
 \fB--uri \fILabel=http://some.server.org/\fB\fR
 Override the entries in the
 `\fI.jigdo\fR' file for any label with a
-URI of your choice. With the example above, a `[Parts]'
-entry of `Label:some/filename' will cause the line
+URI of your choice. With the example above, a
+`[Parts]' entry of
+`Label:some/filename' will cause the line
 `http://some.server.org/some/filename' to be
 printed.
 
@@ -497,10 +648,11 @@ You can also use this command with temporary image files
 output also distinguishes between parts that have been written
 to the image and parts that haven't.
 .PP
-The following different types of lines can be output.
-`have-file' only occurs for `\fI.tmp\fR' files,
-indicating a file that has already been successfully written to
-the temporary file:
+The exact output format may change incompatibly between
+different jigdo releases. The following different types of lines
+can be output. `have-file' only occurs for
+`\fI.tmp\fR' files, indicating a file that has
+already been successfully written to the temporary file:
 
 .nf
 in-template \fIoffset-in-image length\fR
@@ -538,8 +690,7 @@ edited in case any of these values need to be changed. All that
 information is stored in the `\fI.jigdo\fR' file, a
 text file to which you can add URLs for your server(s). The jigdo
 file provides a mapping for each MD5 checksum to one or more
-alternative download locations for the corresponding part. See the
-section `FORMAT OF .JIGDO FILES' below for details.
+alternative download locations for the corresponding part.
 .PP
 Apart from the mapping of MD5 sums to URIs, the jigdo file
 also contains an URI pointing to a download location for the
@@ -549,15 +700,14 @@ tool only needs to be given one URI (that of the
 reassemble the complete image.
 .SH "FORMAT OF .JIGDO FILES"
 .PP
-\fBWORK IN PROGRESS... at the moment, minor
-modifications to the format are still possible.\fR
-.PP
 The overall format of `\fI.jigdo\fR' files
 follows that of `\fI.ini\fR' files, as also used by
 the Gnome and KDE projects for some data. The file is organized
 into sections, each of which is preceded by a line reading
-`[Sectionname]'. Within each section, lines have the form
-`Label=Value'. Such lines are also called `entries' below.
+`[Sectionname]'. Within each section, lines
+have the form `Label=Value'. Such lines are also called `entries'
+below. All `\fI.jigdo\fR' files use UTF-8 as their
+character encoding.
 .PP
 Comments are introduced with the `#'
 character and extend to the end of the line. Whitespace is ignored
@@ -571,13 +721,28 @@ e.g. URIs containing whitespace are split apart. Similarly,
 characters with special meaning (the characters
 \&'"#\\ and space/tab) must be quoted with
 \\ to appear in the value. As with the shell,
-there is a difference between '' and
-"": Within '', the
-characters "#\\ and whitespace lose their
-special meaning, whereas within "", only the
-characters '# and whitespace lose their special
-meaning - in other words, backslash escapes still work inside
-"", but not ''.
+there is a difference between '\~' and
+"\~": Within '\~',
+the characters "#\\ and whitespace lose their
+special meaning and become ordinary characters, whereas within
+"\~", only the characters
+\&'# and whitespace lose their special meaning -
+in other words, backslash escapes still work inside
+"\~", but not
+\&'\~'.
+.PP
+`\fI.jigdo\fR' files can optionally be
+compressed with \fBgzip\fR(1). \fBjigdo-file\fR always outputs
+uncompressed files, which you can compress yourself. 
+\fBjigdo-lite\fR supports single uncompressed and
+compressed files. \fBjigdo\fR additionally supports
+any number of concatenated plaintext and gzipped parts in the
+files - for example, you can compress a
+`\fI.jigdo\fR' file and then add a couple of lines
+of uncompressed data to the end. In all cases, the
+`\fI.gz\fR' extension should be removed from the
+filename - the tools will determine automatically from the file
+contents whether a file is compressed or not.
 .PP
 Below is a description of the individual section names used
 by jigdo.
@@ -585,38 +750,65 @@ by jigdo.
 
 .nf
 [Jigdo]
-Version=1.0
-Generator=jigdo-file/0.5.3
-Info=\fIlong description\fR
+Version=1.1
+Generator=jigdo-file/1.0.0
 .fi
 .PP
 Information about the version of the jigdo file format
-used, and the program that generated it. The `Info' label can
-contain a description of the contents of the jigdo file.
-.PP
-There is one such section per
-`\fI.jigdo\fR' file.
+used, and the program that generated it. There should be one
+such section per `\fI.jigdo\fR' file.
 .SS "IMAGE SECTION"
 
 .nf
 [Image]
 Filename=\fI"filename for saving on user's disc"\fR
 Template=\fI"URI where to fetch template file"\fR
-Selected=yes|no
-ShortInfo=\fIsingle-line description, for displaying menu of images\fR
-Info=\fIlong description\fR
+Template-MD5Sum=OQ8riqT1BuyzsrT9964A7g
+ShortInfo=\fIsingle-line description of the image (200 characters max.)\fR
+Info=\fIlong description (5000 characters max.)\fR
 .fi
 .PP
-The `Selected' label indicates whether the image is
-selected for download by default when \fBjigdo\fR
-is run for this file.
+The value for the `Template' entry can be either an URL
+(absolute or relative to the URL of the jigdo file) or a string
+of the form `\fILabel\fR:\fIpathname\fR' (\fBUNIMPLEMENTED\fR),
+as described below.
 .PP
-Instead of an URI, the value for the `Template' entry can
-also be a string of the form `\fILabel\fR:\fIpathname\fR', as described
-below.
+The `Template-MD5Sum' entry is added by
+\fBjigdo-file\fR and specifies the MD5 checksum of
+the generated `\fI.template\fR' file. It is used
+by \fBjigdo\fR to detect cases where the downloaded
+template data is corrupted or belongs to a different
+image.
 .PP
-This section may occur multiple times, there is one such
-section for each image in the jigdo file.
+Unlike other entry values, the values of the
+`ShortInfo' and `Info'
+entries are \fBnot\fR split up into words,
+instead all quoting is preserved.
+.PP
+The value of the `Info' entry is
+special in that \fBjigdo\fR(1) can optionally parse XML markup it contains. If
+the markup has errors such as unbalanced/unsupported tags, the
+string is displayed literally, without XML parsing. Supported
+tags are <b></b> (bold),
+<i></i> (italic),
+<tt></tt> (typewriter font),
+<u></u> (underline),
+<big></big> (larger font),
+<small></small> (smaller font)
+and <br/> (linebreak). Supported
+entities include &lt; (`<'),
+&gt; (`>') and
+&amp; (`&'). Note that the whole
+`Info' entry must be on one line in the jigdo
+file.
+.PP
+This section may occur multiple times, but all except the
+first one will be ignored. This is useful e.g. when creating a
+`\fI.jigdo\fR' file for a DVD image when you
+already have `\fI.jigdo\fR' files for CDs with
+the same content: You can simply `[Include]'
+(see below) the CDs' jigdo files at the end of the DVD jigdo
+file, after its `[Image]' section.
 .SS "PARTS SECTION"
 
 .nf
@@ -634,20 +826,30 @@ Base64-like encoding) is given, and on the right a string
 corresponding to the part with this checksum; either a complete
 URI or a string of the form `\fILabel\fR:\fIpathname\fR', which is expanded into
 one or more URIs by looking up the definition(s) for the
-\fILabel\fR in the `[Servers]'
-section.
+\fILabel\fR in the
+`[Servers]' section.
 .PP
 In case a particular MD5 checksum cannot be found in any
-`[Parts]' section by \fBjigdo\fR, the program will
-perform a lookup for `MD5Sum:\fI<checksum>\fR', e.g. for
+`[Parts]' section by
+\fBjigdo\fR, the program will perform a lookup for
+`MD5Sum:\fI<checksum>\fR', e.g. for
 `MD5Sum:xJNkjrq8NYMraeGavUpllw' if you
 deleted the line for `part0' above.
 .PP
 A checksum appearing multiple times in this section
 indicates alternative download locations for the part.
 .PP
-There may be any number of `[Parts]' sections in the file;
-they are all considered when looking up MD5 checksums.
+There may be any number of `[Parts]'
+sections in the file; they are all considered when looking up
+MD5 checksums.
+.PP
+\fBjigdo-file\fR always puts the
+`[Parts]' section at the end of the file, and
+it even rearranges any file specified with
+\fB--merge\fR to have only one such section at the
+end. This is done to allow \fBjigdo\fR to display
+the information from the `[Image]' section
+while the rest of that file is still being downloaded.
 .SS "SERVERS SECTION"
 
 .nf
@@ -665,20 +867,65 @@ and on the right the value to expand the label name to.
 .PP
 A label name appearing multiple times in this section
 indicates alternative download locations for the parts that use
-the label in the `[Parts]' section. This notation makes it very
-easy to add mirrors to the jigdo file.
+the label in the `[Parts]' section. This
+notation makes it very easy to add mirrors to the jigdo
+file.
 .PP
 As shown by the example above, the label values may
-themselves reference other labels. For example, the entry
-`LabelB:some/path/part2' in the `[Parts]' section will expand to
+themselves reference other labels. In this case, the entry
+`LabelB:some/path/part2' in the `[Parts]'
+section will expand to
 `http://some.where.com/jigdo/subdirectory/some/path/part2'.
 Loops in the label definitions result in undefined behaviour and
 must be avoided.
 .PP
-There may be any number of `[Servers]' sections in the
-file; they are all considered when looking up labels. Either of
-`[Parts]' or `[Servers]', but not both, can be omitted from the
-jigdo file.
+There may be any number of `[Servers]'
+sections in the file; they are all considered when looking up
+labels. Either of `[Parts]' or
+`[Servers]', but not both, can be omitted
+from the jigdo file.
+.SS "COMMENT SECTION"
+
+.nf
+[Comment]
+Any text, except that lines must not begin with `['.
+.fi
+.PP
+All text following a `[Comment]' or
+`[comment]' line is ignored, up to the next
+line with a section label.
+.SS "INCLUDE DIRECTIVE"
+
+.nf
+[Include http://some.url/file.jigdo]
+.fi
+.PP
+Lines of this form cause the content of the specified
+jigdo file to be downloaded and parsed just like the main jigdo
+file. The effect will be the same as copying the included file's
+contents into the file which contains the include directive.
+.PP
+The URL argument can be an absolute or relative URL. 
+Relative URLs are assumed to be relative to the URL of the jigdo
+file which contains the include directive. Includes can be
+nested, but it is an error to create a loop of include
+directives. It is \fBnot\fR possible to use URLs
+of the form `\fILabel\fR:\fIpathname\fR'.
+.PP
+The URL cannot be quoted with "". Any
+`]' characters in the argument must be
+escaped as `%5D', and any spaces as
+`%20'.
+.PP
+Include directives are only supported by
+\fBjigdo\fR, they are ignored by
+\fBjigdo-lite\fR.
+.PP
+An include directive terminates any previous section, but
+it does not start a new one. In other words, a new section must
+always be started after the include line,
+\fBjigdo\fR does not allow normal entries to appear
+below the `[Include]'.
 .SH "CACHE FILES"
 .PP
 Any file specified with the \fB--cache\fR option
@@ -749,11 +996,10 @@ Mysite=/home/ftp --uri
 Mysite=ftp://mysite.org/\fR
 .RE
 .PP
-After editing the file
-`\fI/home/ftp/image.jigdo\fR' to contain the
-correct URI for the template, `ftp://mysite.org/image.template',
-people can point \fBjigdo\fR at
-`ftp://mysite.org/image.jigdo' to download your image.
+People can now point \fBjigdo\fR at
+`ftp://mysite.org/image.jigdo' to download your image. The
+template file needs to be accessible as
+`ftp://mysite.org/image.template'.
 .PP
 Note that nothing prevents you from doing the same for an
 FTP server that isn't administrated by you - in that case, you
@@ -780,7 +1026,7 @@ jigdo and template files with `\fBjigdo-file make-template
 `\fI.jigdo\fR' file and provide the right URIs
 for the two servers that you are going to upload the
 `\fIpartXX\fR' files
-as well as the `\fI.template\fR' file to.
+to.
 .SS "CUSTOMIZED VERSIONS OF IMAGES"
 .PP
 Because it is possible to assign a different URI for each
@@ -789,8 +1035,9 @@ example is the possibility of customized versions of images:
 Suppose that someone is distributing a CD image, and that you
 want to make a few small changes to it and redistribute your own
 version. You download the `\fIofficial.iso\fR' CD
-image with \fBjigdo\fR, write it to CD-R, make your
-changes (say, adding files from the
+image with \fBjigdo\fR (passing it the URL of
+`\fIofficial.jigdo\fR'), write it to CD-R, make
+your changes (say, adding files from the
 `\fImyfiles\fR' directory on your harddisc) and
 produce your own version, `\fImyversion.iso\fR'.
 Next, you instruct \fBjigdo-file\fR to create the
@@ -801,22 +1048,25 @@ command
 .PP
 \fBjigdo-file make-template
 --image=myversion.iso /mnt/cdrom/ myfiles// --label
-My=myfiles/ --uri
-My=http://my.homepage.net/\fR
+My=myfiles/ --uri My=http://my.homepage.net/
+--merge=official.jigdo\fR
 .RE
 while `\fIofficial.iso\fR' is mounted under
-`\fI/mnt/cdrom\fR'. Now you need to create a
-`\fI.jigdo\fR' file that references the same
-files as the original image, but provides additional links for
-any files \fBjigdo-file\fR picked up from the
-`\fImyfiles\fR' directory. This is most easily
-done by copying over the relevant sections from the jigdo file
-for `\fIofficial.iso\fR' to your own version's
-jigdo file.
+`\fI/mnt/cdrom\fR'. By using
+\fB--merge\fR, you have told
+\fBjigdo-file\fR to take the contents of
+`\fIofficial.jigdo\fR', add to it a new
+`[Image]' section for
+`\fImyversion.iso\fR' and write the resulting
+jigdo file to `\fImyversion.jigdo\fR' - so now
+`\fImyversion.jigdo\fR' offers two images for
+download, the original version and your modified version. (If
+you do not want it to offer the official version, edit it and
+remove the `[Image]' section that lists
+`\fIofficial.iso\fR'.)
 .PP
-Finally, after also adding a correct link for the template
-file, you can upload the `\fI.jigdo\fR' file, the
-`\fI.template\fR' file and also the files in
+Now you can upload the `\fI.jigdo\fR' file,
+the `\fI.template\fR' file and also the files in
 `\fImyfiles\fR' to `http://my.homepage.net/'.
 Thus, for people to download your modified image, you do
 \fBnot\fR need to upload the complete image
@@ -844,25 +1094,25 @@ MBs.
 .PP
 For certain contents of one of the input files, most notably
 a sequence of zero bytes longer than \fB--min-length\fR
-at the start of the file, \fBjigdo-file
-make-template\fR may fail to find the file in the image.
-Unfortunately, this restriction cannot be avoided because the
-program could become very slow otherwise.
-\fBjigdo-file\fR may also fail to find the file that
-\fBfollows\fR an all-zeroes file in the image. To
-avoid this, exclude the all-zeroes file from
-\fIFILES\fR - this means that its data will
-end up in the template data, but an all-zeroes file can be
-compressed very well.
+at the start of the file and an area of zeros preceding the file
+data in the image, \fBjigdo-file make-template\fR may
+fail to find the file in the image. Unfortunately, this
+restriction cannot be avoided because the program could become
+very slow otherwise. If you use the \fB--debug\fR
+option, all instances of \fBjigdo-file\fR discarding
+possible matches are indicated by lines containing the word
+`DROPPED'.
 .PP
 In fact, not only all-zeroes files trigger this behaviour,
-but also any files which contain at their start a long sequence of
+but also files which contain at their start a long sequence of
 short identical strings. For example, both a file containing only
 `a' characters and one containing
 `abcabcabcabc...' are problematic.
 .SH "SEE ALSO"
 .PP
 \fBjigdo\fR(1) (NOT YET IMPLEMENTED),
+\fBjigdo-lite\fR(1),
+\fBjigdo-mirror\fR(1),
 \fBsplit\fR(1) (or `\fBinfo split\fR'),
 \fBfind\fR(1) (or `\fBinfo find\fR'),
 \fBmkisofs\fR(1),
@@ -871,6 +1121,5 @@ short identical strings. For example, both a file containing only
 .PP
 Jigsaw
 Download <URL:http://atterer.net/jigdo/> was written by Richard Atterer
-<jigdo@atterer.net>, to make downloading of CD ROM
-images for the Debian GNU/Linux distribution more
-convenient.
+<jigdo atterer.net>, to make downloading of CD ROM
+images for the Debian Linux distribution more convenient.

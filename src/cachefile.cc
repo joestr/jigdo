@@ -1,7 +1,7 @@
-/* $Id: cachefile.cc,v 1.10 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: cachefile.cc,v 1.5 2004/02/05 14:43:50 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2003  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -11,20 +11,24 @@
 
 */
 
+#include <config.h>
+
 #include <cachefile.hh>
+#include <compat.hh>
 #if HAVE_LIBDB
 
 #if DEBUG
 #  include <iostream>
 #endif
 #include <new>
-namespace std { }
-using namespace std;
 #include <time.h> /* time() */
 
 #include <debug.hh>
+#include <log.hh>
 #include <serialize.hh>
 //______________________________________________________________________
+
+DEBUG_UNIT("cachefile")
 
 CacheFile::CacheFile(const char* dbName) {
   memset(&data, 0, sizeof(DBT));
@@ -32,26 +36,26 @@ CacheFile::CacheFile(const char* dbName) {
   int e = db_create(&db, 0, 0); // No env/flags
   if (e != 0) throw DbError(e);
 
-  // Cache of 0GB+128kB, one contiguous chunk
-  db->set_cachesize(db, 0, 128*1024, 1);
+  // Cache of 0GB+4MB, one contiguous chunk
+  db->set_cachesize(db, 0, 4*1024*1024, 1);
 
   // Use a btree, create database file if not yet present
-  e = db->open(db, dbName, "jigdo filecache v0", DB_BTREE, DB_CREATE, 0666);
+  e = compat_dbOpen(db, dbName, "jigdo filecache v0", DB_BTREE, DB_CREATE,
+                    0666);
   if (e != 0) {
     // Re-close, in case it is necessary
     db->close(db, 0);
+    if (e != DB_OLD_VERSION && e != DB_RUNRECOVERY)
+      throw DbError(e);
     /* If the DB file is old or corrupted, just regenerate it from
        scratch, otherwise throw error. */
-    if ((e != DB_OLD_VERSION && e != DB_RUNRECOVERY)
-        || db->open(db, dbName, "jigdo filecache v0", DB_BTREE,
-                    DB_CREATE | DB_TRUNCATE, 0666) != 0)
+    debug("Cache file corrupt, recreating it");
+    if (compat_dbOpen(db, dbName, "jigdo filecache v0", DB_BTREE,
+                      DB_CREATE | DB_TRUNCATE, 0666) != 0)
       throw DbError(e);
   }
 
   data.flags |= DB_DBT_REALLOC;
-# if DEBUG
-  //cerr << "Cache file: " << dbName << endl;
-# endif
 }
 //______________________________________________________________________
 
@@ -92,12 +96,13 @@ bool CacheFile::find(const byte*& resultData, size_t& resultSize,
   // Cursor with no transaction id, no flags
   if (db->cursor(db, 0, &cursor.c, 0) != 0) return false;
 
-  if (cursor.get(&key, &data, DB_SET) == DB_NOTFOUND) return false;
+  if (cursor.get(&key, &data, DB_SET) == DB_NOTFOUND
+      || data.data == 0) return false;
 
   // Check whether mtime and size matches
   Paranoid(data.size >= USER_DATA);
   byte* d = static_cast<byte*>(data.data);
-  Assert(d != 0);
+  Paranoid(d != 0);
   time_t cacheMtime;
   unserialize4(cacheMtime, d + MTIME);
   if (cacheMtime != mtime) return false;
@@ -131,42 +136,22 @@ void CacheFile::expire(time_t t) {
   // Cursor with no transaction id, no flags
   if (db->cursor(db, 0, &cursor.c, 0) != 0) return;
 
-  while (cursor.get(&key, &data, DB_NEXT) != DB_NOTFOUND) {
-    time_t lastAccess;
-    unserialize4(lastAccess, static_cast<byte*>(data.data) + ACCESS);
+  int status;
+  while ((status = cursor.get(&key, &data, DB_NEXT)) == 0) {
+    time_t lastAccess = 0;
+    // If data.data == 0, expire entry by leaving lastAccess at 0
+    if (data.data != 0)
+      unserialize4(lastAccess, static_cast<byte*>(data.data) + ACCESS);
     // Same as 'if (lastAccess<t)', but deals with wraparound:
     if (static_cast<signed>(t - lastAccess) > 0) {
-#     if DEBUG
-      string name(static_cast<char*>(key.data), key.size);
-      cerr << "Cache: expiring "<<name <<endl;
-#     endif
+      debug("Cache: expiring %1",
+            string(static_cast<char*>(key.data), key.size));
       cursor.del(0);
     }
   }
+  if (status != DB_NOTFOUND)
+    throw DbError(status);
 }
-//______________________________________________________________________
-
-// void CacheFile::insert(const byte* inData, size_t inSize,
-//     const string& fileName, time_t mtime, uint64 fileSize) {
-//   // Allocate enough memory for the new entry
-//   void* tmp = realloc(data.get_data(), USER_DATA + inSize);
-//   if (tmp == 0) throw bad_alloc();
-//   data.set_data(tmp);
-//   data.set_size(USER_DATA + inSize);
-//   byte* buf = static_cast<byte*>(tmp);
-
-//   // Write our data members
-//   time_t now = time(0);
-//   serialize4(now, buf + ACCESS);
-//   serialize4(mtime, buf + MTIME);
-//   serialize6(fileSize, buf + SIZE);
-//   // Append supplied data members
-//   memcpy(buf + USER_DATA, inData, inSize);
-
-//   // Insert in database
-//   Dbt key(const_cast<char*>(fileName.c_str()), fileName.size());
-//   db.put(0, &key, &data, 0); // No transaction, overwrite
-// }
 //______________________________________________________________________
 
 /* Prepare for an insertion of data, by allocating a sufficient amount

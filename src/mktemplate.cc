@@ -1,22 +1,30 @@
-/* $Id: mktemplate.cc,v 1.63 2002/04/10 20:07:41 richard Exp $ -*- C++ -*-
+/* $Id: mktemplate.cc,v 1.8 2004/06/16 15:21:49 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License, version 2. See
-  the file COPYING for details.
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License, version 2. See the file
+  COPYING for details.
 
   Create location list (.jigdo) and image template (.template)
 
-  WARNING: This is very complicated code - be sure to run the
-  "torture" regression test after making changes. Read this file from
-  bottom to top.
+  WARNING: This is very complicated code - be sure to run the "torture"
+  regression test after making changes. Read this file from bottom to top.
+  The .jigdo generating code is in mkjigdo.cc. The code for the queue of
+  partial matches is in partialmatch.*.
+
+  In the log messages that are output with --debug, uppercase means that it
+  is finally decided what this area of the image is: UNMATCHED or a MATCH of
+  a file.
 
 */
 
+#include <config.h>
+
 #include <errno.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
 
@@ -25,26 +33,17 @@
 #include <fstream>
 #include <map>
 #include <memory>
-namespace std { }
-using namespace std;
 
-#include <config.h>
-#include <configfile.hh>
-#include <compat.hh>
 #include <autoptr.hh>
+#include <compat.hh>
 #include <debug.hh>
+#include <log.hh>
+#include <mimestream.hh>
 #include <mkimage.hh>
 #include <mktemplate.hh>
 #include <scan.hh>
 #include <string.hh>
 #include <zstream.hh>
-
-/* In the log messages that are output, uppercase means that it is
-   finally decided what this area of the image is: UNMATCHED or a
-   MATCH of a file. */
-#ifndef DEBUG_MKTEMPLATE
-#  define DEBUG_MKTEMPLATE (DEBUG && 0)
-#endif
 //______________________________________________________________________
 
 void MkTemplate::ProgressReporter::error(const string& message) {
@@ -58,15 +57,23 @@ MkTemplate::ProgressReporter MkTemplate::noReport;
 //______________________________________________________________________
 
 MkTemplate::MkTemplate(JigdoCache* jcache, bistream* imageStream,
-    ostream* jigdoStream, bostream* templateStream, ProgressReporter& pr,
+    JigdoConfig* jigdoInfo, bostream* templateStream, ProgressReporter& pr,
     int zipQuality, size_t readAmnt, bool addImage, bool addServers)
   : fileSizeTotal(0U), fileCount(0U), block(), readAmount(readAmnt),
+    off(), unmatchedStart(),
     cache(jcache),
-    image(imageStream), jigdo(jigdoStream), templ(templateStream),
-    zipQual(zipQuality), reporter(pr),
-    addImageSection(addImage),
-    addServersSection(addServers) {
-}
+    image(imageStream), templ(templateStream), zip(0),
+    zipQual(zipQuality), reporter(pr), matches(new PartialMatchQueue()),
+    sectorLength(),
+    jigdo(jigdoInfo), addImageSection(addImage),
+    addServersSection(addServers),
+    matchExec() { }
+//______________________________________________________________________
+
+/* Because make-template should be debuggable even in non-debug builds,
+   always compile in debug messages. */
+#undef debug
+Logger MkTemplate::debug("make-template");
 //______________________________________________________________________
 
 namespace {
@@ -117,32 +124,41 @@ namespace {
      Offsets can be equal to bufferLength. If both offsets are equal,
      the whole buffer content is written. */
   inline void writeBuf(const byte* const buf, size_t begin, size_t end,
-                       const size_t bufferLength, Zobstream& zip) {
+                       const size_t bufferLength, Zobstream* zip) {
     Paranoid(begin <= bufferLength && end <= bufferLength);
     if (begin < end) {
-      zip.write(buf + begin, end - begin);
+      zip->write(buf + begin, end - begin);
     } else {
-      zip.write(buf + begin, bufferLength - begin);
-      zip.write(buf, end);
+      zip->write(buf + begin, bufferLength - begin);
+      zip->write(buf, end);
     }
   }
   //____________________
 
   // Write lower 48 bits of x to s in little-endian order
   void write48(bostream& s, uint64 x) {
+#   if 0
     s << static_cast<byte>(x & 0xff)
       << static_cast<byte>((x >> 8) & 0xff)
       << static_cast<byte>((x >> 16) & 0xff)
       << static_cast<byte>((x >> 24) & 0xff)
       << static_cast<byte>((x >> 32) & 0xff)
       << static_cast<byte>((x >> 40) & 0xff);
+#   else
+    s.put(static_cast<byte>( x        & 0xff));
+    s.put(static_cast<byte>((x >> 8)  & 0xff));
+    s.put(static_cast<byte>((x >> 16) & 0xff));
+    s.put(static_cast<byte>((x >> 24) & 0xff));
+    s.put(static_cast<byte>((x >> 32) & 0xff));
+    s.put(static_cast<byte>((x >> 40) & 0xff));
+#   endif
   }
 
 } // namespace
 //______________________________________________________________________
 
-/* Build up a template DESC section by appending data items to a
-   string<byte>. Calls to descUnmatchedData() are allowed to
+/* Build up a template DESC section by appending items to a
+   JigdoDescVec. Calls to descUnmatchedData() are allowed to
    accumulate, so that >1 consecutive unmatched data areas are merged
    into one in the DESC section. */
 class MkTemplate::Desc {
@@ -175,7 +191,10 @@ public:
     files.push_back(new JigdoDesc::MatchedFile(offset, len, r, md5));
     offset += len;
   }
-  inline bostream& put(bostream& s) { s << files; return s; }
+  inline bostream& put(bostream& s, MD5Sum* md) {
+    files.put(s, md);
+    return s;
+  }
 private:
   JigdoDescVec files;
   uint64 offset;
@@ -205,79 +224,58 @@ inline bool MkTemplate::scanFiles(size_t blockLength, uint32 blockMask,
 }
 //________________________________________
 
-// One object for each offset in image where any file /might/ match
-struct MkTemplate::PartialMatch {
-  uint64 startOff; // Offset in image at which this match starts
-  uint64 nextEvent; // Next value of off at which to finish() sum & compare
-  size_t blockOff; // Offset in buf of start of current MD5 block
-  size_t blockNr; // Number of block in file, i.e. index into file->sums[]
-  FilePart* file; // File whose sums matched so far
-  PartialMatch* next;
-  bool operator<=(const PartialMatch& x) {
-    return nextEvent <= x.nextEvent;
-  }
-};
-//________________________________________
+void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
+    const size_t back, const size_t md5BlockLength, uint64& nextEvent,
+    FilePart* file) {
 
-/* Insert x in todo using linear search, possibly updating todo. The
-   elements of todo are always sorted by ascending nextEvent. */
-void MkTemplate::insertInTodo(PartialMatch*& todo, PartialMatch* x) {
-  if (todo == 0 || *x <= *todo) {
-    x->next = todo;
-    todo = x;
-    return;
-  }
-  PartialMatch* cur = todo;
-  while (true) {
-    if (cur->next == 0) {
-      x->next = 0;
-      cur->next = x;
-      return;
-    } else if (*x <= *cur->next) {
-      x->next = cur->next;
-      cur->next = x;
+  /* Don't schedule match if its startOff (== off - blockLen) is impossible.
+     This is e.g. the case when file A is 1024 bytes long (i.e. is
+     immediately matched once seen), and the first 1024 bytes of file B are
+     equal to file A, and file B is in the image.
+     [I think A gets matched, then the following line prevents that a partial
+     match for B is also recorded.] */
+  if (off - blockLen < unmatchedStart) return;
+
+  PartialMatch* x; // Ptr to new entry in "matches"
+  if (matches->full()) {
+    x = matches->findDropCandidate(&sectorLength, off - blockLen);
+    if (x == 0 || x->file() == file) {
+      /* If no more space left in queue and none of the entries in it is
+         appropriate for discarding, just discard this possible file match!
+         It's the only option if there are many, many overlapping matches,
+         otherwise the program would get extremely slow. */
+      debug(" %1: DROPPED possible %2 match at offset %3 (queue full)",
+            off, file->leafName(), off - blockLen);
       return;
     }
-    cur = cur->next;
+    // Overwrite existing entry in the queue
+    debug(" %1: DROPPED possible %2 match at offset %3 (queue full, match "
+          "below replaces it)",
+          off, x->file()->leafName(), x->startOffset());
+  } else { // !matches->full()
+    // Add new entry to the queue
+    x = matches->addFront();
   }
-}
-//________________________________________
 
-void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
-    const size_t back, const uint64 off, const size_t md5BlockLength,
-    PartialMatch*& todo, PartialMatch*& todoFree, uint64& nextEvent,
-    const uint64 unmatchedStart, FilePart* file) {
-  /* Rolling rsum matched - schedule an MD5Sum match. NB: In extreme
-     cases, nextEvent may be equal to off */
-  PartialMatch* x = todoFree;
-  x->startOff = off - blockLen;
-  /* Don't schedule match if its startOff is impossible. This is e.g.
-     the case when file A is 4096 bytes long (i.e. is immediately
-     matched once seen), and the first 4096 bytes of file B are equal
-     to file A, and file B is in the image. */
-  if (x->startOff < unmatchedStart) return;
-  todoFree = todoFree->next;
-  x->nextEvent = x->startOff +
-    (file->size() < md5BlockLength ? file->size() : md5BlockLength);
-# if DEBUG_MKTEMPLATE
-  cerr << ' ' << off << ": Head of " << file->leafName()
-       << " match at offset " << x->startOff << ", my next event "
-       << x->nextEvent << endl;
-# endif
-  if (x->nextEvent < nextEvent) nextEvent = x->nextEvent;
-  x->blockOff = back;
-  x->blockNr = 0;
-  x->file = file;
-  insertInTodo(todo, x);
+  /* Rolling rsum matched - schedule an MD5Sum match. NB: In extreme cases,
+     nextEvent may be equal to off */
+  x->setStartOffset(off - blockLen);
+  size_t eventLen = (file->size() < md5BlockLength ?
+                     file->size() : md5BlockLength);
+  x->setNextEvent(matches, x->startOffset() + eventLen);
+  debug(" %1: Head of %2 match at offset %3, my next event %4",
+        off, file->leafName(), x->startOffset(), x->nextEvent());
+  if (x->nextEvent() < nextEvent) nextEvent = x->nextEvent();
+  x->setBlockOffset(back);
+  x->setBlockNumber(0);
+  x->setFile(file);
 }
 
 /* Look for matches of sum (i.e. scanImage()'s rsum). If found, insert
-   appropriate entry in todo list. Returns true if nextEvent may have
-   been modified. */
-inline void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
+   appropriate entry in "matches". */
+void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
     const uint32& bitMask, const size_t blockLen, const size_t back,
-    const uint64 off, const size_t md5BlockLength, PartialMatch*& todo,
-    PartialMatch*& todoFree, uint64& nextEvent,const uint64 unmatchedStart) {
+    const size_t md5BlockLength, uint64& nextEvent) {
 
   typedef const vector<FilePart*> FVec;
   FVec& hashEntry = block[sum.getHi() & bitMask];
@@ -285,27 +283,11 @@ inline void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
 
   FVec::const_iterator i = hashEntry.begin(), e = hashEntry.end();
   do {
-    /* If todoFree == 0 (no more space left in queue), just discard
-       this possible file match! It's the only option if there are
-       many, many overlapping matches, otherwise the program would get
-       extremely slow. */
-#   if DEBUG_MKTEMPLATE
-    if (todoFree == 0) {
-      static FilePart* file = 0;
-      if (file != *i) {
-        file = *i;
-        cerr << ' ' << off << ": DROPPED possible " << file->leafName()
-             << " match(es) at offset " << off - blockLen << "+ (todo full)"
-             << endl;
-      }
-    }
-#   endif
-    if (todoFree == 0) return;
     FilePart* file = *i;
     const RsyncSum64* fileSum = file->getRsyncSum(cache);
     if (fileSum != 0 && *fileSum == sum)
-      checkRsyncSumMatch2(blockLen, back, off, md5BlockLength, todo,
-                          todoFree, nextEvent, unmatchedStart, file);
+      // Insert new partial file match in "matches" queue
+      checkRsyncSumMatch2(blockLen, back, md5BlockLength, nextEvent, file);
     ++i;
   } while (i != e);
   return;
@@ -313,173 +295,225 @@ inline void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
 //________________________________________
 
 // Read the 'count' first bytes from file x and write them to zip
-bool MkTemplate::rereadUnmatched(const PartialMatch* x, uint64 count,
-                                 Zobstream& zip) {
+bool MkTemplate::rereadUnmatched(FilePart* file, uint64 count) {
   // Lower peak memory usage: Deallocate cache's buffer
   cache->deallocBuffer();
 
   ArrayAutoPtr<byte> tmpBuf(new byte[readAmount]);
-  string inputName = x->file->getPath();
-  inputName += x->file->leafName();
+  string inputName = file->getPath();
+  inputName += file->leafName();
   auto_ptr<bistream> inputFile(new bifstream(inputName.c_str(),ios::binary));
   while (inputFile->good() && count > 0) {
     // read data
     readBytes(*inputFile, tmpBuf.get(),
               (readAmount < count ? readAmount : count));
     size_t n = inputFile->gcount();
-    zip.write(tmpBuf.get(), n); // will catch Zerror "upstream"
+    zip->write(tmpBuf.get(), n); // will catch Zerror "upstream"
     Paranoid(n <= count);
     count -= n;
   }
   if (count == 0) return SUCCESS;
 
   // error
-  string err = subst(_("Error while reading from file `%1' (%2)"),
+  string err = subst(_("Error reading from `%1' (%2)"),
                      inputName, strerror(errno));
   reporter.error(err);
   return FAILURE;
 }
 //________________________________________
 
-#if DEBUG
 // Print info about a part of the input image
-#  if DEBUG_MKTEMPLATE
-void MkTemplate::debugRangeInfo(uint64 start, uint64 end, const char* msg,
+void MkTemplate::printRangeInfo(uint64 start, uint64 end, const char* msg,
                                 const PartialMatch* x) {
-  Assert(oldAreaEnd == start);
-  cerr << '[' << start << ',' << end << ") " << msg;
-  if (x != 0) cerr << ' ' << x->file->leafName();
-  cerr << endl;
-  oldAreaEnd = end;
+  static const string empty;
+  debug("[%1,%2) %3 %4", start, end, msg,
+        (x != 0 ? x->file()->leafName() : empty) );
 }
-#  else
-void MkTemplate::debugRangeInfo(uint64 start, uint64 end, const char*,
-                                const PartialMatch*) {
-  Assert(oldAreaEnd == start);
-  oldAreaEnd = end;
+
+// oldAreaEnd != start, something's seriously wrong
+void MkTemplate::debugRangeFailed() {
+  static bool printed = false;
+  cerr << "Assertion failed: oldAreaEnd == start" << endl;
+  if (!printed) {
+    cerr <<
+      "You have found a bug in jigdo-file. The generated .template file is\n"
+      "very likely broken! To help me find the bug, please rerun the\n"
+      "command as follows:\n"
+      "  [previous-command] --report=noprogress --debug=make-template >log 2>&1\n"
+      "and send the _compressed_ `log' file to <jigdo" << "@atterer.net>."
+         << endl;
+    printed = true;
+  }
 }
-#  endif
-#endif
 //________________________________________
 
-/* Calculate MD5 for the previous md5ChunkLength (or less if at end of
-   match) bytes. If the calculated checksum matches and it is the last
-   MD5 block in the file, record a file match. If the i-th MD5Sum does
-   not match, write the i*md5ChunkLength bytes directly to templ.
-   @param stillBuffered bytes of image data "before current position"
-   that are still in the buffer; they are at buf[data] to
+/* The block didn't match, so the whole file x doesn't match - re-read from
+   file any data that is no longer buffered (and not covered by another
+   match), and write it to the Zobstream. */
+bool MkTemplate::checkMD5Match_mismatch(const size_t stillBuffered,
+                                        PartialMatch* x, Desc& desc) {
+  const PartialMatch* oldestMatch = matches->findLowestStartOffset();
+  uint64 rereadEnd = off - stillBuffered;
+  uint64 xStartOffset = x->startOffset();
+  if (x != oldestMatch || xStartOffset >= rereadEnd) {
+    // Everything still buffered, or there is another pending match
+    matches->eraseFront(); // return x to free pool
+    return SUCCESS;
+  }
+
+  /* Reread the right amount of data from the file for x, covering the image
+     area from x->startOffset() to the first byte which is "claimed" by
+     something else - either another match or the start of the still buffered
+     data. */
+  FilePart* xfile = x->file();
+  Assert(matches->front() == x);
+  matches->eraseFront(); // return x to free pool
+  if (!matches->empty()) {
+    // set rereadEnd to new lowest startOffset in matches
+    const PartialMatch* newOldestMatch = matches->findLowestStartOffset();
+    if (rereadEnd > newOldestMatch->startOffset())
+      rereadEnd = newOldestMatch->startOffset();
+  }
+  debugRangeInfo(xStartOffset, rereadEnd,
+                 "UNMATCHED after some blocks, re-reading from", x);
+
+  desc.unmatchedData(rereadEnd - xStartOffset);
+  unmatchedStart = rereadEnd;
+
+  uint64 bytesToWrite = rereadEnd - xStartOffset;
+  return rereadUnmatched(xfile, bytesToWrite);
+}
+//________________________________________
+
+/* The file x was found in the image, and --match-exec is set. Set up env
+   vars, run command.
+
+   Why does this use system() instead of the "more secure" exec()? Because
+   then things are actually easier to get right IMHO! My scenario is that
+   someone has set up an env var with the destination path for the fallback,
+   say $DEST, which might contain spaces. In that case, using exec() with
+   some kind of "%label" substitution is awkward and error-prone - let's just
+   have one single substitution scheme, that used by the shell! */
+bool MkTemplate::matchExecCommands(PartialMatch* x) {
+  Paranoid(!matchExec.empty());
+
+  string matchPath, leaf;
+  const string& leafName = x->file()->leafName();
+  string::size_type lastSlash = leafName.rfind(DIRSEP);
+  if (lastSlash == string::npos) {
+    leaf = leafName;
+  } else {
+    matchPath.assign(leafName, 0, lastSlash + 1);
+    leaf.assign(leafName, lastSlash + 1, string::npos);
+  }
+  Base64String md5Sum;
+  md5Sum.write(x->file()->getMD5Sum(cache)->digest(), 16).flush();
+  string file = x->file()->getLocation()->getPath();
+  file += leafName;
+
+  // Set environment vars
+  if (compat_setenv("LABEL", x->file()->getLocation()->getLabel().c_str())
+      || compat_setenv("LABELPATH", x->file()->getLocation()->getPath()
+                       .c_str())
+      || compat_setenv("MATCHPATH", matchPath.c_str())
+      || compat_setenv("LEAF", leaf.c_str())
+      || compat_setenv("MD5SUM", md5Sum.result().c_str())
+      || compat_setenv("FILE", file.c_str())) {
+    reporter.error(_("Could not set up environment for --match-exec "
+                     "command"));
+    return FAILURE;
+  }
+
+  // Execute command
+  int status = system(matchExec.c_str());
+  if (status == 0) return SUCCESS;
+  reporter.error(_("Command supplied with --match-exec failed"));
+  return FAILURE;
+}
+//________________________________________
+
+/* Calculate MD5 for the previous md5ChunkLength (or less if at end of match)
+   bytes. If the calculated checksum matches and it is the last MD5 block in
+   the file, record a file match. If the i-th MD5Sum does not match, write
+   the i*md5ChunkLength bytes directly to templ.
+   @param stillBuffered bytes of image data "before current position" that
+   are still in the buffer; they are at buf[data] to
    buf[(data+stillBuffered-1)%bufferLength] */
-inline bool MkTemplate::checkMD5Match(const uint64 off, byte* const buf,
-    const size_t bufferLength, const size_t data, PartialMatch*& todo,
-    PartialMatch*& todoFree, const size_t md5BlockLength, uint64& nextEvent,
-    Zobstream& zip, const size_t stillBuffered, Desc& desc,
-    uint64& unmatchedStart, set<FilePart*>& matched) {
-  // Assert(todo != 0 && todo->nextEvent == off) - cf. how this is called
-  PartialMatch* x = todo;
-  todo = todo->next;
+bool MkTemplate::checkMD5Match(byte* const buf,
+    const size_t bufferLength, const size_t data,
+    const size_t md5BlockLength, uint64& nextEvent,
+    const size_t stillBuffered, Desc& desc) {
+  PartialMatch* x = matches->front();
+  Paranoid(x != 0 && matches->nextEvent() == off);
 
   /* Calculate MD5Sum from buf[x->blockOff] to buf[data-1], deal with
      wraparound. NB 0 <= x->blockOff < bufferLength, but 1 <= data <
      bufferLength+1 */
   static MD5Sum md;
   md.reset();
-  if (x->blockOff < data) {
-    md.update(buf + x->blockOff, data - x->blockOff);
+  if (x->blockOffset() < data) {
+    md.update(buf + x->blockOffset(), data - x->blockOffset());
   } else {
-    md.update(buf + x->blockOff, bufferLength - x->blockOff);
+    md.update(buf + x->blockOffset(), bufferLength - x->blockOffset());
     md.update(buf, data);
   }
   md.finishForReuse();
   //____________________
 
-  const MD5* xfileSum = x->file->getSums(cache, x->blockNr);
-# if DEBUG_MKTEMPLATE
-  cerr << "checkMD5Match?: image " << md << ", file "
-       << x->file->leafName() << " block #"
-       << x->blockNr << ' ';
-  if (xfileSum) cerr << *xfileSum; else cerr << "[error]";
-  cerr << endl;
-# endif
-  if (xfileSum == 0 || md != *xfileSum) {
-    /* The block didn't match, so the whole file doesn't match -
-       re-read from file any data that is no longer buffered, and
-       write it to the Zobstream. */
-    x->next = todoFree;
-    todoFree = x; // return x to free pool
+  const MD5* xfileSum = x->file()->getSums(cache, x->blockNumber());
+  if (debug)
+    debug("checkMD5Match?: image %1, file %2 block #%3 %4",
+          md.toString(), x->file()->leafName(), x->blockNumber(),
+          (xfileSum ? xfileSum->toString() : "[error]") );
 
-    uint64 rereadEnd = off - stillBuffered;
-    if (todo != 0 && todo->startOff < rereadEnd) rereadEnd = todo->startOff;
-    if (rereadEnd <= x->startOff) {
-      // everything still buffered, or there is another pending match
-      return SUCCESS;
-    }
-    debugRangeInfo(x->startOff, rereadEnd,
-                   "UNMATCHED after some blocks, re-reading from", x);
-    desc.unmatchedData(rereadEnd - x->startOff);
-    unmatchedStart = rereadEnd;
-    return rereadUnmatched(x, rereadEnd - x->startOff, zip);
-  } // endif (file doesn't match)
+  if (xfileSum == 0 || md != *xfileSum) {
+    /* The block didn't match, so the whole file doesn't match - re-read from
+       file any data that is no longer buffered (and not covered by another
+       match), and write it to the Zobstream. */
+    return checkMD5Match_mismatch(stillBuffered, x, desc);
+  }
   //____________________
 
   // Another block of file matched - was it the last one?
-  if (off < x->startOff + x->file->size()) {
-    // Still some more to go - update x and re-insert in todo
-    x->nextEvent = min(x->nextEvent + md5BlockLength,
-                       x->startOff + x->file->size());
-    nextEvent = min(nextEvent, x->nextEvent);
-#   if DEBUG_MKTEMPLATE
-    cerr << "checkMD5Match: match and more to go, next at off "
-         << x->nextEvent << endl;
-#   endif
-    x->blockOff = data;
-    ++x->blockNr;
-    insertInTodo(todo, x);
+  if (off < x->startOffset() + x->file()->size()) {
+    // Still some more to go - update x and its position in queue
+    x->setBlockOffset(data);
+    x->setBlockNumber(x->blockNumber() + 1);
+    x->setNextEvent(matches, min(x->nextEvent() + md5BlockLength,
+                                 x->startOffset() + x->file()->size()));
+    nextEvent = min(nextEvent, x->nextEvent());
+    debug("checkMD5Match: match and more to go, next at off %1",
+          x->nextEvent());
     return SUCCESS;
   }
   //____________________
 
-  Assert(off == x->startOff + x->file->size());
+  Assert(off == x->startOffset() + x->file()->size());
   // Heureka! *MATCH*
   // x = address of PartialMatch obj of file that matched
-  reporter.matchFound(x->file, x->startOff);
-  matched.insert(x->file);
+  reporter.matchFound(x->file(), x->startOffset());
+  matchedParts.push_back(x->file());
 
-  /* Remove all entries in todo with startOff < off. This is the
-     greedy approach and is not ideal: If a small file A happens to
-     match one small fraction of a large file B and B is contained in
-     the image, then only a match of A will be found. */
-  const PartialMatch* y = x;
-  for (PartialMatch* i = x; i->next != 0; ) {
-    PartialMatch* tmp = i->next;
-    if (tmp->startOff < off) {
-      // y = address of PartialMatch with lowest startOff
-      if (tmp->startOff < y->startOff) y = tmp;
-      i->next = tmp->next;
-      tmp->next = todoFree;
-      todoFree = tmp;
-    } else {
-      i = tmp;
-    }
-  }
-
-  /* Re-read and write out data before the start of the match, i.e. of
-     any half-finished bigger match (which we abandon now that we've
-     found the small match). */
-  if (x != y && y->startOff < off - stillBuffered) {
-    unmatchedStart = min(off - stillBuffered, x->startOff);
-    debugRangeInfo(y->startOff, unmatchedStart,
-                   "UNMATCHED, re-reading partial match from", y);
-    size_t toReread = unmatchedStart - y->startOff;
+  /* Re-read and write out data before the start of the match, i.e. of any
+     half-finished bigger match (which we abandon now that we've found a
+     smaller match inside it). */
+  const PartialMatch* oldestMatch = matches->findLowestStartOffset();
+  if (x != oldestMatch && oldestMatch->startOffset() < off - stillBuffered) {
+    unmatchedStart = min(off - stillBuffered, x->startOffset());
+    debugRangeInfo(oldestMatch->startOffset(), unmatchedStart,
+                   "UNMATCHED, re-reading partial match from", oldestMatch);
+    size_t toReread = unmatchedStart - oldestMatch->startOffset();
     desc.unmatchedData(toReread);
-    if (rereadUnmatched(y, toReread, zip))
+    if (rereadUnmatched(oldestMatch->file(), toReread))
       return FAILURE;
   }
-  /* Write out data that is still buffered, and is before the start of
-     the match. */
-  if (unmatchedStart < x->startOff) {
-    debugRangeInfo(unmatchedStart, x->startOff,
+
+  /* Write out data that is still buffered, and is before the start of the
+     match. */
+  if (unmatchedStart < x->startOffset()) {
+    debugRangeInfo(unmatchedStart, x->startOffset(),
                    "UNMATCHED, buffer flush before match");
-    size_t toWrite = x->startOff - unmatchedStart;
+    size_t toWrite = x->startOffset() - unmatchedStart;
     Paranoid(off - unmatchedStart <= bufferLength);
     size_t writeStart = modSub(data, off - unmatchedStart, bufferLength);
     writeBuf(buf, writeStart, modAdd(writeStart, toWrite, bufferLength),
@@ -488,56 +522,48 @@ inline bool MkTemplate::checkMD5Match(const uint64 off, byte* const buf,
   }
 
   // Assert(x->file->mdValid);
-  desc.matchedFile(x->file->size(), *(x->file->getRsyncSum(cache)),
-                   *(x->file->getMD5Sum(cache)));
+  desc.matchedFile(x->file()->size(), *(x->file()->getRsyncSum(cache)),
+                   *(x->file()->getMD5Sum(cache)));
   unmatchedStart = off;
-  debugRangeInfo(x->startOff, off, "MATCH:", x);
+  debugRangeInfo(x->startOffset(), off, "MATCH:", x);
 
-  todo = x->next;
-  x->next = todoFree; // Remove matching entry
-  todoFree = x;
+  // With --match-exec, execute user-supplied command(s)
+  if (!matchExec.empty()
+      && matchExecCommands(x) == FAILURE)
+    return FAILURE;
 
-# if DEBUG /* check consistency of todo queue */
-  int todoCount = 0;
-  for (PartialMatch* i = todo; i != 0 && todoCount <= TODO_MAX;
-       i = i->next) {
-    Assert(i->next == 0 || *i <= *(i->next));
-    ++todoCount;
-  }
-  for (PartialMatch* i = todoFree; i != 0 && todoCount <= TODO_MAX;
-       i = i->next) ++todoCount;
-  Assert(todoCount == TODO_MAX);
-# endif
+  /* Remove all matches with startOff < off (this includes x). This is the
+     greedy approach and is not ideal: If a small file A happens to match one
+     small fraction of a large file B and B is contained in the image, then
+     only a match of A will be found. */
+  Paranoid(x->startOffset() < off);
+  matches->eraseStartOffsetLess(off);
+
   return SUCCESS;
 }
 //________________________________________
 
 /* This is called in case the end of the image has been reached, but
-   unmatchedStart < off, i.e. there was a partial match at the end of
-   the image. Just discards that match and writes the data to the
-   template, either by re-reading from the partially matched file, or
-   from the buffer. Compare to similar code in checkMD5Match.
+   unmatchedStart < off, i.e. there was a partial match at the end of the
+   image. Just discards that match and writes the data to the template,
+   either by re-reading from the partially matched file, or from the buffer.
+   Compare to similar code in checkMD5Match.
 
-   Since we are at the end of the image, the full last bufferLength
-   bytes of the image are in the buffer. */
-inline bool MkTemplate::unmatchedAtEnd(const uint64 off, byte* const buf,
-    const size_t bufferLength, const size_t data, PartialMatch*& todo,
-    Zobstream& zip, Desc& desc, uint64& unmatchedStart) {
+   Since we are at the end of the image, the full last bufferLength bytes of
+   the image are in the buffer. */
+bool MkTemplate::unmatchedAtEnd(byte* const buf,
+    const size_t bufferLength, const size_t data, Desc& desc) {
   Paranoid(unmatchedStart < off); // cf. where this is called
 
-  // Find entry in todo with (startOff == unmatchedStart), if any
-  const PartialMatch* y = 0;
-  for (PartialMatch* i = todo; i != 0; i = i->next)
-    if (i->startOff == unmatchedStart) y = i;
-
   // Re-read and write out data that is no longer buffered.
-  if (y != 0 && y->startOff < off - bufferLength) {
+  const PartialMatch* y = matches->findStartOffset(unmatchedStart);
+  if (y != 0 && y->startOffset() < off - bufferLength) {
     unmatchedStart = off - bufferLength;
-    debugRangeInfo(y->startOff, unmatchedStart,
+    debugRangeInfo(y->startOffset(), unmatchedStart,
                    "UNMATCHED at end, re-reading partial match from", y);
-    size_t toReread = unmatchedStart - y->startOff;
+    size_t toReread = unmatchedStart - y->startOffset();
     desc.unmatchedData(toReread);
-    if (rereadUnmatched(y, toReread, zip))
+    if (rereadUnmatched(y->file(), toReread))
       return FAILURE;
   }
   // Write out data that is still buffered
@@ -554,91 +580,199 @@ inline bool MkTemplate::unmatchedAtEnd(const uint64 off, byte* const buf,
 }
 //________________________________________
 
+/* The "matches" queue is full. Typically, when this happens there is a big
+   zero-filled area in the image and one or more input files start with
+   zeroes. At this point, we must start dropping some prospective file
+   matches. This is done based on the heuristics that actual file matches
+   occur at a "sector boundary" in the image. See INITIAL_SECTOR_LENGTH in
+   mktemplate.hh for more.
+
+   This method is a variant of the main loop which is used when
+   matches.full(), and which advances the rsum window by one sector at a
+   time. */
+void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
+    RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
+    size_t bufferLength, size_t blockLength, uint32 blockMask,
+    size_t md5BlockLength) {
+
+# if 0
+  // Simple version
+  debug("DROPPING, fast forward (queue full)");
+  Assert(off >= blockLength);
+  unsigned sectorMask = sectorLength - 1;
+  while (off < nextEvent) {
+    rsum->removeFront(buf[*rsumBack], blockLength);
+    rsum->addBack(buf[*data]);
+    ++*data; ++off; --*n;
+    *rsumBack = modAdd(*rsumBack, 1, bufferLength);
+    if (((off - blockLength) & sectorMask) == 0) {
+      checkRsyncSumMatch(*rsum, blockMask, blockLength, *rsumBack,
+                         md5BlockLength, nextEvent);
+      sectorMask = sectorLength - 1;
+      Paranoid(matches->empty()
+               || matches->front()->startOffset() >= unmatchedStart);
+    }
+  }
+
+# else
+
+  debug("DROPPING, fast forward (queue full)");
+  Assert(off >= blockLength);
+
+  unsigned sectorMask = sectorLength - 1;
+  uint64 notSectorMask = ~implicit_cast<uint64>(sectorMask);
+  while (off < nextEvent) {
+    /* Calculate next value of off where a match would end up having an even
+       (i.e. sectorSize-aligned) start offset.
+
+                             |----sectorLength----|----sectorLength----|
+                    |========+========+===========+===+===========+====+=====>EOF
+       File offset: 0                             |  off          |
+                                      |--blockLength--|           |
+                                                  |--blockLength--|
+                                                                  |
+                                                            nextAlignedOff */
+    uint64 nextAlignedOff = off - blockLength;
+    nextAlignedOff = (nextAlignedOff + sectorLength) & notSectorMask;
+    nextAlignedOff += blockLength;
+    Assert(nextAlignedOff > off);
+
+    unsigned len = nextAlignedOff - off;
+    if (len > nextEvent - off) len = nextEvent - off;
+    // Advance rsum by len bytes in one go
+#   if DEBUG
+    RsyncSum64 rsum2 = *rsum; size_t rsumBack2 = *rsumBack;
+    uint64 off2 = off; size_t data2 = *data;
+#   endif
+    if (*rsumBack + len <= bufferLength) {
+      rsum->removeFront(buf + *rsumBack, len, blockLength);
+    } else {
+      rsum->removeFront(buf + *rsumBack, bufferLength - *rsumBack,
+                        blockLength);
+      rsum->removeFront(buf, len + *rsumBack - bufferLength,
+                        blockLength + *rsumBack - bufferLength);
+    }
+    Paranoid(*data + len <= bufferLength);
+    rsum->addBack(buf + *data, len);
+    *data += len; off += len; *n -= len;
+    *rsumBack = modAdd(*rsumBack, implicit_cast<size_t>(len), bufferLength);
+    Paranoid(off == nextEvent || off == nextAlignedOff);
+#   if DEBUG
+    for (unsigned i = 0; i < len; ++i) {
+      rsum2.removeFront(buf[rsumBack2], blockLength);
+      rsum2.addBack(buf[data2]);
+      ++data2; ++off2;
+      rsumBack2 = modAdd(rsumBack2, 1, bufferLength);
+    }
+    Assert(rsumBack2 == *rsumBack);
+    Assert(off2 == off);
+    Assert(data2 == *data);
+    Assert(rsum2 == *rsum);
+#   endif
+
+    //debug("DROPPING, fast forward (queue full) to %1", off);
+
+    if (off == nextAlignedOff) {
+      Paranoid(((off - blockLength) & sectorMask) == 0);
+      checkRsyncSumMatch(*rsum, blockMask, blockLength, *rsumBack,
+                         md5BlockLength, nextEvent);
+      Paranoid(matches->empty()
+               || matches->front()->startOffset() >= unmatchedStart);
+      sectorMask = sectorLength - 1;
+      notSectorMask = ~implicit_cast<uint64>(sectorMask);
+    }
+  } // endwhile (off < nextEvent)
+# endif
+}
+//________________________________________
+
 /* Scan image. Central function for template generation.
 
    Treat buf as a circular buffer. Read new data into at most half the
-   buffer. Calculate a rolling checksums covering blockLength bytes.
-   When it matches an entry in block, start calculating MD5Sums of
-   blocks of length md5BlockLength.
+   buffer. Calculate a rolling checksum covering blockLength bytes. When it
+   matches an entry in block, start calculating MD5Sums of blocks of length
+   md5BlockLength.
 
-   Since both image and templ can be non-seekable, we run into a
-   problem in the following case: After the initial RsyncSum match, a
-   few of the md5BlockLength-sized chunks of one input file were
-   matched, but not all, so in the end, there is no match.
-   Consequently, we would now need to re-read that part of the image
-   and pump it through zlib to templ - but we can't if the image is
-   stdin! Solution: Since we know that the MD5Sum of a block matched
-   part of an input file, we can re-read from there. */
+   Since both image and templ can be non-seekable, we run into a problem in
+   the following case: After the initial RsyncSum match, a few of the
+   md5BlockLength-sized chunks of one input file were matched, but not all,
+   so in the end, there is no match. Consequently, we would now need to
+   re-read that part of the image and pump it through zlib to templ - but we
+   can't if the image is stdin! Solution: Since we know that the MD5Sum of a
+   block matched part of an input file, we can re-read from there. */
 inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
     size_t blockLength, uint32 blockMask, size_t md5BlockLength,
-    set<FilePart*>& matched) {
+    MD5Sum& templMd5Sum) {
   bool result = SUCCESS;
 
   /* Cause input files to be analysed */
   if (scanFiles(blockLength, blockMask, md5BlockLength))
     result = FAILURE;
 
-  /* Initialise rolling sums with blockSize bytes 0x7f, and do the
-     same with part of buffer, to avoid special-case code in main
-     loop. (Any value would do - except that 0x00 or 0xff might lead
-     to a larger number of false positives.) */
+  /* Initialise rolling sums with blockSize bytes 0x7f, and do the same with
+     part of buffer, to avoid special-case code in main loop. (Any value
+     would do - except that 0x00 or 0xff might lead to a larger number of
+     false positives.) */
   RsyncSum64 rsum;
   byte* bufEnd = buf + bufferLength;
-  for (byte* z = bufEnd - blockLength; z < bufEnd; ++z) *z = 0x7f;
+  //for (byte* z = bufEnd - blockLength; z < bufEnd; ++z) *z = 0x7f;
+  // Init entire buf, keep valgrind happy
+  for (byte* z = buf; z < bufEnd; ++z) *z = 0x7f;
   rsum.addBackNtimes(0x7f, blockLength);
 
   // Compression pipe for templ data
-  Zobstream zip(*templ, ZIPCHUNK_SIZE, zipQual);
-  Desc desc; // Buffer for DESC data, appended to templ at end
+  auto_ptr<Zobstream> zipDel(
+    new Zobstream(*templ, ZIPCHUNK_SIZE, zipQual, 15, 8, 256U,
+                  &templMd5Sum));
+  zip = zipDel.get();
+  Desc desc; // Buffer for DESC data, will be appended to templ at end
   size_t data = 0; // Offset into buf of byte currently being processed
-  uint64 off = 0; // Offset in image, of "data"
+  off = 0; // Current absolute offset in image, corresponds to "data"
   uint64 nextReport = 0; // call reporter once off reaches this value
 
-  /* The area delimited by unmatchedStart (incl) and off (excl) has
-     "not been dealt with", either by writing it to zip, or by a match
-     with the first MD5 block of an input file. */
-  uint64 unmatchedStart = 0;
+  /* The area delimited by unmatchedStart (incl) and off (excl) has "not been
+     dealt with", either by writing it to zip, or by a match with the first
+     MD5 block of an input file. Once a partial match of a file has been
+     detected, unmatchedStart "gets stuck" at the start offset of this file
+     within the image. */
+  unmatchedStart = 0;
 
   MD5Sum imageMd5Sum; // MD5 of whole image
   MD5Sum md; // Re-used for each 2nd-level check of any rsum match
-
-  ArrayAutoPtr<PartialMatch> todoDel(new PartialMatch[TODO_MAX]);
-  PartialMatch* todo = todoDel.get();
-  PartialMatch* todoFree = todo;
-  todoFree->next = 0;
-  for (int i = 0; i < TODO_MAX - 1; ++i) {
-    (++todoFree)->next = todo; ++todo; // Link all elements to todoFree
-  }
-  todo = 0;
+  matches->erase();
+  sectorLength = INITIAL_SECTOR_LENGTH;
 
   // Read image
   size_t rsumBack = bufferLength - blockLength;
 
   try {
-    /* Catch Zerrors, which can occur in zip.write(), writeBuf(),
-       checkMD5Match(), zip.close() */
+    /* Catch Zerrors, which can occur in zip->write(), writeBuf(),
+       checkMD5Match(), zip->close() */
     while (image->good()) {
 
-#     if DEBUG_MKTEMPLATE
-      cerr << "---------- main loop. off=" << off << " data=" << data
-           << " unmatchedStart=" << unmatchedStart << endl;
-#     endif
+      debug("---------- main loop. off=%1 data=%2 unmatchedStart=%3",
+            off, data, unmatchedStart);
 
       if (off >= nextReport) { // Keep user entertained
         reporter.scanningImage(off);
         nextReport += REPORT_INTERVAL;
       }
 
-      // zip().write() out any old data that we'll destroy with read()
+      // zip->write() out any old data that we'll destroy with read()
       size_t thisReadAmount = (readAmount < bufferLength - data ?
                                readAmount : bufferLength - data);
-      uint64 lowestStartOff = 0;
-      if (off > blockLength) lowestStartOff = off - blockLength;
-      for (PartialMatch* q = todo; q != 0; q = q->next)
-        if (q->startOff < lowestStartOff) lowestStartOff = q->startOff;
-      if (unmatchedStart < lowestStartOff) {
-        size_t toWrite = lowestStartOff - unmatchedStart;
+      uint64 newUnmatchedStart = 0;
+      if (off > blockLength)
+        newUnmatchedStart = off - blockLength;
+      if (!matches->empty()) {
+        newUnmatchedStart = min(newUnmatchedStart,
+                                matches->lowestStartOffset()->startOffset());
+      }
+      if (unmatchedStart < newUnmatchedStart) {
+        size_t toWrite = newUnmatchedStart - unmatchedStart;
         Paranoid(off - unmatchedStart <= bufferLength);
+        //debug("off=%1 unmatchedStart=%2 buflen=%3",
+        //      off, unmatchedStart, bufferLength);
         size_t writeStart = modSub(data, off - unmatchedStart,
                                    bufferLength);
         debugRangeInfo(unmatchedStart, unmatchedStart + toWrite,
@@ -646,7 +780,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
         writeBuf(buf, writeStart,
                  modAdd(writeStart, toWrite, bufferLength),
                  bufferLength, zip);
-        unmatchedStart += toWrite;
+        unmatchedStart = newUnmatchedStart;
         desc.unmatchedData(toWrite);
       }
 
@@ -658,9 +792,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
       if (chaosOff == 0) chaosOff = bufferLength - 1; else --chaosOff;
       if ((acc & 0x7) == 0) {
         thisReadAmount = acc % thisReadAmount + 1;
-#       if DEBUG_MKTEMPLATE
-        cerr << "debug: thisReadAmount=" << thisReadAmount << endl;
-#       endif
+        debug("thisReadAmount=%1", thisReadAmount);
       }
 #     endif
       readBytes(*image, buf + data, thisReadAmount);
@@ -669,104 +801,104 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
 
       while (n > 0) { // Still unprocessed bytes left
         uint64 nextEvent = off + n; // Special event: end of buffer
-        if (todo != 0) nextEvent = min(nextEvent, todo->nextEvent);
+        if (!matches->empty())
+          nextEvent = min(nextEvent, matches->front()->nextEvent());
 
-        /* Unrolled innermost loop - see below for single-iteration
-           version. Also see checkRsyncSumMatch above. */
-        while (off < nextEvent - 32 && rsumBack < bufferLength - 32) {
-          size_t dataOld = data;
-          do {
-            const vector<FilePart*>* hashEntry;
-#           define x ; \
-            rsum.removeFront(buf[rsumBack], blockLength); \
-            rsum.addBack(buf[data]); \
-            ++data; ++rsumBack; \
-            hashEntry = &block[rsum.getHi() & blockMask]; \
-            if (hashEntry->size() > 1) break; \
-            if (hashEntry->size() == 1) { \
-              FilePart* file = (*hashEntry)[0]; \
-              const RsyncSum64* fileSum = file->getRsyncSum(cache); \
-              if (fileSum != 0 && *fileSum == rsum) break; \
+        if (!matches->full()) {
+          sectorLength = INITIAL_SECTOR_LENGTH;
+
+          /* Unrolled innermost loop - see below for single-iteration
+             version. Also see checkRsyncSumMatch above. */
+          while (off + 32 < nextEvent && rsumBack < bufferLength - 32) {
+            size_t dataOld = data;
+            do {
+              const vector<FilePart*>* hashEntry;
+#             define x ; \
+              rsum.removeFront(buf[rsumBack], blockLength); \
+              rsum.addBack(buf[data]); \
+              ++data; ++rsumBack; \
+              hashEntry = &block[rsum.getHi() & blockMask]; \
+              if (hashEntry->size() > 1) break; \
+              if (hashEntry->size() == 1) { \
+                FilePart* file = (*hashEntry)[0]; \
+                const RsyncSum64* fileSum = file->getRsyncSum(cache); \
+                if (fileSum != 0 && *fileSum == rsum) break; \
+              }
+              x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x
+#             undef x
+              dataOld = data; // Special case: "Did not break out of loop"
+            } while (false);
+            if (dataOld == data) {
+              off += 32; n -= 32;
+            } else {
+              dataOld = data - dataOld; off += dataOld; n -= dataOld;
+              checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
+                                 md5BlockLength, nextEvent);
             }
-            x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x
-#           undef x
-            dataOld = data; // Special case: "Did not break out of loop"
-          } while (false);
-          if (dataOld == data) {
-            off += 32; n -= 32;
-          } else {
-            dataOld = data - dataOld; off += dataOld; n -= dataOld;
-            checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
-                               off, md5BlockLength, todo, todoFree,
-                               nextEvent, unmatchedStart);
+            if (matches->full()) break;
           }
-        }
+        } // endif (!matches->full())
 
-        // Innermost loop - single-byte version
-        while (off < nextEvent) {
-          // Roll checksums by one byte
-          rsum.removeFront(buf[rsumBack], blockLength);
-          rsum.addBack(buf[data]);
-          ++data; ++off; --n;
-          rsumBack = modAdd(rsumBack, 1, bufferLength);
+        if (!matches->full()) {
+          // Innermost loop - single-byte version, matches not full
+          while (off < nextEvent) {
+            // Roll checksum by one byte
+            rsum.removeFront(buf[rsumBack], blockLength);
+            rsum.addBack(buf[data]);
+            ++data; ++off; --n;
+            rsumBack = modAdd(rsumBack, 1, bufferLength);
 
-          /* Look for matches of rsum. If found, insert appropriate
-             entry in todo list and maybe modify nextEvent. */
-          checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack, off,
-                             md5BlockLength, todo, todoFree, nextEvent,
-                             unmatchedStart);
+            /* Look for matches of rsum. If found, insert appropriate
+               entry in matches list and maybe modify nextEvent. */
+            checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
+                               md5BlockLength, nextEvent);
 
-          /* We mustn't by accident schedule an event for a part of
-             the image that has already been flushed out of the
-             buffer/matched */
-          Paranoid(todo == 0 || todo->startOff >= unmatchedStart);
-        }
-#       if DEBUG_MKTEMPLATE
-        cerr << ' ' << off << ": Event, todoOff=";
-        if (todo == 0) cerr << "(none)"; else cerr << todo->nextEvent;
-        cerr << endl;
-#       endif
+            /* We mustn't by accident schedule an event for a part of
+               the image that has already been flushed out of the
+               buffer/matched */
+            Paranoid(matches->empty()
+                     || matches->front()->startOffset() >= unmatchedStart);
+          }
+        } else {
+          // Innermost loop - MATCHES IS FULL
+          scanImage_mainLoop_fastForward(nextEvent, &rsum, buf, &data, &n,
+              &rsumBack, bufferLength, blockLength, blockMask,
+              md5BlockLength);
+        } // endif (matches->full())
+        if (matches->empty())
+          debug(" %1: Event, matches empty", off);
+        else
+          debug(" %1: Event, matchesOff=%2", off, matches->nextEvent());
 
         /* Calculate MD5 for the previous md5ChunkLength (or less if
            at end of match) bytes, if necessary. If the calculated
            checksum matches and it is the last MD5 block in the file,
            record a file match. If the i-th MD5Sum does not match,
            write the i*md5ChunkLength bytes directly to templ. */
-        while (todo != 0 && todo->nextEvent == off) {
+        while (!matches->empty() && matches->nextEvent() == off) {
           size_t stillBuffered = bufferLength - n;
           if (stillBuffered > off) stillBuffered = off;
-          if (checkMD5Match(off, buf, bufferLength, data, todo, todoFree,
-                     md5BlockLength, nextEvent, zip, stillBuffered, desc,
-                     unmatchedStart, matched))
+          if (checkMD5Match(buf, bufferLength, data, md5BlockLength,
+                            nextEvent, stillBuffered, desc))
             return FAILURE; // no recovery possible, exit immediately
         }
 
-        Assert(todo == 0 || todo->nextEvent > off);
-#       if DEBUG /* check consistency of todo queue */
-        int todoCount = 0;
-        for (PartialMatch* i = todo; i != 0 && todoCount <= TODO_MAX;
-             i = i->next) {
-          Assert(i->next == 0 || *i <= *(i->next));
-          ++todoCount;
-        }
-        for (PartialMatch* i = todoFree; i != 0 && todoCount <= TODO_MAX;
-             i = i->next) ++todoCount;
-        Assert(todoCount == TODO_MAX);
-#       endif
-      } // endwhile (n > 0), i.e. more unprocessed bytes left
+        Assert(matches->empty() || matches->nextEvent() > off);
+      } // endwhile (n > 0), i.e. more unprocessed bytes left in buffer
 
       if (data == bufferLength) data = 0;
       Assert(data < bufferLength);
 
-    } // endwhile (image->good())
+    } // endwhile (image->good()), i.e. more data left in input image
 
     // End of image data - any remaining partial match is UNMATCHED
     if (unmatchedStart < off
-        && unmatchedAtEnd(off, buf, bufferLength, data, todo, zip, desc,
-                          unmatchedStart)) return FAILURE;
+        && unmatchedAtEnd(buf, bufferLength, data, desc)) {
+      return FAILURE;
+    }
     Assert(unmatchedStart == off);
 
-    zip.close();
+    zip->close();
   }
   catch (Zerror ze) {
     string err = subst(_("Error during compression: %1"), ze.message);
@@ -776,7 +908,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
 
   imageMd5Sum.finish();
   desc.imageInfo(off, imageMd5Sum, cache->getBlockLen());
-  desc.put(*templ);
+  desc.put(*templ, &templMd5Sum);
   if (!*templ) {
     string err = _("Could not write template data");
     reporter.error(err);
@@ -788,106 +920,10 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
 }
 //______________________________________________________________________
 
-// Write contents of .jigdo file
-// matched: Pointers to files that were found in image
-bool MkTemplate::writeJigdo(set<FilePart*>& matched,
-                            const string& imageLeafName) {
-  /* For recording which ones are used by the files in the image. Maps
-     from label to LocationPath */
-  typedef map<string, LocationPathSet::iterator> ServerMap;
-  ServerMap servers;
-  //____________________
-
-  /* Build list of locations that are a) used by elements of matched,
-     and b) already have a label */
-  for (set<FilePart*>::iterator i = matched.begin(), e = matched.end();
-       i != e; ++i) {
-    LocationPathSet::iterator loc = (*i)->getLocation();
-    //cerr << "Label " << loc->getPath() << ' ' << loc->getLabel() << endl;
-    if (!loc->getLabel().empty())
-      servers.insert(make_pair(loc->getLabel(), loc));
-  }
-  //____________________
-
-  // Output file header
-  *jigdo << subst(_(
-    "# JigsawDownload\n"
-    "# See %1 for details about jigdo\n"
-    "\n"
-    "# You can gzip this file - afterwards, remove the gz extension,\n"
-    "# jigdo will automatically unzip it.\n"
-    "\n"
-    "# Selected=yes|no - should image be selected for download by default?\n"
-    "# ShortInfo: Short description of image (1 line), for menus etc.\n"
-    "# Info: Longer, lines may be rewrapped.\n"
-    "\n"
-    "# There is one [Image] section for each image.\n"
-    "\n"), URL);
-  *jigdo <<
-    "[Jigdo]\nVersion="
-         << FILEFORMAT_MAJOR << '.' << FILEFORMAT_MINOR
-         << "\nGenerator=jigdo-file/" JIGDO_VERSION
-         << "\nInfo=\n";
-  //____________________
-
-  if (addImageSection) {
-    // Output info about image
-    *jigdo << "\n[Image]\nFilename=" << imageLeafName
-           << "\nTemplate=http://edit.this.url/" << imageLeafName
-           << ".template\nSelected=\nShortInfo=\nInfo=\n";
-  }
-  //____________________
-
-  /* Output information about files in matched. For any remaining
-     locations, assign a label when entering the location into
-     servers. */
-  *jigdo << "\n[Parts]\n";
-  string locName = "A";
-  for (set<FilePart*>::iterator i = matched.begin(), e = matched.end();
-       i != e; ++i) {
-    LocationPathSet::iterator loc = (*i)->getLocation();
-    if (loc->getLabel().empty()) {
-      // Location has not been --label'led, so just generate a name
-      while (servers.find(locName) != servers.end()) {
-        size_t n = 0;
-        while (++locName[n] == 'Z' + 1) { // "Increment locName"
-          locName[n] = 'A';
-          ++n;
-          if (n == locName.size()) { locName.append(1, 'A'); break; }
-        }
-      }
-      // Insert into list of servers to output below
-      servers.insert(make_pair(locName, loc));
-      // Why TF does a simple loc->setLabel(locName) cause a "is const" error
-      const_cast<LocationPath&>(*loc).setLabel(locName);
-    }
-    // Output file info
-    string uri = loc->getLabel();
-    uri += ':';
-    uri += (*i)->leafName();
-    if (DIRSEP != '/') compat_swapFileUriChars(uri);
-    ConfigFile::quote(uri);
-    (*jigdo) << *((*i)->getMD5Sum(cache)) << '=' << uri << '\n';
-  }
-  //____________________
-
-  // Output information about locations used
-  if (addServersSection) {
-    (*jigdo) << "\n[Servers]\n";
-    for (ServerMap::iterator i = servers.begin(), e = servers.end();
-         i != e; ++i) {
-      (*jigdo) << i->first << '=' << i->second->getUri() << '\n';
-    }
-  }
-
-  return SUCCESS;
-}
-//______________________________________________________________________
-
 // Central function which processes the data and finds matches
-bool MkTemplate::run(const string& imageLeafName) {
+bool MkTemplate::run(const string& imageLeafName,
+                     const string& templLeafName) {
   bool result = SUCCESS;
-
   oldAreaEnd = 0;
 
   // Kick out files that are too small
@@ -924,38 +960,42 @@ bool MkTemplate::run(const string& imageLeafName) {
   // Asserting this makes things easier in pass 2. Yes it is ">" not ">="
   Assert(cache->getMD5BlockLen() > cache->getBlockLen());
 
-# if DEBUG_MKTEMPLATE
-  cerr << "nr of files: " << fileCount << " (" << blockBits << " bits)\n"
-       << "total bytes: " << fileSizeTotal << '\n'
-       << "blockLength: " << cache->getBlockLen() << '\n'
-       << "md5BlockLen: " << cache->getMD5BlockLen() << '\n'
-       << "bufLen (kB): " << bufferLength/1024 << '\n'
-       << "zipQual:     " << zipQual << endl;
-# endif
+  if (debug) {
+    debug("Nr of files: %1 (%2 bits)", fileCount, blockBits);
+    debug("Total bytes: %1", fileSizeTotal);
+    debug("blockLength: %1", cache->getBlockLen());
+    debug("md5BlockLen: %1", cache->getMD5BlockLen());
+    debug("bufLen (kB): %1", bufferLength/1024);
+    debug("zipQual:     %1", zipQual);
+  }
 
-  set<FilePart*> matched; // Pointers to files that are found in image
-
+  MD5Sum templMd5Sum;
   ArrayAutoPtr<byte> bufDel(new byte[bufferLength]);
   byte* buf = bufDel.get();
 
-  // Write header to template file
-  (*templ) << TEMPLATE_HDR << FILEFORMAT_MAJOR << '.'
-           << FILEFORMAT_MINOR << " jigdo-file/"JIGDO_VERSION
-           << "\r\nSee " << URL << " for details about jigdo.\r\n\r\n"
-           << flush;
-  if (!*templ) result = FAILURE;
+  prepareJigdo(); // Add [Jigdo]
+
+  { // Write header to template file
+    string s = TEMPLATE_HDR; append(s, FILEFORMAT_MAJOR); s += '.';
+    append(s, FILEFORMAT_MINOR); s += " jigdo-file/" JIGDO_VERSION;
+    s += "\r\nSee "; s += URL; s += " for details about jigdo.\r\n\r\n";
+    const byte* t = reinterpret_cast<const byte*>(s.data());
+    writeBytes(*templ, t, s.size());
+    templMd5Sum.update(t, s.size());
+    if (!*templ) result = FAILURE;
+  }
 
   // Read input image and output parts that do not match
   if (scanImage(buf, bufferLength, cache->getBlockLen(), blockMask,
-                cache->getMD5BlockLen(), matched)) {
+                cache->getMD5BlockLen(), templMd5Sum)) {
     result = FAILURE;
   }
   cache->deallocBuffer();
+  templMd5Sum.finish();
 
-  if (writeJigdo(matched, imageLeafName)) result = FAILURE;
+  // Add [Image], (re-)add [Parts]
+  finalizeJigdo(imageLeafName, templLeafName, templMd5Sum);
 
-# if DEBUG_MKTEMPLATE
-  cerr << "MkTemplate::run() finished" << endl;
-# endif
+  debug("MkTemplate::run() finished");
   return result;
 }

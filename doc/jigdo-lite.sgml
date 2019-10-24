@@ -2,14 +2,14 @@
 
 <refentry lang="en">
   <refentryinfo>
-    <address>richard@atterer.net</address>
+    <address>jigdo atterer.net</address>
     <author>
       <firstname>Richard</firstname><surname>Atterer</surname>
     </author>
     <copyright>
       <year>2001-2002</year><holder>Richard Atterer</holder>
     </copyright>
-    <date>Feb 04, 2002</date>
+    <date>May 04, 2002</date>
   </refentryinfo>
   <refmeta>
     <refentrytitle>jigdo-lite</refentrytitle>
@@ -25,9 +25,13 @@
       <arg>URL</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="description">
     <title>DESCRIPTION</title>
+
+    <para>See <citerefentry><refentrytitle>jigdo-file</refentrytitle
+    ><manvolnum>1</manvolnum></citerefentry> for an introduction to
+    Jigsaw Download.</para>
 
     <para>Given the URL of a `<filename>.jigdo</filename>' file,
     <command>jigdo-lite</command> downloads the large file (e.g. a CD
@@ -52,8 +56,8 @@
     `<filename>.jigdo</filename>' file from.</para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="seealso">
     <title>SEE ALSO</title>
 
     <para>
@@ -61,24 +65,26 @@
         <refentrytitle>jigdo-file</refentrytitle><manvolnum>1</manvolnum>
       </citerefentry>,
       <citerefentry>
+        <refentrytitle>jigdo-mirror</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry>,
+      <citerefentry>
         <refentrytitle>wget</refentrytitle><manvolnum>1</manvolnum>
       </citerefentry> (or `<command>info wget</command>')
     </para>
 
-    <para>CD images for Debian GNU/Linux can be <ulink
+    <para>CD images for Debian Linux can be <ulink
     url="http://www.debian.org/CD/jigdo-cd/">downloaded with
     jigdo</ulink>.</para>
 
   </refsect1>
-  <!-- ------------------------------------------------------------- -->
-  <refsect1>
+  <!-- ============================================================= -->
+  <refsect1 id="author">
     <title>AUTHOR</title>
 
     <para><ulink url="http://atterer.net/jigdo/">Jigsaw
     Download</ulink> was written by Richard Atterer
-    <email>jigdo@atterer.net</email>, to make downloading of CD ROM
-    images for the Debian GNU/Linux distribution more
-    convenient.</para>
+    <email>jigdo atterer.net</email>, to make downloading of CD ROM
+    images for the Debian Linux distribution more convenient.</para>
 
   </refsect1>
 </refentry>

@@ -3,7 +3,7 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This is the debhelper compatability version to use.
+# This is the debhelper compatibility version to use.
 export DH_COMPAT=2
 
 # Non-standard default goal. This also does enough to allow you to
@@ -14,7 +14,7 @@ build-deb: debian/changelog
 	dpkg-buildpackage -rfakeroot -us -uc -b
 	rm -f debian deb/changelog
 debian/changelog:
-	printf "jigdo (%s) unstable; urgency=low\n\n  * This version was built directly from upstream sources. It is not\n    an official Debian package.\n\n -- Richard Atterer <jigdo@atterer.net>  %s\n" "`cat VERSION`" "`date -R`" >deb/changelog
+	printf "jigdo (%s) unstable; urgency=low\n\n  * This version was built directly from upstream sources. It is not\n    an official Debian package.\n\n -- Richard Atterer <jigdo%satterer.net>  %s\n" "`read a b v <jigdo.spec && echo $$v`" "@" "`date -R`" >deb/changelog
 src/Makedeps:
 	$(MAKE) depend
 
@@ -34,6 +34,7 @@ build: configure-stamp src/Makedeps debian/changelog build-stamp
 build-stamp:
 	dh_testdir
 	$(MAKE)
+	$(MAKE) -C src test
 	touch build-stamp
 
 clean:
@@ -49,9 +50,14 @@ install: build
 	dh_clean -k
 	$(MAKE) DESTDIR=debian/jigdo install-jigdo install-po
 	$(MAKE) DESTDIR=debian/jigdo-file \
-	    install-jigdo-file install-jigdo-lite
+	    install-jigdo-file install-jigdo-lite install-jigdo-mirror
 	ln -sf "../common-licenses/GPL-2" \
 	    "debian/jigdo/usr/share/jigdo/COPYING"
+	for package in jigdo jigdo-file; do \
+	    mkdir -p debian/$$package/usr/share/bug/$$package; \
+	    at="@"; echo "Send-To: jigdo\${at}atterer.net" \
+	        >debian/$$package/usr/share/bug/$$package/control; \
+	done
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -64,7 +70,7 @@ binary-arch: build install
 	dh_installdocs
 	dh_installexamples
 	dh_installmenu
-	dh_undocumented
+#	dh_undocumented
 #	dh_installchangelogs 
 	dh_link
 	dh_strip

@@ -1,7 +1,7 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
-#  |_) /|  Copyright (C) 2001 Richard Atterer
-#  | \/¯|  <richard@atterer.net>
+#  |_) /|  Copyright (C) 2001-2003  |  richard@
+#  | \/¯|  Richard Atterer          |  atterer.net
 #  ¯ '` ¯
 # this Makefile mostly forwards make commands to the other directories
 srcdir =	@srcdir@
@@ -17,20 +17,21 @@ PACKAGE =	jigdo
 INSTALL =	@INSTALL@
 INSTALL_EXE =	@INSTALL@ -s
 INSTALL_DATA =	@INSTALL@ -m 644
+INSTALL_SCRIPT = @INSTALL@ -m 755
 AWK =		@AWK@
 
-# echo `sed -n 's/^.*>\(.*\.xpm\)<.*$/\1/p' jigdo.glade|sort|uniq`
-icons =		button-cross.xpm button-pause.xpm button-play.xpm \
-		jigdo-logo.xpm new.xpm preferences.xpm quit.xpm
+# echo `(echo progress051.xpm;sed -n 's/^.*>\(.*\.xpm\)<.*$/\1/p' jigdo.glade)|sort|uniq`
+icons =		close.png jigdo-logo.png pause.png progress-green.png \
+		restart.png start.png stop.png
 catalogs =	@CATALOGS@
 
 .PHONY:		all all_msg clean distclean mostlyclean maintainer-clean \
 		dep depend doc cvsdist check install test loc deb debrpm \
 		install-jigdo-file install-jigdo-lite install-jigdo \
 		install-po
-# "gfx" symlink is needed so that the pixmaps are found
+# "gfx" symlink is needed for the pixmaps to be found by jigdo
 all doc mostlyclean dep depend check: Makefile
-		-test -e gfx || ln -s "$(srcdir)/gfx" gfx
+		-test -h gfx -o -d gfx || ln -s "$(srcdir)/gfx" gfx
 		cd src && $(MAKE) $@
 		cd doc && $(MAKE) $@
 		cd po  && $(MAKE) $@
@@ -65,7 +66,8 @@ maintainer-clean: Makefile
 		rm -f configure
 		cd $(srcdir) && autoconf
 
-install:	install-po @INSTALL_TARGETS@
+install:	install-po install-jigdo-file install-jigdo-lite \
+		install-jigdo-mirror @IF_GUI@ install-jigdo
 install-jigdo-file:
 		$(INSTALL) -d $(DESTDIR)$(bindir)
 		$(INSTALL_EXE) src/jigdo-file $(DESTDIR)$(bindir)
@@ -76,16 +78,23 @@ install-jigdo-file:
 install-jigdo-lite:
 		$(INSTALL) -d "$(DESTDIR)$(bindir)"
 		$(INSTALL) -d "$(DESTDIR)$(datadir)/jigdo"
-		$(INSTALL) "$(srcdir)/scripts/jigdo-lite" \
+		$(INSTALL_SCRIPT) "$(srcdir)/scripts/jigdo-lite" \
 		    "$(DESTDIR)$(bindir)"
 		sed -e 's%"\(mirrors.jigdo"\)%"$(datadir)/jigdo/debian-\1%' \
 		    <"$(srcdir)/scripts/jigdo-lite" \
 		    >"$(DESTDIR)$(bindir)/jigdo-lite"
-		chmod 755 "$(DESTDIR)$(bindir)/jigdo-lite"
 		$(INSTALL_DATA) "$(srcdir)/scripts/debian-mirrors.jigdo" \
 		    "$(DESTDIR)$(datadir)/jigdo"
 		$(INSTALL) -d $(DESTDIR)$(mandir)/man1
 		x="doc/jigdo-lite.1"; \
+		test -f "$$x" || x="$(srcdir)/$$x"; \
+		$(INSTALL) "$$x" $(DESTDIR)$(mandir)/man1
+install-jigdo-mirror:
+		$(INSTALL) -d "$(DESTDIR)$(bindir)"
+		$(INSTALL_SCRIPT) "$(srcdir)/scripts/jigdo-mirror" \
+		    "$(DESTDIR)$(bindir)"
+		$(INSTALL) -d $(DESTDIR)$(mandir)/man1
+		x="doc/jigdo-mirror.1"; \
 		test -f "$$x" || x="$(srcdir)/$$x"; \
 		$(INSTALL) "$$x" $(DESTDIR)$(mandir)/man1
 install-jigdo:
@@ -98,11 +107,14 @@ install-jigdo:
 		    $(INSTALL_DATA) "$(srcdir)/gfx/$$x" \
 		        "$(DESTDIR)$(datadir)/jigdo/pixmaps" || exit 1; \
 		done
+		$(INSTALL) -d $(DESTDIR)$(mandir)/man1
+		x="doc/jigdo.1"; \
+		test -f "$$x" || x="$(srcdir)/$$x"; \
+		$(INSTALL) "$$x" $(DESTDIR)$(mandir)/man1
 		$(INSTALL_DATA) "$(srcdir)/COPYING" \
 		    "$(DESTDIR)$(datadir)/jigdo/COPYING"
 install-po:
-		@test "$(catalogs)" \
-                && for file in $(catalogs); do \
+		if test -n "$(catalogs)"; then for file in $(catalogs); do \
 		    lang=`echo $$file | sed -e 's/\.gmo$$//'`; \
 		    dir="$(DESTDIR)$(datadir)/locale/$$lang/LC_MESSAGES"; \
 		    echo "$(INSTALL) -d \"$$dir\""; \
@@ -112,13 +124,14 @@ install-po:
 		    echo "$(INSTALL_DATA) $$s \"$$dir/$(PACKAGE).mo\""; \
 		    $(INSTALL_DATA) "$$s" "$$dir/$(PACKAGE).mo" \
 		        || exit 1; \
-		done
+		done; fi
 
-Makefile:	Makefile.in configure VERSION
+Makefile:	Makefile.in configure jigdo.spec
 		sh config.status # update Makefile from Makefile.in
 
-configure:	configure.in
-		cd $(srcdir) && autoconf
+configure:	configure.ac
+		cd "$(srcdir)" && autoconf
+		rm -f config.cache
 
 # allow "make CXXFLAGS=-O0" while staying compatible with non-GNU-make
 .EXPORT_ALL_VARIABLES: ;
@@ -128,7 +141,7 @@ configure:	configure.in
 
 # Vanity meter :-)
 loc:
-		@f=`find $(srcdir)/src -name '*.cc' -o -name '*.[hif]h'` \
+		f=`find $(srcdir)/src \( -name '*.cc' -o -name '*.[hif]h' \) -a ! -name interface.cc` \
 		    && printf '%d files, %d lines of code\n' \
 		       `echo $$f|wc -w` `cat $$f|wc -l`
 
@@ -148,57 +161,51 @@ debrpm:		deb
 		    fakeroot alien -r "$$deb"; \
 		done
 
-# Compile and create a tar.gz containing the tools and documentation
+# Compile and create a tar.bz2 containing the tools and documentation
 bindist:	Makefile
-		@if test -f jigdo-bin-`cat $(srcdir)/VERSION`; then \
-		 echo "Object \`jigdo*' already exists - delete it first";\
+		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
+		if test -d "jigdo-bin-$$VERSION"; then \
+		 echo "\`jigdo-bin-$$VERSION' exists - delete it first";\
 		 exit 1; \
 		fi
 		rm -f src/jigdo-file
-		cd src && $(MAKE) LD='c++ -static' all-msg jigdo-file strip
+		cd src && $(MAKE) Y='-static' all-msg jigdo-file strip
 		cd doc && $(MAKE) all
-		jdir=jigdo-bin-`cat $(srcdir)/VERSION`; \
+		jdir=jigdo-bin-`read a b v <"$(srcdir)/jigdo.spec" && echo $$v`; \
 		    mkdir "$$jdir"; \
-		    $(INSTALL) $(srcdir)/scripts/jigdo-lite "$$jdir"; \
-		    $(INSTALL) src/jigdo-file "$$jdir"; \
-		    $(INSTALL_DATA) $(srcdir)/doc/jigdo-file.html "$$jdir"; \
-		    $(INSTALL_DATA) $(srcdir)/doc/jigdo-file.1    "$$jdir"; \
-		    $(INSTALL_DATA) $(srcdir)/doc/jigdo-lite.html "$$jdir"; \
-		    $(INSTALL_DATA) $(srcdir)/doc/jigdo-lite.1    "$$jdir"; \
+		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-lite "$$jdir";\
+		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-mirror \
+		        "$$jdir"; \
+		    $(INSTALL_EXE) src/jigdo-file "$$jdir"; \
+		    grep -v "^##" $(srcdir)/doc/README-bindist.txt \
+		        >"$$jdir/README"; \
+		    $(INSTALL_DATA) $(srcdir)/doc/*.html "$$jdir"; \
+		    $(INSTALL_DATA) $(srcdir)/doc/*.1    "$$jdir"; \
+		    $(INSTALL_DATA) $(srcdir)/COPYING    "$$jdir"; \
 		    $(INSTALL_DATA) $(srcdir)/scripts/debian-mirrors.jigdo \
 			"$$jdir/mirrors.jigdo"; \
-		    cp src/jigdo-file "$$jdir"; \
 		    tar -cf "$$jdir.tar" "$$jdir"; \
-		    bzip2 -f -k -9 "$$jdir.tar"; \
-		    gzip -f -9 "$$jdir.tar"; \
+		    bzip2 -f -9 "$$jdir.tar"; \
 		    rm -rf "$$jdir" src/jigdo-file
 
-# .jigdo file for Debian FTP mirrors - actively checks whether
-mirrors.jigdo:	mirrors.list
-		$(srcdir)/scripts/check-mirrors "$<" "$@"
-mirrors.list:	mirrors.txt
-		$(AWK) -f $(srcdir)/scripts/convert-mirrors.awk "$<" "$@"
-mirrors.txt:
-		wget -O - ftp://ftp.debian.org/debian/README.mirrors.txt \
-		    ftp://ftp.debian.org/debian/README.non-US | cat >"$@"
+debian-mirrors.jigdo: Mirrors.masterlist
+		$(AWK) -f $(srcdir)/scripts/convert-cvsmirrors.awk "$<" >"$@"
 
 # Create source tarballs from CVS
 cvsdist:	Makefile
-		@if test -f jigdo -o -f jigdo-`cat VERSION`; then \
-		    echo "Object jigdo* already exists - delete it first"; \
-		    exit 1; \
-		fi
-		@read d v version <"jigdo.spec"; \
-		if test "$$version" != "`cat VERSION`"; then \
-		    echo "Different version in VERSION and jigdo.spec"; \
-		    exit 1; \
+		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
+		if test -d "jigdo-bin-$$VERSION"; then \
+		 echo "\`jigdo-bin-$$VERSION' exists - delete it first";\
+		 exit 1; \
 		fi
 		cvs -Q checkout jigdo
 		cd jigdo && autoconf
 		@f=`find jigdo -name '*.cc' -o -name '*.[hif]h'` \
-		    && printf 'version %s, %d files, %d lines of code\n' \
-		       `cat jigdo/VERSION` `echo $$f|wc -w` `cat $$f|wc -l`
-		@cvstag="rel-`sed -e 's/[^0-9a-zA-Z_-]\+/-/g' jigdo/VERSION`"; \
+		    && printf '%d files, %d lines of code\n' \
+		       `echo $$f|wc -w` `cat $$f|wc -l`
+		@echo "To update gettext: make -C po update-pot update-po"
+		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
+		cvstag="rel-`echo $$VERSION | sed -e 's/[^0-9a-zA-Z_-]\+/-/g'`"; \
 		    printf "Tag this as \`$$cvstag' in CVS? [y/N/force] "; \
 		    read; \
 		    if test "$$REPLY" = y; then \
@@ -209,12 +216,15 @@ cvsdist:	Makefile
 		        cd jigdo && cvs tag -F $$cvstag .; \
 		    fi
 		cd jigdo/doc && $(MAKE) -f ../../doc/Makefile
-		cd src && $(MAKE) depend mingw
-		cp src/{Makedeps,gtk-interface.cc.tmp,*.mingw} jigdo/src
+		rm -f jigdo/doc/*~
+		cd src && $(MAKE) depend gtk/interface.cc
+		cp src/Makedeps jigdo/src
+		cp src/gtk/interface.cc src/gtk/interface.hh jigdo/src/gtk
 		cd jigdo/po && $(MAKE) -f ../../po/Makefile update-gmo
-		jdir=jigdo-`cat jigdo/VERSION`; \
+		jdir=jigdo-`read a b v <"$(srcdir)/jigdo.spec" && echo $$v`; \
 		    mv jigdo "$$jdir"; \
-		    tar --exclude=CVS -cf "$$jdir.tar" "$$jdir"; \
-		    bzip2 -f -k -9 "$$jdir.tar"; \
-		    gzip -f -9 "$$jdir.tar"; \
+		    find "$$jdir" -type f | sort \
+		    | tar --exclude=CVS --exclude=autom4te.cache -T - -cf \
+                          "$$jdir.tar"; \
+		    bzip2 -f -9 "$$jdir.tar"; \
 		    rm -rf "$$jdir"

@@ -1,7 +1,7 @@
-/* $Id: jigdoconfig.hh,v 1.8 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: jigdoconfig.hh,v 1.2 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -41,11 +41,19 @@ public:
   };
   //________________________________________
 
-  // Open file for input and create a ConfigFile object
+  /** Helper function: Given a string, return 0 if the string has no "Label:"
+      prefix, otherwise return the offset of the ':'. The "Label" portion of
+      the string can contain *any* character except '/' and
+      whitespace/control characters */
+  static inline unsigned findLabelColon(const string& s);
+  //________________________________________
+
+  /** Open file for input and create a ConfigFile object */
   JigdoConfig(const char* jigdoFile, ProgressReporter& pr);
-  /* Take over possession of existing ConfigFile - configFile will be
-     deleted in ~JigdoConfig()! jigdoFile argument is not used except
-     for error messages. */
+  JigdoConfig(const string& jigdoFile, ProgressReporter& pr);
+  /** Take over possession of existing ConfigFile - configFile will be
+      deleted in ~JigdoConfig()! jigdoFile argument is not used except for
+      error messages. */
   JigdoConfig(const char* jigdoFile, ConfigFile* configFile,
               ProgressReporter& pr);
   JigdoConfig(const string& jigdoFile, ConfigFile* configFile,
@@ -59,6 +67,9 @@ public:
       afterwards whenever any entry in the ConfigFile's "[Servers]"
       section changes. */
   void rescan();
+
+  /** Change reporter for error messages */
+  inline void setReporter(ProgressReporter& pr);
 
   /** Given an URI-style string like "MyServer:dir/foo/file.gz", do
       label lookup (looking for [Servers] entries like "MyServer=...")
@@ -119,6 +130,17 @@ private:
 };
 //______________________________________________________________________
 
+unsigned JigdoConfig::findLabelColon(const string& s) {
+  string::const_iterator i = s.begin(), e = s.end();
+  while (i != e) {
+    if (*i == '/' || static_cast<unsigned char>(*i) <= ' ') return 0;
+    if (*i == ':') return i - s.begin();
+    ++i;
+  }
+  return 0;
+}
+//______________________________________________________________________
+
 JigdoConfig::ForwardReporter::ForwardReporter(
     JigdoConfig::ProgressReporter& pr, const string& file)
   : reporter(&pr), fileName(file) { }
@@ -126,6 +148,10 @@ JigdoConfig::ForwardReporter::ForwardReporter(
 JigdoConfig::ForwardReporter::ForwardReporter(
     JigdoConfig::ProgressReporter& pr, const char* file)
   : reporter(&pr), fileName(file) { }
+
+void JigdoConfig::setReporter(ProgressReporter& pr) {
+  freporter.reporter = &pr;
+}
 //________________________________________
 
 JigdoConfig::Lookup::Lookup(const JigdoConfig& jc, const string& query)

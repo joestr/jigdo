@@ -1,7 +1,7 @@
-/* $Id: dirent.hh,v 1.2 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: dirent.hh,v 1.1.1.1 2003/07/04 22:29:32 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See

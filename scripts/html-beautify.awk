@@ -1,13 +1,14 @@
 #! /usr/bin/env awk -f
 #  __   _
-#  |_) /|  Copyright (C) 2000 Richard Atterer
-#  | \/¯|  <richard@atterer.net>
+#  |_) /|  Copyright (C) 2000  |  richard@
+#  | \/¯|  Richard Atterer     |  atterer.net
 #  ¯ '` ¯
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License, version 2. See
 #  the file COPYING for details.
 
 function appendWord(word, spaceAfterWord) {
+  #print "appendWord \"" word "\" \"" gensub(/\n/, "\\\\n", "g", spaceAfterWord) "\"";
   if (prevSpaceAfterWord == "\n") {
     # Linebreak while inside <pre>
     doc = doc substr(indentStr, 1, ind) docLine "\n";
@@ -19,12 +20,13 @@ function appendWord(word, spaceAfterWord) {
 
   if (ind + length(docLine) + length(word) < curMaxLen) {
     # Append
-    if (word != "") docLine = docLine prevSpaceAfterWord word;
+    if (word != "" || doPreserve > 0)
+      docLine = docLine prevSpaceAfterWord word;
     prevSpaceAfterWord = spaceAfterWord;
   } else {
     # New line
     if (docLine != "") doc = doc substr(indentStr, 1, ind) docLine "\n";
-    #print docLine;
+    #print ">>> " docLine;
     docLine = word;
     ind = nextInd;
     prevSpaceAfterWord = spaceAfterWord;
@@ -38,6 +40,7 @@ BEGIN {
   maxLen = 75;
   indent = 1;
   indentStr = "                    "; # Won't indent by more than this
+  killClass = 1; # If nonzero, remove all " class=...>" attributes
 
   # Only tags that come with closing tags are allowed!
   tags["html"]=1; tags["body"]=1; tags["head"]; tags["title"];
@@ -53,13 +56,17 @@ BEGIN {
   while ((getline line < get) == 1)
     rest = rest line "\n";
 
+  if (killClass)
+    gsub(/[ \t\n]+(class|CLASS)=("[^"]*"|'[^']*')[ \t\n]*>/, ">", rest); #"
+
   # Split lines at whitespace and some tags
   nextInd = ind = 0; # Nr of characters of indentation
   doc = ""; # Ouput document
   docLine = ""; # Current line to append words to
   doPreserve = 0; # Nesting level of <pre>
   while (match(rest, /([ \n\t]+|< *(\/ *)?)/)) {
-    #print "xxx "nextInd" " substr(rest, 1, 90);
+    #print "MATCH \"" substr(rest, RSTART, RLENGTH) "\"";
+    #print "xxx "nextInd" " gensub(/\n/, "\\\\n", "g", substr(rest, 1, 90));
 
     if (substr(rest, RSTART, 1) == "<") {
       # Tag found
@@ -70,10 +77,15 @@ BEGIN {
       # Is tag <pre>?
       if (tagName in preserve) {
         if (closing && doPreserve > 0) {
+          appendWord(substr(rest, 1, RSTART + RLENGTH + length(tagName) \
+                            - 1), "");
+          nextInd -= indent;
           --doPreserve;
           if (doPreserve == 0) {
             curMaxLen = maxLen; nextInd = nonpreserveInd;
           }
+          rest = substr(rest, RSTART + RLENGTH + length(tagName));
+          continue;
         }
         if (!closing) {
           # Disable indentation while inside <pre>
@@ -113,9 +125,10 @@ BEGIN {
       }
       rest = substr(rest, RSTART + RLENGTH + length(tagName));
       continue;
-    }
+    } # endif tag found
 
     # Whitespace
+    #print "dop " doPreserve ", RSTART=" RSTART ", RLENGTH=" RLENGTH;
     if (doPreserve) {
       # Preserve spaces and newlines in output
       appendWord(substr(rest, 1, RSTART - 1), substr(rest, RSTART, 1));

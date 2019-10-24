@@ -1,8 +1,6 @@
 Makefile
 .cvsignore
-jigdo-file.1
-jigdo-file.html
+*.1
+*.html
 cvs
 tmp
-jigdo-lite.1
-jigdo-lite.html

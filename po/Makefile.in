@@ -1,7 +1,7 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
-#  |_) /|  Copyright (C) 2001 Richard Atterer
-#  | \/¯|  <richard@atterer.net>
+#  |_) /|  Copyright (C) 2001-2002  |  richard@
+#  | \/¯|  Richard Atterer          |  atterer.net
 #  ¯ '` ¯
 srcdir =	@srcdir@
 VPATH =		@srcdir@
@@ -31,14 +31,14 @@ catalogs =	@CATALOGS@
 #______________________________________________________________________
 
 .PHONY:		all clean distclean mostlyclean maintainer-clean doc \
-		dep depend check update-po update-gmo
+		dep depend check update-po update-gmo update-pot
 
 all:		Makefile $(catalogs)
 
 clean mostlyclean:
 		rm -f *.pox $(PACKAGE).po *.new.po
 distclean:
-		rm -f *.pox $(PACKAGE).po *.new.po
+		rm -f *.pox $(PACKAGE).po *.new.po *.old
 		rm -f *~ \#*\# *.bak Makefile config.h
 maintainer-clean:
 		rm -f *.pox $(PACKAGE).po *.new.po *.gmo *.mo
@@ -46,11 +46,14 @@ maintainer-clean:
 check doc dep:	;
 #______________________________________________________________________
 
-$(srcdir)/$(PACKAGE).pot: $(srcdir)/../src/Makefile.in Makefile
-		$(XGETTEXT) --default-domain=$(PACKAGE) \
+#$(srcdir)/$(PACKAGE).pot: $(srcdir)/../src/Makefile.in Makefile
+update-pot:
+		cd ../src && $(MAKE) gtk/interface.cc gtk/interface.hh
+		(cd "$(srcdir)/../src/" && find . -type f) \
+		| egrep '\.(cc|hh|ih|fh|h)$$' \
+		| xargs $(XGETTEXT) --default-domain=$(PACKAGE) \
 		    --keyword=_ --keyword=N_ --directory="$(srcdir)/../src" \
-		    --c++ --sort-output --foreign-user \
-		    `cd "$(srcdir)/../src/" && echo *.cc *.c *.hh *.h` \
+		    --c++ --sort-output --foreign-user --from-code=UTF-8 \
 		&& test ! -f "$(PACKAGE).po" \
 		|| ( rm -f "$(srcdir)/$(PACKAGE).pot" \
 		     && mv "$(PACKAGE).po" "$(srcdir)/$(PACKAGE).pot" )

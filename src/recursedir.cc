@@ -1,7 +1,7 @@
-/* $Id: recursedir.cc,v 1.17 2002/02/13 00:36:16 richard Exp $ -*- C++ -*-
+/* $Id: recursedir.cc,v 1.7 2003/08/15 11:38:30 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -27,12 +27,11 @@
 
 */
 
+#include <config.h>
+
 #include <recursedir.hh>
 
 #include <iostream>
-namespace std { }
-using namespace std;
-
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -50,7 +49,7 @@ namespace {
   }
 
   void throw_RecurseError_forDir(const string& name) {
-    string err = subst(_("Error reading contents of `%1' (%2)"),
+    string err = subst(_("Error reading from directory `%1' (%2)"),
                        name, strerror(errno));
     throw RecurseError(err);
   }
@@ -77,7 +76,6 @@ namespace {
 
       } else if (listStream != 0) {
         // Read line from open file or stdin
-        Paranoid(listStream == &cin || fileList.is_open());
         if (listStream->eof()) {
           if (listStream != &cin) fileList.close();
           objectsFrom.pop();
@@ -99,6 +97,7 @@ namespace {
           listStream = 0;
           throw RecurseError(err);
         }
+        Paranoid(listStream == &cin || fileList.is_open());
         getline(*listStream, result);
         /* An empty line terminates the list of files - this allows both
            the list and the image data to be fed to stdin with jigdo */
@@ -230,7 +229,7 @@ bool RecurseDir::getName(string& result, struct stat* fileInfo)
       throw_RecurseError_forObject(result);
     if (alreadyVisited(fileInfo)) {
 #     if DEBUG
-      cerr << "Recurse: arg `" << result << "' ignored" << endl;
+      //cerr << "Recurse: arg `" << result << "' ignored" << endl;
 #     endif
       continue;
     }

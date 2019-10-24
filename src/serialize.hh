@@ -1,7 +1,7 @@
-/* $Id: serialize.hh,v 1.5 2002/02/18 01:49:52 richard Exp $ -*- C++ -*-
+/* $Id: serialize.hh,v 1.1.1.1 2003/07/04 22:29:32 atterer Exp $ -*- C++ -*-
   __   _
-  |_) /|  Copyright (C) 2001-2002 Richard Atterer
-  | \/¯|  <richard@atterer.net>
+  |_) /|  Copyright (C) 2001-2002  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.net
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -32,9 +32,10 @@
 //______________________________________________________________________
 
 /** Store serialized object via iterator. The iterator could be byte*
-    or vector<byte>::iterator - anything in which you can store bytes.
-    There must be enough room to store serialSizeOf() bytes,
-    implementers of serialize() need not check this.
+    or vector<byte>::iterator or SerialOstreamIterator - anything in
+    which you can store bytes. There must be enough room to store
+    serialSizeOf() bytes, implementers of serialize() need not check
+    this.
 
     The implementation of serialize() must both modify i and return
     its value after the last modification. */
