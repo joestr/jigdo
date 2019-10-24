@@ -1,0 +1,226 @@
+# Project: Jigdo (Jigsaw download)
+#  __   _
+#  |_) /|  Copyright (C) 2001-2002 Richard Atterer
+#  | \/¯|  <richard@atterer.net>
+#  ¯ '` ¯
+srcdir =	@srcdir@
+VPATH =		@srcdir@
+
+prefix =	@prefix@
+datadir =	@datadir@
+
+# _LARGEFILE_SOURCE for 64-bit file sizes on Linux. -I. to pick up config.h
+CPPFLAGS =	@CPPFLAGS@ -I. -I"$(srcdir)" -D_LARGEFILE64_SOURCE @DEFS@ \
+		-DPACKAGE_DATA_DIR="\"$(datadir)/jigdo\"" \
+		-DPACKAGE_LOCALE_DIR="\"$(datadir)/locale\"" \
+		$(GTKCFLAGS) $(LIBWWWCFLAGS)
+CC =		@CC@
+CFLAGS =	@CFLAGS@ $(X)
+CXX =		@CXX@
+CXXFLAGS =	@CXXFLAGS@ $(X)
+LD =		@CXX@
+LDFLAGS =	@LIBS@ @LDFLAGS@ $(Y)
+CCMALLOC =	/usr/lib/ccmalloc.o -ldl
+AWK =		@AWK@
+GLADECODE =	glade -w # Create code from .glade file
+DOC =		doc++ --tables --footer /dev/null --filenames --html \
+		    --no-java-graphs --dir html
+#NoMinGW#
+GTKCFLAGS =	@GTKCFLAGS@
+GTKLIBS =	@GTKLIBS@
+LIBWWWCFLAGS =	@LIBWWWCFLAGS@
+LIBWWWLIBS =	@LIBWWWLIBS@
+#MinGW## Adjust the next lines to fit your installation
+#MinGW#GTKINST = /cygwin/home/gtk-win
+#MinGW#GTKCFLAGS = -I$(GTKINST)/src/gtk+ -I$(GTKINST)/src/gtk+/gdk -I$(GTKINST)/src/glib -I$(GTKINST)/src/glib/gmodule
+#MinGW#GTKLIBS = -L$(GTKINST)/src/gtk+/gtk -L$(GTKINST)/src/gtk+/gdk -L$(GTKINST)/src/glib -L$(GTKINST)/src/libiconv-1.3/src -L$(GTKINST)/src/glib/gmodule -L$(GTKINST)/src/intl -lgdk-1.3 -lgtk-1.3 -lglib-1.3 -lgmodule-1.3 -liconv-1.3 -lgnu-intl
+#MinGW#LIBWWWCFLAGS = -DHAVE_CONFIG_H -I/mingw/local/include -I/mingw/local/include/w3c-libwww
+#MinGW#LIBWWWLIBS = -L/mingw/local/lib -lwwwinit -lwwwapp -lwwwhtml -lwwwtelnet -lwwwnews -lwwwhttp -lwwwmime -lwwwgopher -lwwwftp -lwwwfile -lwwwdir -lwwwcache -lwwwstream -lwwwmux -lwwwtrans -lwwwcore -lwwwutils -lmd5 -lwwwzip -lz -lws2_32
+
+programs =	@BUILD_TARGETS@
+debug-programs = torture@exe@
+
+sources =	cachefile.cc compat.cc configfile.cc debug.cc download.cc \
+		gtk-error.cc gtk-gui.cc gtk-interface.cc gtk-support.cc \
+		glibc-getopt.c glibc-getopt1.c glibc-md5.cc \
+		glibwww-callbacks.cc glibwww-init.cc glibwww-trans.cc \
+		jigdo.cc jigdo-file.cc jigdo-file-cmd.cc jigdoconfig.cc \
+		joblist.cc md5sum.cc mkimage.cc mktemplate.cc recursedir.cc \
+		rsyncsum.cc scan.cc string.cc torture.cc zstream.cc
+objects_jigdo =	download.o jigdo.o joblist.o job-download.o \
+		glibwww-callbacks.o \
+		glibwww-init.o gtk-error.o gtk-gui.o gtk-interface.o \
+		gtk-support.o string.o \
+		debug.o # this must come last!
+objects_jigdo_file = cachefile.o compat.o configfile.o glibc-getopt.o \
+		glibc-getopt1.o glibc-md5.o jigdo-file.o jigdo-file-cmd.o \
+		jigdoconfig.o md5sum.o mkimage.o mktemplate.o recursedir.o \
+		rsyncsum.o scan.o string.o zstream.o \
+		debug.o # this must come last!
+objects_torture = cachefile.o compat.o configfile.o glibc-md5.o md5sum.o \
+		mkimage.o mktemplate.o rsyncsum.o recursedir.o scan.o \
+		torture.o string.o zstream.o \
+		debug.o # this must come last!
+#______________________________
+
+.SUFFIXES:
+.SUFFIXES: .c .cc .h .o
+.cc.o:
+		-@echo $(CXX) '{options}' -c $< -o $@
+		@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$<" -o "$@"
+.c.o:
+		-@echo $(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+		@$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+#______________________________________________________________________
+
+.PHONY:         all all-msg clean distclean mostlyclean maintainer-clean \
+                dep depend doc strip mingw
+#NoMinGW#
+all:		all-msg Makefile $(programs) @DEBUG_PROGRAMS@ #TAGS
+all-msg:
+		-@test "$$EMACS" = t || \
+		    echo Using these '{options}': $(CPPFLAGS) $(CXXFLAGS)
+#MinGW#all:	Makefile all-msg $(programs)
+#MinGW#all-msg:
+#MinGW#		@echo Using these {options}: $(CPPFLAGS) $(CXXFLAGS)
+#MinGW#clean mostlyclean:
+#MinGW#		-del *.o
+#MinGW#		-del *.exe
+#MinGW#		-del *.stamp
+#NoMinGW#
+check:		$(programs) torture
+		@echo 
+		@echo '*** Warning - this will take some time and ~100MB'
+		@echo '*** disk space, and bashes the disc quite a bit...'
+		@echo && sleep 3
+		mkdir ironmaiden || true
+		./torture 0 2
+		./torture 128 130
+clean mostlyclean:
+		rm -f *.o core # Makefile.mingw config.h.mingw
+		rm -f gtk-interface.cc gtk-interface.hh gtk-interface.hh.tmp
+		rm -f gtk-interface.stamp gtk-gui.cc.tmp gtk-gui.hh.tmp
+		rm -f $(programs) $(debug-programs)
+		for p in *-test; do if test -x "$$p" -a -f \
+		    "$(srcdir)/$$p.cc"; then rm -f "$$p"; fi; done
+distclean:	clean
+		rm -f TAGS
+		rm -f *~ \#*\# *.bak Makefile config.h
+		rm -rf html
+		if test ! -h ironmaiden; then rm -rf ironmaiden; fi
+doc:
+		$(DOC) *.cc *.hh *.ih *.fh *.h
+maintainer-clean: distclean
+		rm -f Makedeps
+
+make-makedeps = $(AWK) -f "$(srcdir)/../scripts/depend.awk" "$(srcdir)" - \
+		    $(sources) `cd "$(srcdir)" && echo *-test.cc`
+# No dependency - don't normally remake Makedeps on gtk-interface.cc remake
+Makedeps:
+		$(make-makedeps)
+# Dependency ensures auto-generated files are there & appear in depend output
+dep depend: gtk-interface.cc gtk-interface.hh
+		$(make-makedeps)
+#MinGW#
+strip:
+		for p in $(programs); do \
+		    if test -f "$$p"; then \
+		        strip -R .comment -R .note "$$p"; \
+		    fi; \
+		done
+#______________________________
+
+jigdo@exe@:	$(objects_jigdo)
+		$(LD) -o $@ $(objects_jigdo) $(LDFLAGS) $(GTKLIBS) \
+		    $(LIBWWWLIBS) @CCMALLOC@
+jigdo-file@exe@: $(objects_jigdo_file)
+		$(LD) -o $@ $(objects_jigdo_file) $(LDFLAGS) @CCMALLOC@
+torture@exe@:	$(objects_torture)
+		$(LD) -o $@ $(objects_torture) $(LDFLAGS) @CCMALLOC@
+#MinGW## Grr, to prevent built-in rules from being used:
+#MinGW#.PHONY:	jigdo jigdo-file torture
+#MinGW#jigdo:	jigdo.exe
+#MinGW#jigdo-file: jigdo-file.exe
+#MinGW#torture:	torture.exe
+
+#NoMinGW#
+TAGS:		$(sources)
+		@-cd $(srcdir); \
+		files="$(sources) `echo *.hh *.ih *.fh *-test.cc`"; \
+		if test "$$EMACS" != t; then \
+		    echo "cd \"$(srcdir)\" && etags --language=c++ $$files";\
+		fi; \
+		etags --language=c++ $$files
+
+# Always makes glade create code in $srcdir.
+# Need the .stamp because gtk-interface.{cc,hh} is not touched if unmodified
+make-gtk-interface = $(AWK) -f "$(srcdir)/../scripts/glade-filter.awk" \
+		    `cat "$(srcdir)/../VERSION"` \
+		    "$(srcdir)/gtk-interface.cc.tmp"
+gtk-interface.cc.tmp: $(srcdir)/../jigdo.glade
+		cd $(srcdir)/.. \
+		    && $(GLADECODE) "jigdo.glade" \
+		    && rm -f src/gtk-gui.{cc,hh}.tmp src/gtk-interface.hh.tmp
+gtk-interface.stamp: gtk-interface.cc.tmp $(srcdir)/../VERSION
+		$(make-gtk-interface)
+		touch gtk-interface.stamp
+# The next rule does not need to execute any command most of the time
+# It only does if gtk-interface.cc does not exist but the stamp does -
+# something that Should Not Happen.
+$(srcdir)/gtk-interface.cc $(srcdir)/gtk-interface.hh: gtk-interface.stamp
+		@if test ! -f "$(srcdir)/gtk-interface.cc" \
+		      -o ! -f "$(srcdir)/gtk-interface.hh" ; then \
+		    echo '$(make-gtk-interface)'; $(make-gtk-interface); \
+		fi
+#MinGW#gtk-interface.stamp: gtk-interface.cc.tmp
+#MinGW#		-$(AWK) -f ../scripts/glade-filter.awk gtk-interface.cc.tmp
+#MinGW#		-echo >gtk-interface.stamp
+#MinGW#gtk-interface.cc gtk-interface.hh: gtk-interface.stamp
+
+#NoMinGW#
+config.h:	$(srcdir)/../VERSION
+		touch config.h # recompile all if version changes
+Makefile:	Makefile.in Makedeps config.h.in
+		cd .. && sh config.status # update Makefile from Makefile.in
+#MinGW#config.h: config.h.mingw
+#MinGW#		copy config.h.mingw config.h
+#MinGW#Makefile: Makefile.mingw
+#MinGW#		copy Makefile.mingw Makefile
+
+#NoMinGW#
+# Makefile for Windows compilation with plain mingw32 (no Cygwin needed)
+mingw:		Makefile.mingw config.h.mingw
+Makefile.mingw:	Makefile.in
+		@set -- srcdir . prefix UNUSED datadir UNUSED CPPFLAGS -I. \
+		    DEFS "-DHAVE_CONFIG_H" CC gcc CXX g++ LD g++ LIBS "-lz" \
+		    LDFLAGS "" BUILD_TARGETS "jigdo-file.exe jigdo.exe" \
+		    CFLAGS   "-g -O2 -Wall -W -mcpu=pentium -fnative-struct"\
+		    CXXFLAGS "-g -O2 -Wall -W -mcpu=pentium -fnative-struct"\
+		    AWK gawk DEBUG_PROGRAMS "" CCMALLOC "" exe ".exe"; \
+		while test "$$#" != 0; \
+		    do subst="$$subst gsub(/@$$1@/, \"$$2\");"; shift 2; \
+		done; \
+		echo "Generating \`$@' from \`$<'"; \
+		$(AWK) "/^#NoMinGW#/ { noOut = 1; next; } \
+                        /^#MinGW#/   { noOut = 0; \$$0 = substr(\$$0, 8); } \
+                        { if (noOut == 0) { $$subst; print; } }" "$<" >"$@";\
+		cat $(srcdir)/Makedeps >>Makefile.mingw
+config.h.mingw:	config.h.in Makefile.in
+		@read v <"$(srcdir)/../VERSION"; \
+		set -- WINDOWS     "define WINDOWS 1" \
+		    TYPE_UINT64    "define TYPE_UINT64 unsigned long long" \
+		    HAVE_OUTUINT64 "define HAVE_OUTUINT64 1" \
+		    HAVE_SSTREAM   "define HAVE_SSTREAM 1" \
+		    HAVE_GETOPT_H  "define HAVE_GETOPT_H 0" \
+		    JIGDO_VERSION  "define JIGDO_VERSION \"$$v\"" \
+		    DIRENT_HACK    "define DIRENT_HACK 1" \
+		    snprintf       "define snprintf _snprintf" \
+		;while test "$$#" != 0; do \
+		    prg="$$prg s%^ *# *\(undef\|define\) \+$$1\( .*\)\?$$%#$$2%;";\
+		    shift 2; \
+		done; \
+		echo "Generating \`$@' from \`$<'"; \
+		sed -e "$$prg" <"$<" >"$@"
+#______________________________________________________________________
+
+@SRC_MAKEDEPS@

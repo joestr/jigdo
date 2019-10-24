@@ -1,0 +1,53 @@
+cachefile.o: cachefile.cc config.h dirent.hh debug.hh cachefile.hh bstream.hh serialize.hh
+compat.o: compat.cc config.h dirent.hh compat.hh
+configfile.o: configfile.cc config.h dirent.hh debug.hh configfile.hh string.hh
+debug.o: debug.cc config.h dirent.hh debug.hh
+download.o: download.cc config.h dirent.hh debug.hh libwww.hh download.hh glibwww.hh string.hh
+gtk-error.o: gtk-error.cc config.h dirent.hh gtk-error.hh gtk-interface.hh gtk-gui.hh
+gtk-gui.o: gtk-gui.cc config.h dirent.hh gtk-interface.hh gtk-gui.hh debug.hh libwww.hh download.hh joblist.hh job-download.hh string.hh
+gtk-interface.o: gtk-interface.cc config.h dirent.hh gtk-interface.hh gtk-gui.hh gtk-support.hh
+gtk-support.o: gtk-support.cc config.h dirent.hh gtk-support.hh
+glibc-getopt.o: glibc-getopt.c config.h dirent.hh glibc-getopt.h
+glibc-getopt1.o: glibc-getopt1.c config.h dirent.hh glibc-getopt.h
+glibc-md5.o: glibc-md5.cc config.h dirent.hh bstream.hh debug.hh mimestream.hh md5sum.ih md5sum.hh glibc-md5.hh
+glibwww-callbacks.o: glibwww-callbacks.cc config.h dirent.hh glibwww.hh
+glibwww-init.o: glibwww-init.cc config.h dirent.hh glibwww.hh
+glibwww-trans.o: glibwww-trans.cc config.h dirent.hh glibwww.hh
+jigdo.o: jigdo.cc config.h dirent.hh debug.hh libwww.hh download.hh gtk-interface.hh gtk-gui.hh gtk-support.hh
+jigdo-file.o: jigdo-file.cc config.h dirent.hh glibc-getopt.h compat.hh debug.hh configfile.hh cachefile.hh bstream.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh mkimage.hh zstream.fh mktemplate.hh jigdoconfig.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh jigdo-file-cmd.hh recursedir.hh string.hh
+jigdo-file-cmd.o: jigdo-file-cmd.cc config.h dirent.hh compat.hh debug.hh cachefile.hh bstream.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh mkimage.hh zstream.fh mktemplate.hh configfile.hh jigdoconfig.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh jigdo-file-cmd.hh recursedir.hh string.hh
+jigdoconfig.o: jigdoconfig.cc config.h dirent.hh debug.hh configfile.hh jigdoconfig.hh string.hh
+joblist.o: joblist.cc config.h dirent.hh gtk-support.hh debug.hh libwww.hh download.hh gtk-interface.hh gtk-gui.hh joblist.hh string.hh
+md5sum.o: md5sum.cc config.h dirent.hh glibc-md5.hh bstream.hh debug.hh mimestream.hh md5sum.ih md5sum.hh
+mkimage.o: mkimage.cc config.h dirent.hh compat.hh rsyncsum.hh scan.fh cachefile.hh recursedir.fh scan.hh bstream.hh debug.hh mimestream.hh md5sum.ih md5sum.hh serialize.hh rsyncsum.ih mkimage.hh string.hh zstream.fh zstream.hh
+mktemplate.o: mktemplate.cc config.h dirent.hh debug.hh configfile.hh compat.hh autoptr.hh rsyncsum.hh scan.fh cachefile.hh recursedir.fh scan.hh bstream.hh mimestream.hh md5sum.ih md5sum.hh serialize.hh rsyncsum.ih mkimage.hh zstream.fh mktemplate.hh string.hh zstream.hh
+recursedir.o: recursedir.cc config.h dirent.hh debug.hh recursedir.fh recursedir.hh string.hh
+rsyncsum.o: rsyncsum.cc config.h dirent.hh bstream.hh serialize.hh debug.hh mimestream.hh rsyncsum.ih rsyncsum.hh
+scan.o: scan.cc config.h dirent.hh bstream.hh compat.hh debug.hh configfile.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh cachefile.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh string.hh
+string.o: string.cc debug.hh config.h dirent.hh string.hh
+torture.o: torture.cc config.h dirent.hh bstream.hh serialize.hh rsyncsum.ih rsyncsum.hh scan.fh debug.hh cachefile.hh mimestream.hh md5sum.ih md5sum.hh recursedir.fh scan.hh string.hh mkimage.hh zstream.fh mktemplate.hh recursedir.hh
+zstream.o: zstream.cc config.h dirent.hh string.hh bstream.hh debug.hh zstream.fh zstream.hh
+configfile-test.o: configfile-test.cc config.h dirent.hh debug.hh configfile.hh string.hh configfile.cc debug.cc
+configfile-test: configfile-test.o
+		$(LD) -o configfile-test $(LDFLAGS) configfile-test.o
+download-test.o: download-test.cc config.h dirent.hh debug.hh libwww.hh download.hh glibwww.hh string.hh download.cc
+download-test: download-test.o
+		$(LD) -o download-test $(LDFLAGS) download-test.o
+jigdoconfig-test.o: jigdoconfig-test.cc config.h dirent.hh debug.hh configfile.hh jigdoconfig.hh string.hh jigdoconfig.cc configfile.cc debug.cc string.cc
+jigdoconfig-test: jigdoconfig-test.o
+		$(LD) -o jigdoconfig-test $(LDFLAGS) jigdoconfig-test.o
+joblist-test.o: joblist-test.cc string.hh config.h dirent.hh gtk-support.hh debug.hh libwww.hh download.hh gtk-interface.hh gtk-gui.hh joblist.hh joblist.cc
+joblist-test: joblist-test.o
+		$(LD) -o joblist-test $(LDFLAGS) joblist-test.o
+md5sum-test.o: md5sum-test.cc config.h dirent.hh debug.hh debug.cc bstream.hh mimestream.hh md5sum.ih md5sum.hh glibc-md5.hh glibc-md5.cc md5sum.cc
+md5sum-test: md5sum-test.o
+		$(LD) -o md5sum-test $(LDFLAGS) md5sum-test.o
+mimestream-test.o: mimestream-test.cc 
+mimestream-test: mimestream-test.o
+		$(LD) -o mimestream-test $(LDFLAGS) mimestream-test.o
+recursedir-test.o: recursedir-test.cc debug.hh config.h dirent.hh recursedir.fh recursedir.hh string.hh recursedir.cc debug.cc
+recursedir-test: recursedir-test.o
+		$(LD) -o recursedir-test $(LDFLAGS) recursedir-test.o
+rsyncsum-test.o: rsyncsum-test.cc config.h dirent.hh bstream.hh serialize.hh debug.hh mimestream.hh rsyncsum.ih rsyncsum.hh rsyncsum.cc
+rsyncsum-test: rsyncsum-test.o
+		$(LD) -o rsyncsum-test $(LDFLAGS) rsyncsum-test.o

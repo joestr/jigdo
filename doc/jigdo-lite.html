@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+  <TITLE>jigdo-lite</TITLE><META NAME="GENERATOR" CONTENT="Modular DocBook
+  HTML Stylesheet Version 1.76b+ "></HEAD>
+ <BODY CLASS="REFENTRY" BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000FF"
+  VLINK="#840084" ALINK="#0000FF">
+  <H1><A NAME="AEN1">jigdo-lite</H1>
+  <DIV CLASS="REFNAMEDIV"><A NAME="AEN14"></A>
+   <H2>Name</H2>jigdo-lite&nbsp;--&nbsp;Download jigdo files using
+   wget</DIV>
+  <DIV CLASS="REFSYNOPSISDIV"><A NAME="AEN17">
+   <H2>Synopsis</H2>
+   <P><B CLASS="COMMAND">jigdo-lite</B> [URL]</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN21"></A>
+   <H2>DESCRIPTION</H2>
+   <P>Given the URL of a `<TT CLASS="FILENAME">.jigdo</TT>' file, <B
+    CLASS="COMMAND">jigdo-lite</B> downloads the large file (e.g. a CD
+    image) that has been made available through that URL. <SPAN
+    CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">wget</SPAN>(1)</SPAN>
+    is used to download the necessary pieces of administrative data
+    (contained in the `<TT CLASS="FILENAME">.jigdo</TT>' file and a
+    corresponding `<TT CLASS="FILENAME">.template</TT>' file) as well as
+    the many pieces that the large file is made from. The <SPAN
+    CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">jigdo-file</SPAN
+    >(1)</SPAN> utility is used to reconstruct the large file from the
+    pieces.</P>
+   <P>`<TT CLASS="FILENAME">.jigdo</TT>' files that contain references to
+    Debian mirrors are treated specially: When such a file is recognized,
+    you are asked to select one mirror out of a list of all Debian
+    mirrors.</P>
+   <P>If <TT CLASS="OPTION">URL</TT> is not given on the command line, the
+    script prompts for a location to download the `<TT CLASS="FILENAME"
+    >.jigdo</TT>' file from.</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN39"></A>
+   <H2>SEE ALSO</H2>
+   <P> <SPAN CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE"
+    >jigdo-file</SPAN>(1)</SPAN>, <SPAN CLASS="CITEREFENTRY"><SPAN
+    CLASS="REFENTRYTITLE">wget</SPAN>(1)</SPAN> (or `<B CLASS="COMMAND"
+    >info wget</B>') </P>
+   <P>CD images for Debian GNU/Linux can be <A
+    HREF="http://www.debian.org/CD/jigdo-cd/" TARGET="_top">downloaded with
+    jigdo</A>.</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN51"></A>
+   <H2>AUTHOR</H2>
+   <P><A HREF="http://atterer.net/jigdo/" TARGET="_top">Jigsaw Download</A
+    > was written by Richard Atterer <TT CLASS="EMAIL">&#60;<A
+    HREF="mailto:jigdo@atterer.net">jigdo@atterer.net</A>&#62;</TT>, to
+    make downloading of CD ROM images for the Debian GNU/Linux distribution
+    more convenient.</P></DIV>
+ </BODY>
+</HTML>

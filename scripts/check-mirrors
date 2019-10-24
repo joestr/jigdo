@@ -1,0 +1,92 @@
+#! /bin/bash
+#  __   _
+#  |_) /|  Copyright (C) 2001 Richard Atterer
+#  | \/¯|  <richard@atterer.net>
+#  ¯ '` ¯
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License, version 2. See
+#  the file COPYING for details.
+
+# Check whether Debian mirrors are accessible, by trying to get
+# directory listings of directories that must be there for all
+# mirrors. Note the funky multi-threaded implementation! :)
+
+get="$1" # Input file, with lines like "Debian=http://server.net/"
+put="$2" # Output file, with lines removed if server not accessible
+slots=20 # Number of concurrent processes
+tmp="/tmp/check-mirrors-XXXXXX"
+wget="wget -nv -nr --proxy=off --timeout=15 --tries=1 -O /dev/null"
+#______________________________________________________________________
+
+# Create 1 temporary file for each process
+for i in `seq $slots`; do
+    f=`mktemp $tmp` || exit 1
+    chmod 600 "$f" # Non-executable signifies: This slot is free
+    files="$files $f"
+done
+
+trap 'rm -f $files' EXIT
+
+# Function: Wait for free slot; corresponding tmpfile is output in slotFile
+function waitForSlot() {
+    while sleep 0.5 || sleep 1; do
+        for f in $files; do if test ! -x "$f"; then
+            source "$f" # Command finished - do its exit action
+            true >"$f" # Make file empty
+            chmod 700 "$f" # Mark slot as occupied
+            slotFile="$f"
+            return
+        fi; done
+        #echo "[waiting]"
+    done
+}
+
+# Function: Wait for remaining child processes, execute their exit action
+function finishSlots() {
+    wait
+    for f in $files; do source "$f"; done
+    rm -f "$files"
+}
+
+# Child process: Build list of commands to execute by parent
+function parentCmd() {
+    echo "$@" >>"$slotFile"
+}
+
+# Child process: Inform parent that we are finished
+function childDone() {
+    chmod 600 "$slotFile"
+}
+#______________________________________________________________________
+
+true >"$put"
+exec 3<"$get"
+while read line <&3; do
+    waitForSlot
+    uri=`echo $line | sed 's/^[^=]*=//; s/ *#.*$//'`
+    case "$line" in
+        "Debian="*) test="${uri}dists/testing/main/binary-i386/";;
+        "Non-US="*) test="${uri}dists/testing/non-US/main/binary-i386/";;
+        *) test="$url";; # ?
+    esac
+    # Start new command for this slot
+    (if $wget "$test"; then
+        parentCmd "echo 'OK   $test'"
+        parentCmd "echo '$line' >>'$put'"
+    else
+        parentCmd "echo 'FAIL $test'"
+        # Last try, in case something is wrong about $test - but only add
+        # a _commented-out_ line
+        #if $wget "${uri}dists/"; then
+        #    parentCmd "echo '# $line' >>'$put'"
+        #fi
+    fi;
+    childDone) &
+done
+exec 3<&-
+
+finishSlots
+
+rm -f .listing
+
+# read x;egrep "^[^#].*[^a-z]$x([^a-z]|\$)" mirrors.jigdo

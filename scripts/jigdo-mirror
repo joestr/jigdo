@@ -1,0 +1,303 @@
+#! /bin/sh
+#  __   _
+#  |_) /|  Copyright (C) 2002 Richard Atterer
+#  | \/¯|  <richard@atterer.net>
+#  ¯ '` ¯
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License, version 2. See
+#  the file COPYING for details.
+
+# Mirror script for Debian CD images, using Jigsaw Download. You first
+# need to set up a conventional mirror (rsync/http/ftp-based) for the
+# .jigdo and .template files, then this script can use those files and
+# your local Debian mirror to create the full images automatically.
+
+
+# This directory will be scanned for .jigdo files
+jigdoDir="/home/ftp/debian-jigdo"
+
+# For any file $jigdoDir/somedir/file.jigdo, an attempt will be made
+# to create all the images offered by file.jigdo in $imageDir/somedir/
+imageDir="/home/ftp/debian-cd"
+
+# To find the template file, first the leafname of the template's URL
+# is extracted from the .jigdo file. Next, for a .jigdo file named
+# $jigdoDir/somedir/file.jigdo, the file
+# $templateDir/somedir/leafnameFromURL is tried. If that isn't
+# present, the template is downloaded instead.
+templateDir="$jigdoDir"
+
+# Temporary dir to use for creating images. Should be on the same
+# partition as $imageDir, because mv is used to put finished images
+# into $imageDir.
+tmpDir="/home/jigdo-mirror-tmpdir"
+
+# Local Debian/Non-US mirrors. Can use http/ftp URLs, but beware that
+# this may cause huge amounts of data to be downloaded repeatedly -
+# the ftp/http server had better be on your LAN. If you don't want to
+# serve images which reference non-US, supply "file:/" or similar for
+# $nonusMirror.
+debianMirror="file:/home/ftp/debian"
+nonusMirror="file:/home/ftp/debian/non-US"
+
+# Where to put the logfile. If undefined, log output goes to stdout.
+# If defined, stderr is also redirected to the logfile
+#logfile="$tmpDir/jigdo-mirror-`date +%y%m%d`.log"
+
+# How to call jigdo-file or jigdo-port.
+# CAREFUL: Make sure that jigdo-cache.db is not publically accessible
+# from the internet since it contains local path info.
+jigdoFile="jigdo-file --cache=$tmpDir/jigdo-cache.db --cache-expiry=1w --report=noprogress"
+#jigdoFile="jigdo-port"; havePMA=false
+
+# Any files older than $maxAge days are deleted from $imageDir, except
+# when the variable is unset; in that case, nothing happens.
+#maxAge=8
+
+# In case only a few files are missing for the image to be complete,
+# will download them from any fallback servers specified in the .jigdo
+# file. Maximum number of missing files to download:
+maxMissing=25
+filesPerFetch=10
+wgetOpts="--passive-ftp --no-directories --non-verbose"
+
+# If it is inconvenient for you to set the variables above, you can
+# also put the commands in "~/.jigdo-mirror":
+if test -r ~/.jigdo-mirror; then
+    . ~/.jigdo-mirror
+fi
+#======================================================================
+#  No user-serviceable parts below
+#======================================================================
+
+# fetch <URL>...
+# Download a file, storing it in the current dir
+fetch() {
+    if test "$#" -eq 0; then return 0; fi
+    wget --user-agent="$userAgent" $wgetOpts "$@" || return 1
+}
+userAgent="jigdo-mirror/1.0 (`wget --version 2>/dev/null | (read ver; echo $ver)`)"
+#______________________________________________________________________
+
+makeImage() {
+    rm -f "image" "image.tmp"
+    template=`basename "$templateURI"`
+    if test -f "$templateDir/$dirName/$template"; then
+        log "    Found template \`$templateDir/$dirName/$template'"
+        cp "$templateDir/$dirName/$template" "template"
+    else
+        log "    Template \`$templateDir/$dirName/$template' not found, will download"
+        if fetch "$templateURI" -O "template"; then true; else
+            log "    Error getting .template file"
+            exitCode=1
+            rm -f "image" "template"
+            return 0
+        fi
+    fi
+
+    # Try to merge any files into the image.
+    if $havePMA; then
+        $jigdoFile print-missing-all $ijtOpts $uriOpts \
+        | grep -E -v '^([a-zA-Z0-9.+_-]+:|$)' \
+        | $jigdoFile make-image $ijtOpts --files-from=-
+        jigdoErr="$?"
+    else
+        $jigdoFile print-missing $ijtOpts $uriOpts \
+        | grep -E -v '^([a-zA-Z0-9.+_-]+:|$)' \
+        | $jigdoFile make-image $ijtOpts --files-from=-
+        jigdoErr="$?"
+    fi
+    if test "$jigdoErr" -ge 2; then
+        log "    Error merging data from local filesystem"
+        exitCode=1
+        rm -f "image" "template"
+        return 0
+    fi
+
+    # First try to download all files using the first URL in the
+    # print-missing-all list. If any files remain missing, add another
+    # pass, this time try to download the missing files using the 2nd
+    # URL, and so on.
+    noMorePasses=$localMirror
+    for pass in x xx xxx xxxx xxxxx xxxxxx xxxxxxx xxxxxxxx; do
+        if $havePMA; then
+            $jigdoFile print-missing-all $ijtOpts $jigdoOpts $uriOpts \
+            | grep -E -i '^(http:|ftp:|$)' >"list"
+        else
+            # Quick hack until jigdo-port supports print-missing-all
+            $jigdoFile print-missing $ijtOpts $jigdoOpts $uriOpts \
+            | grep -E -i '^(http:|ftp:|$)' \
+            | sed -n '/./{p;s/^.*$//;p;}' >"list"
+        fi
+        missingCount=`grep -E '^$' <"list" | wc -l | sed -e 's/ *//g'`
+        if test "$pass" = "x"; then
+            if $localMirror; then true; else missingCount=0; fi
+        fi
+        if test "$missingCount" -gt "$maxMissing"; then
+            log "    Too many files missing in local mirror"
+            exitCode=1
+            rm -f "list" "image" "template"
+            return 0
+        fi
+        # Accumulate URLs in $@, pass them to fetchAndMerge in batches
+        set --
+        count=""
+        while read url; do
+            count="x$count"
+            if test "$url" = ""; then count=""; continue; fi
+            if test "$count" != "$pass"; then continue; fi
+            if $noMorePasses; then
+                log "    $missingCount parts still missing from image"
+            fi
+            noMorePasses=false
+            set -- "$@" "$url"
+            if test "$#" -ge "$filesPerFetch"; then
+                if fetchAndMerge "$@"; then true; else
+                    set --; noMorePasses=true
+                fi
+                set --
+            fi
+        done <"list"
+        if test "$#" -ge 1; then
+            if fetchAndMerge "$@"; then true; else break; fi
+        fi
+        if $noMorePasses; then break; fi
+        if test -r "image"; then break; fi
+        noMorePasses=true
+    done
+
+    if test -r "image"; then
+        # Finished - verify checksum
+        if $jigdoFile verify $ijtOpts; then
+            log "    Image checksum is correct, moving image into place"
+            mkdir -p "$imageDir/$dirName"
+            mv "image" "$imageDir/$dirName/$image"
+        else
+            log "    Error - checksum mismatch"
+            exitCode=1
+        fi
+    else
+        log "    Image creation failed"
+        exitCode=1
+    fi
+    rm -f "list" "image" "image.tmp" "template"
+    return 0
+}
+#______________________________________________________________________
+
+# Given URLs, fetch them into $tmpDir, then merge them into image
+fetchAndMerge() {
+    (mkdir "$tmpDir/files"; cd "$tmpDir/files"; fetch "$@")
+    # Merge into the image
+    find "$tmpDir/files" -type f \
+    | $jigdoFile make-image $ijtOpts --files-from=-
+    jigdoErr="$?"
+    if test "$jigdoErr" -ge 2; then
+        exitCode=1
+        exit 1
+    fi
+    # Delete tmpDir, to avoid taking up more space than necessary
+    rm -rf "$tmpDir/files"
+}
+#______________________________________________________________________
+
+sectionEnd() {
+    if test "$section" = "[Image]" -a "$image" \
+            -a "$templateURI"; then
+      log "  Found \`$image', template \`$templateURI'"
+      if test -f "$imageDir/$dirName/$image"; then
+        if test "$jigdoDir/$jigdo" -nt "$imageDir/$dirName/$image";then
+          log "    jigdo is newer - updating \`$imageDir/$dirName/$image'"
+          # Remove outdated image *immediately*, even in case
+          # the subsequent attempt to regenerate it fails
+          rm -f "$imageDir/$dirName/$image"
+          makeImage
+        else
+          log "    \`$imageDir/$dirName/$image' is up to date"
+          touch "$imageDir/$dirName/$image"
+        fi
+      else
+        log "    Will try to create \`$imageDir/$dirName/$image'"
+        makeImage
+      fi
+    fi
+}
+#______________________________________________________________________
+
+if test "$logfile"; then
+    true >"$logfile"
+    exec >>"$logfile"
+    exec 2>>"$logfile"
+fi
+log() { printf "%s: %s\n" "`date +'%Y-%m-%d %H:%M:%S'`" "$1"; }
+#________________________________________
+
+log "Start"
+# Remove slashes from dir names
+jigdoDir=${jigdoDir%/}
+imageDir=${imageDir%/}
+templateDir=${templateDir%/}
+tmpDir=${tmpDir%/}
+debianMirror=${debianMirror%/}
+nonusMirror=${nonusMirror%/}
+uriOpts="--uri Debian='$debianMirror/' --uri Non-US='$nonusMirror/'"
+ijtOpts="--image=image --jigdo=jigdo --template=template"
+# Is the main mirror on the local disc?
+case "$debianMirror $nonusMirror" in
+    "file:"*" file:"*|/*" /"*) localMirror=true;;
+    *) localMirror=false;;
+esac
+if test -z "$havePMA"; then havePMA=true; fi
+exitCode=0
+mkdir -p "$tmpDir" || true
+cd "$tmpDir"
+#________________________________________
+
+find "$jigdoDir" -name "*.jigdo" \
+| sed -e "sÿ^$jigdoDir/ÿÿ" \
+| while read jigdo; do
+
+    log "Found \`$jigdoDir/$jigdo'"
+    dirName=`dirname "$jigdo"`
+    if zcat "$jigdoDir/$jigdo" >"jigdo" 2>"/dev/null" \
+        || cp "$jigdoDir/$jigdo" "jigdo"; then true; else
+        log "  Error unpacking/copying .jigdo file - ignored"
+        exitCode=1
+        continue
+    fi
+
+    # Parse jigdo file, look for images
+    section=""
+    while read REPLY; do
+      set -- `echo "$REPLY" | sed -e 's/^ *\[ *\([^ ]*\) *\] *$/[\1]/; s/ *= */ /; s/['\''"$]//g'`
+      case "$1" in
+        Filename) image="$2";;
+        Template) templateURI="$2";;
+        "["*"]")
+          sectionEnd
+          section="$1"
+          image=""
+          templateURI="";;
+      esac
+    done <"jigdo"
+    sectionEnd
+
+    rm -f "jigdo"
+
+done
+#________________________________________
+
+if test "$maxAge"; then
+    log "Expiring images older than $maxAge days"
+    find "$imageDir" -type f -mtime +"$maxAge" \
+    | while read file; do
+        log "  Deleting \`$file'"
+        rm -f "$file"
+    done
+    # Remove empty directories
+    find "$imageDir" -depth -mindepth 1 -type d -empty -exec rmdir '{}' ';'
+fi
+#________________________________________
+
+log "Exit"
+exit $exitCode

@@ -1,0 +1,6 @@
+.cvsignore
+*.gmo
+*.pox
+jigdo.pot
+Makefile
+cvs

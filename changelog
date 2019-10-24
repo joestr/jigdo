@@ -1,0 +1,122 @@
+                                                            -*- Text -*-
+
+jigdo 0.6.5 -- Richard Atterer, 
+
+  - jigdo-lite: Better fallback handling, now also works for files
+    that changed (rather than disappeared) on the server.
+  - jigdo-lite: If ~/.jigdo-lite not present, try to fetch mirror info
+    from /etc/apt/sources.list
+  - portability fixes (Mattias Wadenstein)
+  - jigdo GUI: Some more work done, but it's still not usable
+
+jigdo 0.6.4 -- Richard Atterer, 02 Mar 2002
+
+  - Fixed a make-template bug introduced in 0.6.3, which caused
+    jigdo-file to crash if there are more than 32 files with identical
+    content (Attila Nagy)
+  - jigdo-lite: Allow customization of flags passed to jigdo-file and
+    wget, by making it save and restore variables in ~/.jigdo-lite.
+    For example, add "--uri Debian=http://myserver.lan/" to the
+    definition of jigdoOpts to define an additional mirror (turns the
+    selected mirrors into fallback mirrors).
+  - jigdo-lite: Made script work with ash
+  - Added configure check for _snprintf (needed for Windows)
+
+jigdo 0.6.3 -- Richard Atterer, 24 Feb 2002
+
+  - jigdo-file make-template: Some loop unrolling, some other
+    optimizations, resulting in a speed increase of at least 30%!
+  - FORMAT CHANGE of template files: Template data now includes
+    RsyncSums - this will be useful in the future for aborting
+    downloads early and when upgrading images to newer versions. This
+    version still reads the old template format, but support for that
+    will be dropped before 1.0.0.
+  - jigdo-lite: Can now supply >1 image sections in .jigdo files
+  - jigdo-lite: Support for gzipped .jigdo files
+  - jigdo-lite: Added a small manpage
+  - jigdo-lite: Use "wget --dot-style=mega --passive-ftp"
+  - Really fixed <sstream> issues this time - by not using sstream at
+    all. (It is not possible to implement an sstream class for the
+    iostream supplied with Debian Potato's GCC 2.95)
+  - Can now build a .deb just by executing "deb/rules"
+  - configure: Can now use --without-gui to prevent jigdo GUI from
+    getting built and installed (does not work with "deb/rules")
+  - Added jigdo.spec for building of RPMs (Alexander Skwar)
+  - Slightly changed the way that missing --image/--jigdo/--template
+    arguments are deduced from other parameters. (Thomas Arnold)
+  - Fixes to make jigdo-file build on 64-bit architectures
+  - Changed abbreviation of "md5sum" command from "md" to "md5". That
+    breaks compatibility, but I keep typing "md5"... :)
+  - Small hack to make "jigdo-file md5 /some/path" include the leading
+    "/" in its output.
+  - jigdo-lite: Fix for obscure problem with "sed /foo/!p" on BSD and
+    some Linux versions - use "egrep -v foo" instead (Attila Nagy)
+
+jigdo 0.6.2 -- Richard Atterer, 26 Jan 2002
+
+  - Added this changelog file to the distribution! :-)
+  - gettext support (but no translations are present yet)
+  - Portability fixes to jigdo-lite (Anne Bezemer)
+  - Portability fixes to the jigdo-file code (for RedHat/Mandrake
+    systems, systems without <sstream> such as Debian Potato)
+  - Support for fallback servers in jigdo-lite
+  - Support for fallback servers in jigdo-file, in the form of a new
+    "print-missing-all" command
+  - First upload of jigdo packages to the Debian archive
+
+jigdo 0.6.1 -- Richard Atterer, 17 Dec 2001
+
+  - Changelog lost
+
+jigdo 0.6.0 -- Richard Atterer, 15 Nov 2001
+
+  - Because the "proper jigdo" (the GTK+ download manager type app) is
+    not going to be finished anytime soon, I've written a small shell
+    script called "jigdo-lite" which does an equivalent job. It
+    downloads files with wget and assembles them using jigdo-file.
+    jigdo-lite can "upgrade" old images to a newer version.
+  - Very first, ***pre-alpha*** version of the GTK+ jigdo application.
+    There is no download capability or other functionality present at
+    all yet.
+  - As of a few days ago, the first beta site offering downloads of
+    Debian 2.2r4 via jigdo is available on cdimage. Thanks for the
+    account to Phil Hands!
+
+jigdo 0.5.3 -- Richard Atterer, 13 Sep 2001
+
+  - *** jigdo-file is finished! ***
+    With the introduction of a cache for file checksums, it is finally
+    possible in practice to let it loose on a Debian archive mirror.
+  - Update and large extension of the documentation.
+  - Now compiles with GCC 3.
+  - Now compiles under Windows! You do not even need Cygwin; plain
+    mingw is sufficient.
+  - Numerous small fixes and changes. Source code now exceeds 10000
+    lines of code.
+
+jigdo 0.5.2 -- Richard Atterer, 2 Sep 2001
+
+  - Would you believe it, documentation!!! (in the form of a manpage)
+  - "print-missing" sub-command for jigdo-file allows for mirror
+    selection etc - more than the old PIK's functionality is now
+    present
+  - Major internal extensions (nearly 2000 lines of code) which don't
+    show now, but which will eventually come in handy for the GUI tool
+
+jigdo 0.5.1 -- Richard Atterer, 22 Jul 2001
+
+  - Can now merge files into a half-finished image with >1 jigdo-file
+    invocations. This will be useful e.g. to "upgrade Debian CD
+    images", i.e. you can take some .debs from the old CD, so they
+    needn't be downloaded again.
+  - Can assign labels to input file locations, e.g. "--label
+    /opt/mirrors/debian=Debian"
+  - Cleanup & extension of .jigdo file format
+
+jigdo 0.5.0 -- Richard Atterer, about 20 Jun 2001
+
+  - Initial release, not very usable.
+
+jigdo 0.0.0 -- Richard Atterer, December 2000
+
+  - Discussion on debian-cd, jigdo enters vapourware stage.

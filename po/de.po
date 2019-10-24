@@ -1,0 +1,21 @@
+# -*- po-mode -*-
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2001-12-27 17:07+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: jigdo-file.cc:581
+msgid "%1: Please specify a command"
+msgstr "%1: Bitte geben Sie ein Kommando an"
+
+#: jigdo-file.cc:673
+msgid "%1: Try `%1 --help' or `man jigdo-file' for more information"
+msgstr "%1: Weitere Informationen mit `%1 --help' oder `man jigdo-file'"

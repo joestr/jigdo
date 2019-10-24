@@ -1,0 +1,861 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+  <TITLE>jigdo-file</TITLE><META NAME="GENERATOR" CONTENT="Modular DocBook
+  HTML Stylesheet Version 1.76b+ "></HEAD>
+ <BODY CLASS="REFENTRY" BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000FF"
+  VLINK="#840084" ALINK="#0000FF">
+  <H1><A NAME="AEN1">jigdo-file</H1>
+  <DIV CLASS="REFNAMEDIV"><A NAME="AEN14"></A>
+   <H2>Name</H2>jigdo-file&nbsp;--&nbsp;Prepare files for Jigsaw Download
+   (distribution of huge files, e.g. CD images).</DIV>
+  <DIV CLASS="REFSYNOPSISDIV"><A NAME="AEN17">
+   <H2>Synopsis</H2>
+   <P><B CLASS="COMMAND">jigdo-file</B> { <TT CLASS="REPLACEABLE"><I>
+    COMMAND</I></TT> } [<TT CLASS="OPTION">--image=<TT CLASS="REPLACEABLE"
+    ><I>cdrom.iso</I></TT></TT>] [<TT CLASS="OPTION">--jigdo=<TT
+    CLASS="REPLACEABLE"><I>cdrom.jigdo</I></TT></TT>] [<TT CLASS="OPTION"
+    >--template=<TT CLASS="REPLACEABLE"><I>cdrom.template</I></TT></TT>]
+    [<TT CLASS="OPTION">--force</TT>] [MORE OPTIONS] [<TT
+    CLASS="REPLACEABLE"><I>FILES</I></TT> | <TT CLASS="OPTION"
+    >--files-from=<TT CLASS="REPLACEABLE"><I>f</I></TT></TT>]<BR> Common
+    COMMANDs: make-template, make-image, verify </P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN42"></A>
+   <H2>DESCRIPTION</H2>
+   <P>Jigsaw Download, or short jigdo, is a scheme developed primarily to
+    make it easy to distribute huge filesystem images (e.g. CD (ISO9660) or
+    DVD (UDF) images) over the internet, but it could also be used for
+    other data which is awkward to handle due to its size, like audio/video
+    files or large software packages.</P>
+   <P>jigdo tries to ensure that the large file (always called <I
+    CLASS="FIRSTTERM">image</I> from now on) is downloaded in small parts
+    which can be stored on different servers. People who want to download
+    the image do so by telling the <SPAN CLASS="CITEREFENTRY"><SPAN
+    CLASS="REFENTRYTITLE">jigdo</SPAN>(1)</SPAN> <SPAN CLASS="emphasis"><I
+    CLASS="EMPHASIS">(NOT IMPLEMENTED YET)</I></SPAN> download tool to
+    process one `<TT CLASS="FILENAME">.jigdo</TT>' file; using it, <B
+    CLASS="COMMAND">jigdo</B> downloads the parts and reassembles the
+    image. <B CLASS="COMMAND">jigdo-file</B> is used to prepare the files
+    for download.</P>
+   <P>What makes jigdo special is that the parts that are used to
+    reconstruct the image can have any size and content - they only need to
+    be contained in a contiguous region anywhere in the image.</P>
+   <P>For example, if you wish to distribute an ISO9660 image which
+    contains a snapshot of an FTP server, you can instruct <B
+    CLASS="COMMAND">jigdo-file</B> to prepare the download data in such a
+    way that when people use <B CLASS="COMMAND">jigdo</B> to download the
+    image, <B CLASS="COMMAND">jigdo</B> actually fetches the individual
+    files from the FTP server and assembles them into an exact copy of your
+    image - during the download! (If the image is not a filesystem dump,
+    you can use <SPAN CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE"
+    >split</SPAN>(1)</SPAN> to create the small parts that the image will
+    be reassembled from.)</P>
+   <P>You are completely free to choose where the individual parts of the
+    image are stored: They may be in entirely different directories on
+    different servers (e.g. because of storage/bandwidth constraints), but
+    this is invisible to the people downloading your image. The information
+    about available servers only needs to be added to the `<TT
+    CLASS="FILENAME">.jigdo</TT>' file by you before distributing it.</P>
+   <P>See later sections for a more detailed description of how jigdo
+    works, and also to get a better idea of what applications it supports
+    (such as customized versions of images released by others).</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN65"></A>
+   <H2>OPTIONS</H2>
+   <P>Many options are specific to a particular <TT CLASS="REPLACEABLE"><I
+    >COMMAND</I></TT>; the ones below are general or used by several
+    commands. Further options are listed below with the individual
+    commands. All options are silently ignored if they are not applicable
+    to the current command. For any <TT CLASS="REPLACEABLE"><I>BYTES</I
+    ></TT> parameters to options, you can append one of the letters `k',
+    `M' or `G' to the amount you specify, to indicate kilobytes, megabytes
+    or gigabytes.</P>
+   <P></P>
+   <DIV CLASS="VARIABLELIST">
+    <DL>
+     <DT><TT CLASS="OPTION">-h</TT> <TT CLASS="OPTION">--help</TT></DT>
+     <DD>
+      <P>Output short summary of commands and options.</P></DD>
+     <DT><TT CLASS="OPTION">-H</TT> <TT CLASS="OPTION">--help-all</TT></DT
+     >
+     <DD>
+      <P>Output complete summary of commands and options.</P></DD>
+     <DT><TT CLASS="OPTION">-v</TT> <TT CLASS="OPTION">--version</TT></DT>
+     <DD>
+      <P>Output program version.</P></DD>
+     <DT><TT CLASS="OPTION">-i</TT> <TT CLASS="OPTION">--image=<TT
+      CLASS="REPLACEABLE"><I>cdrom.iso</I></TT></TT></DT>
+     <DD>
+      <P>Specify location of the file containing the image. The image is
+       the large file that you want to distribute.</P></DD>
+     <DT><TT CLASS="OPTION">-j</TT> <TT CLASS="OPTION">--jigdo=<TT
+      CLASS="REPLACEABLE"><I>cdrom.jigdo</I></TT></TT></DT>
+     <DD>
+      <P>Specify location of the Jigsaw Download description file. The
+       jigdo file is a human-readable file generated by <B CLASS="COMMAND"
+       >jigdo-file</B>, to which you add information about all the servers
+       you are going to upload the files to. <B CLASS="COMMAND">jigdo</B>
+       will download this file as the first step of retrieving the
+       image.</P></DD>
+     <DT><TT CLASS="OPTION">-t</TT> <TT CLASS="OPTION">--template=<TT
+      CLASS="REPLACEABLE"><I>cdrom.template</I></TT></TT></DT>
+     <DD>
+      <P>Specify location of the image `template' file. The template file
+       is a binary file generated by <B CLASS="COMMAND">jigdo-file</B>, it
+       contains information on how to reassemble the image and also (in
+       compressed form) all the data from the image which was not found in
+       any of the parts.</P>
+      <P>Depending on the command, each of these three files is used
+       sometimes for input, sometimes for output. If the file is to be used
+       for output for a particular command and the output file already
+       exists, <B CLASS="COMMAND">jigdo-file</B> exits with an error,
+       unless <TT CLASS="OPTION">--force</TT> is present.</P>
+      <P>In most cases, you will only need to specify one out of <TT
+       CLASS="OPTION">-i</TT> <TT CLASS="OPTION">-j</TT> <TT CLASS="OPTION"
+       >-t</TT>, because any missing filenames will be deduced from the one
+       you specify. This is done by first stripping any extension from the
+       supplied name and then appending nothing (if deducing <TT
+       CLASS="OPTION">--image</TT>), `<TT CLASS="FILENAME">.jigdo</TT>' or
+       `<TT CLASS="FILENAME">.template</TT>'.</P></DD>
+     <DT><TT CLASS="OPTION">-r</TT> <TT CLASS="OPTION"
+      >--report=default|noprogress|quiet|grep</TT></DT>
+     <DD>
+      <P>Control how verbose the program is, and what format the output
+       has: <TT CLASS="OPTION">noprogress</TT> is the same as <TT
+       CLASS="OPTION">default</TT> except that no `<TT
+       CLASS="COMPUTEROUTPUT">x% done</TT>' progress messages are printed.
+       <TT CLASS="OPTION">quiet</TT> restricts the output to what is
+       absolutely necessary, mostly error messages. <TT CLASS="OPTION"
+       >grep</TT> is only different from <TT CLASS="OPTION">default</TT>
+       for the <B CLASS="COMMAND">make-template</B> command: It enables
+       output in a simple `<TT CLASS="REPLACEABLE"><I>&#60;offset&#62;
+       &#60;file&#62;</I></TT>' format which is useful when searching for
+       binary files in other binary files.</P></DD>
+     <DT><TT CLASS="OPTION">-f</TT> <TT CLASS="OPTION">--force</TT></DT>
+     <DD>
+      <P>Overwrite existent output files without complaining.</P></DD>
+     <DT><TT CLASS="OPTION">--no-force</TT></DT>
+     <DD>
+      <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">This is the default.</I
+       ></SPAN> Refuse to overwrite existent output files.</P></DD>
+     <DT><TT CLASS="OPTION">-c</TT> <TT CLASS="OPTION">--cache=<TT
+      CLASS="REPLACEABLE"><I>jigdo-cache.db</I></TT></TT></DT>
+     <DD>
+      <P><B CLASS="COMMAND">jigdo-file</B> usually needs to read the entire
+       contents of all the <TT CLASS="REPLACEABLE"><I>FILES</I></TT> you
+       specify. If you use it repeatedly (e.g. because you make a new CD
+       image available daily), caching the file information will increase
+       the program's speed significantly. The cache file is automatically
+       created if it is not yet present. Data is usually both read from and
+       written to it.</P></DD>
+     <DT><TT CLASS="OPTION">--no-cache</TT></DT>
+     <DD>
+      <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">This is the default.</I
+       ></SPAN> Do not use a cache.</P></DD>
+     <DT><TT CLASS="OPTION">--cache-expiry=<TT CLASS="REPLACEABLE"><I
+      >SECONDS</I></TT></TT></DT>
+     <DD>
+      <P>Set maximum age of cache entries. Any entries older than this will
+       be removed from the cache. The default is 30 days. You can append
+       one of the letters `h', `d', `w', `m', `y' to denote hours, days,
+       weeks, months or years, respectively. A value of `0' or `off'
+       disables expiry, so that all entries will stay in the cache forever.
+       See the section `CACHE FILES' below for more information.</P></DD>
+     <DT><TT CLASS="OPTION">--readbuffer=<TT CLASS="REPLACEABLE"><I
+      >BYTES</I></TT></TT></DT>
+     <DD>
+      <P>Set size of internal buffers. The default is 128k - if you have a
+       fast disc, increasing this value may make <B CLASS="COMMAND"
+       >jigdo-file</B> faster, but in general, changing it is not
+       necessary.</P></DD>
+     <DT><TT CLASS="OPTION">--md5-block-size=<TT CLASS="REPLACEABLE"><I
+      >BYTES</I></TT></TT></DT>
+     <DD>
+      <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">Uninteresting internal
+       parameter.</I></SPAN> Set size of blocks into which files are
+       subdivided. The default is 128k. If you change it, any cache file
+       will have to be regenerated. Internally, <B CLASS="COMMAND"
+       >jigdo-file</B> may choose to use a slightly larger or smaller
+       value.</P></DD>
+     <DT><TT CLASS="OPTION">-T</TT> <TT CLASS="OPTION">--files-from=<TT
+      CLASS="REPLACEABLE"><I>file</I></TT></TT></DT>
+     <DD>
+      <P>Read file and directory names from the specified file. If <TT
+       CLASS="REPLACEABLE"><I>file</I></TT> is `-', read names from
+       standard input. Each line in the file is taken as a name, so the
+       names may contain spaces, but not newline characters. An empty line
+       causes <B CLASS="COMMAND">jigdo-file</B> to stop reading from the
+       file.</P>
+      <P><SPAN CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">find</SPAN
+       >(1)</SPAN> is a powerful tool for generating file lists, but make
+       sure to use `<B CLASS="COMMAND">find -type f</B>' if possible -
+       otherwise, if you instruct <B CLASS="COMMAND">find</B> to output
+       both a filename and a symlink to that filename, <B CLASS="COMMAND"
+       >jigdo-file</B> will read the file contents twice.</P></DD>
+     <DT><TT CLASS="REPLACEABLE"><I>FILES</I></TT></DT>
+     <DD>
+      <P>Names of files or directories to use as input. These are the parts
+       that are contained in the image. In case one of the names is a
+       directory, the program recursively scans the directory and adds all
+       files contained in it. While doing this, it follows symbolic links,
+       but avoids symlink loops.</P>
+      <P>If one of the filenames starts with the character `-', you must
+       precede the list of files with `--'. A value of `-' has <SPAN
+       CLASS="emphasis"><I CLASS="EMPHASIS">no</I></SPAN> special meaning
+       in this list, it stands for a file whose name is a single hyphen.</P
+      ></DD></DL></DIV></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN208"></A>
+   <H2>COMMANDS</H2>
+   <P>The command name is the first non-option argument passed to <B
+    CLASS="COMMAND">jigdo-file</B>. Most commands have short abbreviations
+    as well as long names. <SPAN CLASS="emphasis"><I CLASS="EMPHASIS">The
+    short command names should not be used in scripts - there may be
+    incompatible changes to them in the future!</I></SPAN></P>
+   <DIV CLASS="REFSECT2"><A NAME="AEN213"></A>
+    <H3><B CLASS="COMMAND">make-template</B>, <B CLASS="COMMAND">mt</B
+     ></H3>
+    <P>Reads <TT CLASS="REPLACEABLE"><I>image</I></TT> and <TT
+     CLASS="REPLACEABLE"><I>FILES</I></TT>, creates `<TT CLASS="FILENAME"
+     >.jigdo</TT>' and `<TT CLASS="FILENAME">.template</TT>'. This is the
+     main functionality of <B CLASS="COMMAND">jigdo-file</B>.</P>
+    <P>It is possible to specify both <TT CLASS="OPTION">--image=-</TT> and
+     <TT CLASS="OPTION">--files-from=-</TT>. In this case, first the list
+     of files is read from standard input until an empty line is
+     encountered. Everything following it is assumed to be the image data.
+     This can be useful if you use <SPAN CLASS="CITEREFENTRY"><SPAN
+     CLASS="REFENTRYTITLE">mkisofs</SPAN>(1)</SPAN> or similar programs
+     that can output the complete image on their standard output, because
+     there is no need to store the image on disc temporarily.</P>
+    <P>If a <TT CLASS="REPLACEABLE"><I>FILES</I></TT> argument contains the
+     characters `<TT CLASS="LITERAL">//</TT>' (Unix) or `<TT
+     CLASS="LITERAL">\.\</TT>' (Windows), this has special meaning. In the
+     final jigdo file that users will download, each of the parts is
+     referenced in the `[Parts]' section with a URI of the form
+     `Label:some/filename'. The `[Servers]' section gives a mapping of
+     labels to servers on the internet, with lines like
+     `Label=http://myserver.org/jigdofiles/'. Using this information, <B
+     CLASS="COMMAND">jigdo</B> will create the final download URI for the
+     part, `http://myserver.org/jigdofiles/some/filename'. Specifying `<TT
+     CLASS="LITERAL">//</TT>' (or `<TT CLASS="LITERAL">\.\</TT>') in a file
+     or directory name serves to `cut off' the names at the right directory
+     level. For example, if the Unix path of one of your <TT
+     CLASS="REPLACEABLE"><I>FILES</I></TT> is `/path/some/filename', you
+     can tell <B CLASS="COMMAND">jigdo-file</B> to cut off after the
+     `/path' by passing it the argument `/path//some/filename', or
+     `/path//' if you want the whole directory scanned. The path names need
+     not be absolute; `somedirectory//' is also possible.</P>
+    <P></P>
+    <DIV CLASS="VARIABLELIST">
+     <DL>
+      <DT><TT CLASS="OPTION">--label <TT CLASS="REPLACEABLE"><I
+       >Label=/path</I></TT></TT></DT>
+      <DD>
+       <P>Specify a name to use as the label name for a path on disc.
+        (Influences the output jigdo file.) If you used `<TT
+        CLASS="LITERAL">//</TT>' in the <TT CLASS="REPLACEABLE"><I
+        >FILES</I></TT> arguments as described above, <B CLASS="COMMAND"
+        >jigdo-file</B> will by default pick label names automatically
+        (`A', `B' etc.). With this option, you can give labels more
+        meaningful names. Note that the label name will only be used if one
+        or more <TT CLASS="REPLACEABLE"><I>FILES</I></TT> begin with
+        `/path//'.</P>
+       <P>Try to use label names that start with uppercase characters, to
+        disambiguate them clearly from protocol names like `http',
+        `ftp'.</P></DD>
+      <DT><TT CLASS="OPTION">--uri <TT CLASS="REPLACEABLE"><I
+       >Label=http://some.server.org/</I></TT></TT></DT>
+      <DD>
+       <P>By default, using <TT CLASS="OPTION">--label</TT> as described
+        above will cause lines of the form `Label=file:/path/' to be
+        written to the `[Servers]' section of the output jigdo file. If you
+        want to override the `file:' URI so that the line reads
+        `Label=http://some.server.org/', you can do so by specifying <TT
+        CLASS="OPTION">--uri</TT> along with <TT CLASS="OPTION"
+        >--label</TT>.</P>
+       <P>Note that <TT CLASS="OPTION">--uri</TT> only has an effect if the
+        corresponding <TT CLASS="OPTION">--label</TT> with the same label
+        name is present, and gets used by the program.</P>
+       <P>The supplied value is not quoted by the program; if it contains
+        characters such as space or any of the characters <TT
+        CLASS="LITERAL">#"'\</TT> then you must quote it. (Under Unix, you
+        may need to quote the value twice to also protect it from the
+        shell, e.g. <TT CLASS="LITERAL">\\\\</TT> or <TT CLASS="LITERAL"
+        >'\\'</TT> to get a single backslash in the URI.)</P>
+       <P>Users of the Windows version may notice that the `<TT
+        CLASS="LITERAL">\</TT>' directory separators are converted into
+        `<TT CLASS="LITERAL">/</TT>' in the `file:' URIs that are generated
+        by default. This is done to increase cross-platform compatibility
+        of `file:' - the <B CLASS="COMMAND">print-missing</B> command of
+        the Windows version will automatically re-convert the characters
+        when it prints the URIs. In case you supply your own `file:' URIs
+        under Windows using <TT CLASS="OPTION">--uri</TT>, you must also
+        exchange `<TT CLASS="LITERAL">/</TT>' and `<TT CLASS="LITERAL"
+        >\</TT>'.</P></DD>
+      <DT><TT CLASS="OPTION">-0</TT> to <TT CLASS="OPTION">-9</TT></DT>
+      <DD>
+       <P>Set amount of compression in the output template file, from <TT
+        CLASS="OPTION">-0</TT> (no compression) to <TT CLASS="OPTION"
+        >-9</TT> (maximum compression). The default is <TT CLASS="OPTION"
+        >-9</TT>, which can make the template generation quite slow. The
+        compression algorithm used is the same as for <SPAN
+        CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">gzip</SPAN
+        >(1)</SPAN>.</P></DD>
+      <DT><TT CLASS="OPTION">--min-length=<TT CLASS="REPLACEABLE"><I
+       >BYTES</I></TT></TT></DT>
+      <DD>
+       <P>Set minimum length of a part for <B CLASS="COMMAND"
+        >jigdo-file</B> to look for it in the image. The default is 4k.
+        Parts smaller than this will never be found in the image, so their
+        data will be included in the template file. The search algorithm
+        used requires such a minimum length, otherwise template generation
+        could become extremely slow. If you know for sure that all your <TT
+         CLASS="REPLACEABLE"><I>FILES</I></TT> are larger than a certain
+        amount, you can increase <B CLASS="COMMAND">jigdo-file</B>'s speed
+        slightly by specifying the amount with this option. There is a
+        hard-wired absolute minimum of 1k - anything lower will silently be
+        set to 1k.</P></DD>
+      <DT><TT CLASS="OPTION">--image-section</TT></DT>
+      <DD>
+       <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">This is the
+        default.</I></SPAN> Causes <B CLASS="COMMAND">jigdo-file</B> to
+        include an `[Image]' section in the `<TT CLASS="FILENAME"
+        >.jigdo</TT>' file.</P></DD>
+      <DT><TT CLASS="OPTION">--no-image-section</TT></DT>
+      <DD>
+       <P>Do <SPAN CLASS="emphasis"><I CLASS="EMPHASIS">not</I></SPAN>
+        include an `[Image]' section in the `<TT CLASS="FILENAME"
+        >.jigdo</TT>' file. You need to add one yourself if you use this
+        option.</P></DD>
+      <DT><TT CLASS="OPTION">--servers-section</TT></DT>
+      <DD>
+       <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">This is the
+        default.</I></SPAN> Causes <B CLASS="COMMAND">jigdo-file</B> to
+        append a `[Servers]' section at the end of the `<TT
+        CLASS="FILENAME">.jigdo</TT>' file. This default section uses
+        `file:' URIs, which allows for immediate reassembly of the image
+        from the local filesystem, and is also useful if you want to edit
+        the file manually and replace the `file:' URIs with other URIs.</P
+       ></DD>
+      <DT><TT CLASS="OPTION">--no-servers-section</TT></DT>
+      <DD>
+       <P>Do <SPAN CLASS="emphasis"><I CLASS="EMPHASIS">not</I></SPAN> add
+        a `[Servers]' section at the end of the `<TT CLASS="FILENAME"
+        >.jigdo</TT>' file. Useful e.g. if you are going to append the
+        section with a script.</P></DD></DL></DIV></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN324"></A>
+    <H3><B CLASS="COMMAND">make-image</B>, <B CLASS="COMMAND">mi</B></H3>
+    <P>Reads `<TT CLASS="FILENAME">.template</TT>' and <TT
+     CLASS="REPLACEABLE"><I>FILES</I></TT>, creates <TT CLASS="REPLACEABLE"
+     ><I>image</I></TT> (or `<TT CLASS="FILENAME">imagename.tmp</TT>').
+     Provides a rudimentary way of reassembling images - <B CLASS="COMMAND"
+     >jigdo</B> is usually better suited for this task. However, in
+     contrast to <B CLASS="COMMAND">jigdo</B>, no `<TT CLASS="FILENAME"
+     >.jigdo</TT>' file is required.</P>
+    <P>If the image is to be written to a file (and not to standard
+     output), it is possible to create the image in several steps, with
+     several invocations of `<B CLASS="COMMAND">jigdo-file make-image</B
+     >', as follows: You first invoke <B CLASS="COMMAND">jigdo-file</B>,
+     specifying as many files as are available at this time. The program
+     scans the files, and those that are contained in the image are copied
+     to a temporary file, whose name is formed by appending `<TT
+     CLASS="FILENAME">.tmp</TT>' to the image filename.</P>
+    <P>For all further files which could be parts of the image, you repeat
+     this process. As soon as all parts are present, the temporary file
+     will be truncated slightly (to delete some administrative data that <B
+      CLASS="COMMAND">jigdo-file</B> appends at the end) and renamed to the
+     final image name. The possibility of reassembling the image in several
+     steps is especially useful for gathering files from removable media,
+     e.g. several older CDs.</P>
+    <P>Scripts using <B CLASS="COMMAND">make-image</B> can detect whether
+     image creation is complete by checking the exit status: 0 signals
+     successful creation, whereas 1 means that more files need to be
+     supplied. Other errors result in an exit status of 2 (`recoverable',
+     e.g. file not found) or 3 (non-recoverable, e.g. write error).</P>
+    <P></P>
+    <DIV CLASS="VARIABLELIST">
+     <DL>
+      <DT><TT CLASS="OPTION">--check-files</TT></DT>
+      <DD>
+       <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">This is the
+        default.</I></SPAN> Whenever any part is copied to the image,
+        re-check its checksum against the checksum stored in the template.
+        It is recommended that you leave this switched on, even if it slows
+        down image creation a bit.</P></DD>
+      <DT><TT CLASS="OPTION">--no-check-files</TT></DT>
+      <DD>
+       <P>Do not check files' checksums when copying them to the image.
+        This can be safely used when no cache file is used (which means
+        that files will be written to the image immediately after being
+        scanned) or the whole image is checked later with the <B
+        CLASS="COMMAND">verify</B> command.</P></DD></DL></DIV></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN357"></A>
+    <H3><B CLASS="COMMAND">print-missing</B>, <B CLASS="COMMAND">pm</B
+     ></H3>
+    <P>Reads `<TT CLASS="FILENAME">.jigdo</TT>', `<TT CLASS="FILENAME"
+     >.template</TT>' and (if present) `<TT CLASS="FILENAME"
+     >imagename.tmp</TT>', outputs a list of URIs still needed to
+     completely reassemble the image.</P>
+    <P>Together with the <B CLASS="COMMAND">make-image</B> command, this
+     provides most of the functionality of <B CLASS="COMMAND">jigdo</B> on
+     the command line.</P>
+    <P>For each part that is not yet present in the temporary image file,
+     the file checksum is looked up in the `[Parts]' section of the jigdo
+     file. Any label in the corresponding entry is then expanded according
+     to the label definitions in the `[Servers]' section and printed on
+     standard output. <B CLASS="COMMAND">jigdo</B> allows you to specify
+     several alternative locations for each label in this section, but <B
+     CLASS="COMMAND">print-missing</B> will only output the first one for
+     each missing part.</P>
+    <P>If the checksum cannot be found in the `[Parts]' section (this
+     Should Not Happen unless you deleted that section), a lookup is
+     instead made for `MD5Sum:<TT CLASS="REPLACEABLE"><I
+     >&#60;checksum&#62;</I></TT>', just like with <B CLASS="COMMAND"
+     >jigdo</B>. (Thus, if you want to get rid of the `[Parts]' section,
+     you can do so if you rename each part to its own checksum.)</P>
+    <P></P>
+    <DIV CLASS="VARIABLELIST">
+     <DL>
+      <DT><TT CLASS="OPTION">--uri <TT CLASS="REPLACEABLE"><I
+       >Label=http://some.server.org/</I></TT></TT></DT>
+      <DD>
+       <P>Override the entries in the `<TT CLASS="FILENAME">.jigdo</TT>'
+        file for any label with a URI of your choice. With the example
+        above, a `[Parts]' entry of `Label:some/filename' will cause the
+        line `http://some.server.org/some/filename' to be printed.</P>
+       <P>The supplied value is not quoted by the program; if it contains
+        characters such as space or any of the characters <TT
+        CLASS="LITERAL">#"'\</TT> then you must quote it. (Under Unix, you
+        may need to quote the value twice to also protect it from the
+        shell, e.g. <TT CLASS="LITERAL">\\\\</TT> or <TT CLASS="LITERAL"
+        >'\\'</TT> to get a single backslash in the URI.)</P></DD></DL
+     ></DIV></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN386"></A>
+    <H3><B CLASS="COMMAND">print-missing-all</B>, <B CLASS="COMMAND"
+     >pma</B></H3>
+    <P>Just like <B CLASS="COMMAND">print-missing</B>, this command outputs
+     a list of URIs still needed to completely reassemble the image.
+     However, <SPAN CLASS="emphasis"><I CLASS="EMPHASIS">all</I></SPAN>
+     alternative download locations are printed instead of just one. In the
+     output, the URIs for a file are separated from other files' URIs with
+     blank lines. The <TT CLASS="OPTION">--uri</TT> option has the same
+     effect as for <B CLASS="COMMAND">print-missing</B>.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN395"></A>
+    <H3><B CLASS="COMMAND">verify</B>, <B CLASS="COMMAND">ver</B></H3>
+    <P>Reads <TT CLASS="REPLACEABLE"><I>image</I></TT> (presumably
+     generated with <B CLASS="COMMAND">make-image</B>) and `<TT
+     CLASS="FILENAME">.template</TT>', checks for correct checksum of
+     image.</P>
+    <P>The template data does not only contain checksums of the individual
+     parts, but also of the image as a whole. <B CLASS="COMMAND"
+     >make-image</B> already performs a number of internal checks, but if
+     you like, you can additionally check the image with this command.</P
+    ></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN405"></A>
+    <H3><B CLASS="COMMAND">scan</B>, <B CLASS="COMMAND">sc</B></H3>
+    <P>Reads all the <TT CLASS="REPLACEABLE"><I>FILES</I></TT> and enters
+     them into the cache, unless they are already cached. The <TT
+     CLASS="OPTION">--cache</TT> option must be present for this
+     command.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN412"></A>
+    <H3><B CLASS="COMMAND">md5sum</B>, <B CLASS="COMMAND">md5</B></H3>
+    <P>Reads all the <TT CLASS="REPLACEABLE"><I>FILES</I></TT> and prints
+     out MD5 checksums of their contents. This command is quite similar to
+     <SPAN CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">md5sum</SPAN
+     >(1)</SPAN>, except that the checksum is output in the Base64-like
+     encoding which is also used elsewhere by <B CLASS="COMMAND"
+     >jigdo-file</B>.</P>
+    <P>The <TT CLASS="REPLACEABLE"><I>FILES</I></TT> arguments are
+     processed in the same way as with the other commands, which means that
+     recursion automatically takes place for any arguments that are
+     directories, and that symbolic links are not listed except when the
+     file(s) they point to are not reachable directly.</P>
+    <P>In the checksum list printed on standard output, only the part of
+     the filename following any `<TT CLASS="LITERAL">//</TT>' (or `<TT
+     CLASS="LITERAL">\.\</TT>' on Windows) is printed. Any <TT
+     CLASS="OPTION">--cache</TT> will be used for querying files' MD5
+     checksums and/or writing the checksums of scanned files.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN428"></A>
+    <H3><B CLASS="COMMAND">list-template</B>, <B CLASS="COMMAND">ls</B
+     ></H3>
+    <P>Reads a `<TT CLASS="FILENAME">.template</TT>' file and outputs
+     low-level information about the image and all parts contained in it,
+     including offset, length and checksum.</P>
+    <P>You can also use this command with temporary image files (by
+     specifying something like <TT CLASS="OPTION"
+     >--template=imagename.tmp</TT>) - in that case, the output also
+     distinguishes between parts that have been written to the image and
+     parts that haven't.</P>
+    <P>The following different types of lines can be output. `have-file'
+     only occurs for `<TT CLASS="FILENAME">.tmp</TT>' files, indicating a
+     file that has already been successfully written to the temporary
+     file:</P><PRE
+CLASS="SCREEN"
+>in-template <TT
+CLASS="REPLACEABLE"
+><I
+>offset-in-image length</I
+></TT
+>
+need-file <TT
+CLASS="REPLACEABLE"
+><I
+>offset-in-image length file-md5sum filestart-rsyncsum</I
+></TT
+>
+have-file <TT
+CLASS="REPLACEABLE"
+><I
+>offset-in-image length file-md5sum filestart-rsyncsum</I
+></TT
+>
+image-info <TT
+CLASS="REPLACEABLE"
+><I
+>image-length image-md5sum rsyncsum-size</I
+></TT
+></PRE></DIV></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN443"></A>
+   <H2>DETAILS</H2>
+   <P>Jigsaw Download was created with the format of ISO9660 CD images in
+    mind - however, the following also applies to many other filesystem
+    formats, as well as to `tar' archives and uncompressed `zip' archives.
+    A CD image contains both information for organizing the filesystem
+    (header with disc name etc., ISO9660 directory data, data of extensions
+    such as Joliet or RockRidge, zero padding) and the files contained on
+    the CD. An important property that jigdo relies on is that each file is
+    stored in one contiguous section of the image; it is not split into two
+    or more parts.</P>
+   <P>When <B CLASS="COMMAND">jigdo-file</B> is given a number of files
+    that might be contained in an image, it detects whether any of the
+    files are present using a `rolling checksum' inspired by the one used
+    by <SPAN CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">rsync</SPAN
+    >(1)</SPAN>. The resulting data is written to the `<TT CLASS="FILENAME"
+    >.template</TT>' file: If a section of the image could not be matched
+    (e.g. it was directory information), the data is compressed and written
+    directly to the template. However, if a matching file was found, its
+    data is omitted from the template. Instead, only a reference (an MD5
+    checksum of the file) is inserted in the template.</P>
+   <P>Note that the template data only contains binary data, it does not
+    contain any filenames or URIs, since it cannot be easily edited in case
+    any of these values need to be changed. All that information is stored
+    in the `<TT CLASS="FILENAME">.jigdo</TT>' file, a text file to which
+    you can add URLs for your server(s). The jigdo file provides a mapping
+    for each MD5 checksum to one or more alternative download locations for
+    the corresponding part. See the section `FORMAT OF .JIGDO FILES' below
+    for details.</P>
+   <P>Apart from the mapping of MD5 sums to URIs, the jigdo file also
+    contains an URI pointing to a download location for the template file.
+    This way, the <B CLASS="COMMAND">jigdo</B> download tool only needs to
+    be given one URI (that of the `<TT CLASS="FILENAME">.jigdo</TT>' file)
+    to be able to download and reassemble the complete image.</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN457"></A>
+   <H2>FORMAT OF .JIGDO FILES</H2>
+   <P><SPAN CLASS="emphasis"><I CLASS="EMPHASIS">WORK IN PROGRESS... at the
+    moment, minor modifications to the format are still possible.</I
+    ></SPAN></P>
+   <P>The overall format of `<TT CLASS="FILENAME">.jigdo</TT>' files
+    follows that of `<TT CLASS="FILENAME">.ini</TT>' files, as also used by
+    the Gnome and KDE projects for some data. The file is organized into
+    sections, each of which is preceded by a line reading `[Sectionname]'.
+    Within each section, lines have the form `Label=Value'. Such lines are
+    also called `entries' below.</P>
+   <P>Comments are introduced with the `<TT CLASS="LITERAL">#</TT>'
+    character and extend to the end of the line. Whitespace is ignored at
+    line start and end as well as to the left and right of section names
+    and the `<TT CLASS="LITERAL">=</TT>' in entries. Furthermore, the jigdo
+    utilities split up the text of the entry value (i.e. the part after the
+    `<TT CLASS="LITERAL">=</TT>') into whitespace-separated words, much
+    like the Unix shell. Single <TT CLASS="LITERAL">''</TT> and double <TT
+    CLASS="LITERAL">""</TT> quotes can be used to prevent that e.g. URIs
+    containing whitespace are split apart. Similarly, characters with
+    special meaning (the characters <TT CLASS="LITERAL">'"#\</TT> and
+    space/tab) must be quoted with <TT CLASS="LITERAL">\</TT> to appear in
+    the value. As with the shell, there is a difference between <TT
+    CLASS="LITERAL">''</TT> and <TT CLASS="LITERAL">""</TT>: Within <TT
+    CLASS="LITERAL">''</TT>, the characters <TT CLASS="LITERAL">"#\</TT>
+    and whitespace lose their special meaning, whereas within <TT
+    CLASS="LITERAL">""</TT>, only the characters <TT CLASS="LITERAL"
+    >'#</TT> and whitespace lose their special meaning - in other words,
+    backslash escapes still work inside <TT CLASS="LITERAL">""</TT>, but
+    not <TT CLASS="LITERAL">''</TT>.</P>
+   <P>Below is a description of the individual section names used by
+    jigdo.</P>
+   <DIV CLASS="REFSECT2"><A NAME="AEN481"></A>
+    <H3>Jigdo section</H3><PRE
+CLASS="SCREEN"
+>[Jigdo]
+Version=1.0
+Generator=jigdo-file/0.5.3
+Info=<TT
+CLASS="REPLACEABLE"
+><I
+>long description</I
+></TT
+></PRE>
+    <P>Information about the version of the jigdo file format used, and the
+     program that generated it. The `Info' label can contain a description
+     of the contents of the jigdo file.</P>
+    <P>There is one such section per `<TT CLASS="FILENAME">.jigdo</TT>'
+     file.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN488"></A>
+    <H3>Image section</H3><PRE
+CLASS="SCREEN"
+>[Image]
+Filename=<TT
+CLASS="REPLACEABLE"
+><I
+>"filename for saving on user's disc"</I
+></TT
+>
+Template=<TT
+CLASS="REPLACEABLE"
+><I
+>"URI where to fetch template file"</I
+></TT
+>
+Selected=yes|no
+ShortInfo=<TT
+CLASS="REPLACEABLE"
+><I
+>single-line description, for displaying menu of images</I
+></TT
+>
+Info=<TT
+CLASS="REPLACEABLE"
+><I
+>long description</I
+></TT
+></PRE>
+    <P>The `Selected' label indicates whether the image is selected for
+     download by default when <B CLASS="COMMAND">jigdo</B> is run for this
+     file.</P>
+    <P>Instead of an URI, the value for the `Template' entry can also be a
+     string of the form `<TT CLASS="REPLACEABLE"><I>Label</I></TT>:<TT
+     CLASS="REPLACEABLE"><I>pathname</I></TT>', as described below.</P>
+    <P>This section may occur multiple times, there is one such section for
+     each image in the jigdo file.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN501"></A>
+    <H3>Parts section</H3><PRE
+CLASS="SCREEN"
+>[Parts]
+xJNkjrq8NYMraeGavUpllw=LabelA:part0
+GoTResP2EC6Lb_2wTsqOoQ=LabelA:part1
+kyfebwu6clbYqqWUdFIyaw=LabelB:some/path/part2
+-J9UAimo0Bqg9c0oOXI1mQ=http://some.where.com/part3</PRE>
+    <P>All lines in the section, which provides the mapping from MD5
+     checksums to URIs, have the same format: On the left side of the `<TT
+     CLASS="LITERAL">=</TT>' the checksum (encoded with a Base64-like
+     encoding) is given, and on the right a string corresponding to the
+     part with this checksum; either a complete URI or a string of the form
+     `<TT CLASS="REPLACEABLE"><I>Label</I></TT>:<TT CLASS="REPLACEABLE"><I
+     >pathname</I></TT>', which is expanded into one or more URIs by
+     looking up the definition(s) for the <TT CLASS="REPLACEABLE"><I
+     >Label</I></TT> in the `[Servers]' section.</P>
+    <P>In case a particular MD5 checksum cannot be found in any `[Parts]'
+     section by <B CLASS="COMMAND">jigdo</B>, the program will perform a
+     lookup for `<TT CLASS="LITERAL">MD5Sum:</TT><TT CLASS="REPLACEABLE"
+     ><I>&#60;checksum&#62;</I></TT>', e.g. for `<TT CLASS="LITERAL"
+     >MD5Sum:xJNkjrq8NYMraeGavUpllw</TT>' if you deleted the line for
+     `part0' above.</P>
+    <P>A checksum appearing multiple times in this section indicates
+     alternative download locations for the part.</P>
+    <P>There may be any number of `[Parts]' sections in the file; they are
+     all considered when looking up MD5 checksums.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN516"></A>
+    <H3>Servers section</H3><PRE
+CLASS="SCREEN"
+>[Servers]
+LabelA=http://myserver.org/
+LabelA=ftp://mirror.myserver.org/
+LabelB=LabelC:subdirectory/
+LabelC=http://some.where.com/jigdo/</PRE>
+    <P>All lines in the section, which provides the mapping from server
+     labels to server locations, have the same format: On the left side of
+     the `<TT CLASS="LITERAL">=</TT>' the label name is given, and on the
+     right the value to expand the label name to.</P>
+    <P>A label name appearing multiple times in this section indicates
+     alternative download locations for the parts that use the label in the
+     `[Parts]' section. This notation makes it very easy to add mirrors to
+     the jigdo file.</P>
+    <P>As shown by the example above, the label values may themselves
+     reference other labels. For example, the entry
+     `LabelB:some/path/part2' in the `[Parts]' section will expand to
+     `http://some.where.com/jigdo/subdirectory/some/path/part2'. Loops in
+     the label definitions result in undefined behaviour and must be
+     avoided.</P>
+    <P>There may be any number of `[Servers]' sections in the file; they
+     are all considered when looking up labels. Either of `[Parts]' or
+     `[Servers]', but not both, can be omitted from the jigdo file.</P
+    ></DIV></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN524"></A>
+   <H2>CACHE FILES</H2>
+   <P>Any file specified with the <TT CLASS="OPTION">--cache</TT> option is
+    used to store information about the <TT CLASS="REPLACEABLE"><I
+    >FILES</I></TT> presented to <B CLASS="COMMAND">jigdo-file</B>. When
+    querying the cache, a file is considered unchanged (and the cached data
+    is used) only if filename, file size and last modification time (mtime)
+    match exactly. For the filename match, not the entire file name is
+    used, but only the part following any `<TT CLASS="LITERAL">//</TT>', so
+    that any changes to the part before the `<TT CLASS="LITERAL">//</TT>'
+    will not invalidate the cache.</P>
+   <P>Old cache entries are removed from the cache if they have not been
+    read from or written to for the amount of time specified with <TT
+    CLASS="OPTION">--cache-expiry</TT>. Entries are <SPAN CLASS="emphasis"
+    ><I CLASS="EMPHASIS">not</I></SPAN> immediately removed from the cache
+    if the file they refer to no longer exists - this makes it possible to
+    cache information about files on removable media.</P>
+   <P>Cache expiry only takes place <SPAN CLASS="emphasis"><I
+    CLASS="EMPHASIS">after</I></SPAN> <B CLASS="COMMAND">jigdo-file</B> has
+    done its main work - if any old entries are accessed before expiry
+    takes place, they will be kept. For example, if the program is run
+    using the default expiry time of 30 days, but accesses a cache file
+    with entries generated 2 months ago, then entries in that cache <SPAN
+    CLASS="emphasis"><I CLASS="EMPHASIS">will</I></SPAN> be considered, and
+    only those cache entries that were not needed during the program run
+    will be expired.</P>
+   <P>Due to a peculiarity of the underlying database library (libdb3),
+    cache files never shrink, they only grow. If a large number of entries
+    was expired from your cache file and you want it to shrink, you can
+    either just delete it (of course then everything will have to be
+    regenerated) or use the utilities accompanying libdb3 to dump and
+    restore the database, with a command like `<B CLASS="COMMAND">db3_dump
+    <TT CLASS="REPLACEABLE"><I>old-cache.db</I></TT> | db3_load <TT
+    CLASS="REPLACEABLE"><I>new-cache.db</I></TT></B>'. <SPAN CLASS="phrase"
+    ><SPAN CLASS="PHRASE">For Debian, these programs are supplied in the
+    package `libdb3-util'.</SPAN></SPAN></P>
+   <P>If a different <TT CLASS="OPTION">--md5-block-size</TT> is specified,
+    the entire file needs to be re-read to update its cache entry. If a
+    different <TT CLASS="OPTION">--min-length</TT> is specified, only the
+    first `md5-block-size' bytes of the file need to be re-read.</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN547"></A>
+   <H2>EXAMPLES</H2>
+   <DIV CLASS="REFSECT2"><A NAME="AEN549"></A>
+    <H3>Preparing your CD image for distribution</H3>
+    <P>You have created a CD image `<TT CLASS="FILENAME">image.iso</TT>'
+     from some of the files stored in the directory `<TT CLASS="FILENAME"
+     >/home/ftp</TT>' on your harddisc, which is also available online as
+     `ftp://mysite.org'. As you don't want to waste space by effectively
+     hosting the same data twice (once as files on the FTP server, once
+     inside the image), and you are fed up with users' downloads aborting
+     after 200MB and their restarting the download dozens of times, you
+     decide to use jigdo. How do you prepare the image for download?</P>
+    <P>In fact, only one command is necessary: <A NAME="AEN555"><BLOCKQUOTE
+      CLASS="BLOCKQUOTE">
+     <P><B CLASS="COMMAND">jigdo-file make-template --image=image.iso
+      --jigdo=/home/ftp/image.jigdo --template=/home/ftp/image.template
+      /home/ftp// --label Mysite=/home/ftp --uri
+      Mysite=ftp://mysite.org/</B></P></BLOCKQUOTE> </P>
+    <P>After editing the file `<TT CLASS="FILENAME"
+     >/home/ftp/image.jigdo</TT>' to contain the correct URI for the
+     template, `ftp://mysite.org/image.template', people can point <B
+     CLASS="COMMAND">jigdo</B> at `ftp://mysite.org/image.jigdo' to
+     download your image.</P>
+    <P>Note that nothing prevents you from doing the same for an FTP server
+     that isn't administrated by you - in that case, you only need to host
+     the `<TT CLASS="FILENAME">.jigdo</TT>' and `<TT CLASS="FILENAME"
+     >.template</TT>' files on your own server/homepage.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN564"></A>
+    <H3>Preparing an arbitrary large file for distribution</H3>
+    <P>We assume that you have a large file that is not a filesystem, e.g.
+     `<TT CLASS="FILENAME">movie.mpeg</TT>'. Because of space problems, you
+     want to distribute the data on two servers.</P>
+    <P>In this case, the parts of the image need to be generated
+     artificially with the <B CLASS="COMMAND">split</B> command. For
+     example, to create chunks of 4MB each, use `<B CLASS="COMMAND">split
+     -b 4m movie.mpeg part</B>'. Copy the resulting files `<TT
+     CLASS="FILENAME">part<TT CLASS="REPLACEABLE"><I>XX</I></TT></TT>' into
+     two directories `<TT CLASS="FILENAME">1</TT>' and `<TT
+     CLASS="FILENAME">2</TT>' that you create, according to how you want
+     the files distributed between the servers. Next, create the jigdo and
+     template files with `<B CLASS="COMMAND">jigdo-file make-template
+     --image=movie.mpeg 1// 2//</B>'. You will need to edit the `<TT
+     CLASS="FILENAME">.jigdo</TT>' file and provide the right URIs for the
+     two servers that you are going to upload the `<TT CLASS="FILENAME"
+     >part<TT CLASS="REPLACEABLE"><I>XX</I></TT></TT>' files as well as the
+     `<TT CLASS="FILENAME">.template</TT>' file to.</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN580"></A>
+    <H3>Customized versions of images</H3>
+    <P>Because it is possible to assign a different URI for each part of an
+     image if necessary, jigdo is very flexible. Only one example is the
+     possibility of customized versions of images: Suppose that someone is
+     distributing a CD image, and that you want to make a few small changes
+     to it and redistribute your own version. You download the `<TT
+     CLASS="FILENAME">official.iso</TT>' CD image with <B CLASS="COMMAND"
+     >jigdo</B>, write it to CD-R, make your changes (say, adding files
+     from the `<TT CLASS="FILENAME">myfiles</TT>' directory on your
+     harddisc) and produce your own version, `<TT CLASS="FILENAME"
+     >myversion.iso</TT>'. Next, you instruct <B CLASS="COMMAND"
+     >jigdo-file</B> to create the jigdo and template files for your
+     modified image, using the command <A NAME="AEN588"><BLOCKQUOTE
+     CLASS="BLOCKQUOTE">
+     <P><B CLASS="COMMAND">jigdo-file make-template --image=myversion.iso
+      /mnt/cdrom/ myfiles// --label My=myfiles/ --uri
+      My=http://my.homepage.net/</B></P></BLOCKQUOTE> while `<TT
+     CLASS="FILENAME">official.iso</TT>' is mounted under `<TT
+     CLASS="FILENAME">/mnt/cdrom</TT>'. Now you need to create a `<TT
+     CLASS="FILENAME">.jigdo</TT>' file that references the same files as
+     the original image, but provides additional links for any files <B
+     CLASS="COMMAND">jigdo-file</B> picked up from the `<TT
+     CLASS="FILENAME">myfiles</TT>' directory. This is most easily done by
+     copying over the relevant sections from the jigdo file for `<TT
+     CLASS="FILENAME">official.iso</TT>' to your own version's jigdo
+     file.</P>
+    <P>Finally, after also adding a correct link for the template file, you
+     can upload the `<TT CLASS="FILENAME">.jigdo</TT>' file, the `<TT
+     CLASS="FILENAME">.template</TT>' file and also the files in `<TT
+     CLASS="FILENAME">myfiles</TT>' to `http://my.homepage.net/'. Thus, for
+     people to download your modified image, you do <SPAN CLASS="emphasis"
+     ><I CLASS="EMPHASIS">not</I></SPAN> need to upload the complete image
+     contents to your web space, but only the changes you made!</P>
+    <P>(In case you only made very few changes, you could also omit the
+     `myfiles' parameter in the command above, then all your changes end up
+     in the new template file.)</P></DIV>
+   <DIV CLASS="REFSECT2"><A NAME="AEN603"></A>
+    <H3>Combining many jigdo-managed images into one</H3>
+    <P>It is also no problem to combine data from several sources that use
+     jigdo. For example, if of five different and unrelated servers each
+     one distributes a different CD image via jigdo, you can create a
+     customized DVD image that contains the data from all these CDs. When
+     people use <B CLASS="COMMAND">jigdo</B> to download your image, the
+     individual files on the DVD are fetched from the same sources as the
+     original CDs.</P>
+    <P>Consequently, even though you will be distributing a 3.2GB file via
+     your web space, the actual amount of data that is stored on your
+     server will only be in the order of several MBs.</P></DIV></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN608"></A>
+   <H2>BUGS</H2>
+   <P>For certain contents of one of the input files, most notably a
+    sequence of zero bytes longer than <TT CLASS="OPTION">--min-length</TT
+    > at the start of the file, <B CLASS="COMMAND">jigdo-file
+    make-template</B> may fail to find the file in the image.
+    Unfortunately, this restriction cannot be avoided because the program
+    could become very slow otherwise. <B CLASS="COMMAND">jigdo-file</B> may
+    also fail to find the file that <SPAN CLASS="emphasis"><I
+    CLASS="EMPHASIS">follows</I></SPAN> an all-zeroes file in the image. To
+    avoid this, exclude the all-zeroes file from <TT CLASS="REPLACEABLE"
+    ><I>FILES</I></TT> - this means that its data will end up in the
+    template data, but an all-zeroes file can be compressed very well.</P>
+   <P>In fact, not only all-zeroes files trigger this behaviour, but also
+    any files which contain at their start a long sequence of short
+    identical strings. For example, both a file containing only `<TT
+    CLASS="LITERAL">a</TT>' characters and one containing `<TT
+    CLASS="LITERAL">abcabcabcabc</TT>...' are problematic.</P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN619"></A>
+   <H2>SEE ALSO</H2>
+   <P> <SPAN CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">jigdo</SPAN
+    >(1)</SPAN> (NOT YET IMPLEMENTED), <SPAN CLASS="CITEREFENTRY"><SPAN
+    CLASS="REFENTRYTITLE">split</SPAN>(1)</SPAN> (or `<B CLASS="COMMAND"
+    >info split</B>'), <SPAN CLASS="CITEREFENTRY"><SPAN
+    CLASS="REFENTRYTITLE">find</SPAN>(1)</SPAN> (or `<B CLASS="COMMAND"
+    >info find</B>'), <SPAN CLASS="CITEREFENTRY"><SPAN
+    CLASS="REFENTRYTITLE">mkisofs</SPAN>(1)</SPAN>, <SPAN
+    CLASS="CITEREFENTRY"><SPAN CLASS="REFENTRYTITLE">md5sum</SPAN
+    >(1)</SPAN> </P></DIV>
+  <DIV CLASS="REFSECT1"><A NAME="AEN639"></A>
+   <H2>AUTHOR</H2>
+   <P><A HREF="http://atterer.net/jigdo/" TARGET="_top">Jigsaw Download</A
+    > was written by Richard Atterer <TT CLASS="EMAIL">&#60;<A
+    HREF="mailto:jigdo@atterer.net">jigdo@atterer.net</A>&#62;</TT>, to
+    make downloading of CD ROM images for the Debian GNU/Linux distribution
+    more convenient.</P></DIV>
+ </BODY>
+</HTML>

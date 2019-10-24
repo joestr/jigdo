@@ -1,0 +1,14 @@
+/* $Id: zstream.fh,v 1.7 2002/02/13 00:36:17 richard Exp $ -*- C++ -*-
+  __   _
+  |_) /|  Copyright (C) 2001-2002 Richard Atterer
+  | \/¯|  <richard@atterer.net>
+  ¯ '` ¯
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License, version 2. See
+  the file COPYING for details.
+
+*/
+
+struct Zerror;
+class Zobstream;
+class Zibstream;
