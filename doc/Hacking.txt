@@ -81,7 +81,7 @@ Windows/Solaris/BSD/MacOS porting:
 
   It'd also be nice if someone ensured that it builds on
   Redhat/SuSE/Mandrake, and maintained the jigdo.spec file. Paul Bolle
-  <jigdo-rpm atterer.net> has been doing this, get in touch with him
+  <jigdo-rpm atterer.org> has been doing this, get in touch with him
   if you want to improve the .spec file.
 
   Andrew Mathieson has started maintaining a Mac OS X port - the Fink
@@ -431,5 +431,5 @@ it can retry the failed download, but use a different server.
 --
   __   _
   |_) /|  Richard Atterer
-  | \/¯|  http://atterer.net
+  | \/¯|  http://atterer.org
   ¯ '` ¯

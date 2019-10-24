@@ -1,7 +1,7 @@
 /* $Id: mktemplate.cc,v 1.16 2005/07/06 15:29:59 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
@@ -345,7 +345,7 @@ void MkTemplate::debugRangeFailed() {
       "very likely broken! To help me find the bug, please rerun the\n"
       "command as follows:\n"
       "  [previous-command] --report=noprogress --debug=make-template >log 2>&1\n"
-      "and send the _compressed_ `log' file to <jigdo" << "@atterer.net>."
+      "and send the _compressed_ `log' file to <jigdo" << "@atterer.org>."
          << endl;
     printed = true;
   }

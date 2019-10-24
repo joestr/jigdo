@@ -1,7 +1,7 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
 #  |_) /|  Copyright (C) 2001-2006  |  richard@
-#  | \/¯|  Richard Atterer          |  atterer.net
+#  | \/¯|  Richard Atterer          |  atterer.org
 #  ¯ '` ¯
 # this Makefile mostly forwards make commands to the other directories
 srcdir =	@srcdir@

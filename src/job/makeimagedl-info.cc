@@ -1,7 +1,7 @@
 /* $Id: makeimagedl-info.cc,v 1.4 2004/02/04 15:34:40 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.net
+  | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See

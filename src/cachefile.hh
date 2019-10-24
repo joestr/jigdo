@@ -1,7 +1,7 @@
 /* $Id: cachefile.hh,v 1.4 2005/07/21 11:31:43 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See

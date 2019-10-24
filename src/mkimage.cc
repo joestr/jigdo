@@ -1,7 +1,7 @@
 /* $Id: mkimage.cc,v 1.15 2005/07/09 19:14:46 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -285,27 +285,27 @@ bostream& JigdoDescVec::put(bostream& file, MD5Sum* md) const {
 //______________________________________________________________________
 
 namespace {
-  const int SIZE_WIDTH = 12;
+  const int J_SIZE_WIDTH = 12;
 }
 
 ostream& JigdoDesc::ImageInfo::put(ostream& s) const {
-  s << "image-info  " << setw(SIZE_WIDTH) << size() << "              "
+  s << "image-info  " << setw(J_SIZE_WIDTH) << size() << "              "
     << md5() << ' ' << blockLength() << '\n';
   return s;
 }
 ostream& JigdoDesc::UnmatchedData::put(ostream& s) const {
-  s << "in-template " << setw(SIZE_WIDTH) << offset() << ' '
-    << setw(SIZE_WIDTH) << size() << '\n';
+  s << "in-template " << setw(J_SIZE_WIDTH) << offset() << ' '
+    << setw(J_SIZE_WIDTH) << size() << '\n';
   return s;
 }
 ostream& JigdoDesc::MatchedFile::put(ostream& s) const {
-  s << "need-file   " << setw(SIZE_WIDTH) << offset() << ' '
-    << setw(SIZE_WIDTH) << size() << ' ' << md5() << ' ' << rsync() << '\n';
+  s << "need-file   " << setw(J_SIZE_WIDTH) << offset() << ' '
+    << setw(J_SIZE_WIDTH) << size() << ' ' << md5() << ' ' << rsync() << '\n';
   return s;
 }
 ostream& JigdoDesc::WrittenFile::put(ostream& s) const {
-  s << "have-file   " << setw(SIZE_WIDTH) << offset() << ' '
-    << setw(SIZE_WIDTH) << size() << ' ' << md5() << ' ' << rsync() << '\n';
+  s << "have-file   " << setw(J_SIZE_WIDTH) << offset() << ' '
+    << setw(J_SIZE_WIDTH) << size() << ' ' << md5() << ' ' << rsync() << '\n';
   return s;
 }
 

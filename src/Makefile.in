@@ -1,7 +1,7 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
 #  |_) /|  Copyright (C) 2001-2004  |  richard@
-#  | \/¯|  Richard Atterer          |  atterer.net
+#  | \/¯|  Richard Atterer          |  atterer.org
 #  ¯ '` ¯
 srcdir =	@srcdir@
 VPATH =		@srcdir@

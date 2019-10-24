@@ -1,7 +1,7 @@
 /* $Id: bstream.cc,v 1.2 2004/12/28 00:23:14 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2004  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See

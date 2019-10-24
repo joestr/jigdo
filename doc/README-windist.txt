@@ -1,10 +1,10 @@
 
 Jigsaw Download (jigdo) for Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Jigsaw Download homepage:   <http://atterer.net/jigdo/>
+Jigsaw Download homepage:   <http://atterer.org/jigdo/>
 Debian CD images via jigdo: <http://www.debian.org/CD/jigdo-cd/>
                             <richard@
-Written by Richard Atterer:  atterer.net>
+Written by Richard Atterer:  atterer.org>
 
 jigdo-lite
 ~~~~~~~~~~
@@ -47,7 +47,7 @@ one line.
 ----------------------------------------------------------------------
 
 Copyright (C) 2001-2005  |  richard@
-Richard Atterer          |  atterer.net
+Richard Atterer          |  atterer.org
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as

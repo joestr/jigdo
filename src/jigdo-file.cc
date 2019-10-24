@@ -1,7 +1,7 @@
 /* $Id: jigdo-file.cc,v 1.20 2006/05/14 18:23:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -286,7 +286,7 @@ inline void printUsage(bool detailed, size_t blockLength,
   if (detailed) {
     cout << subst(_(
     "\n"
-    "Copyright (C) 2001-%1 Richard Atterer <http://atterer.net>\n"
+    "Copyright (C) 2001-%1 Richard Atterer <http://atterer.org>\n"
     "This program is free software; you can redistribute it and/or modify\n"
     "it under the terms of the GNU General Public License, version 2. See\n"
     "the file COPYING or <http://www.gnu.org/copyleft/gpl.html> for details.\n"

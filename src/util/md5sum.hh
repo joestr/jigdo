@@ -1,7 +1,7 @@
 /* $Id: md5sum.hh,v 1.5 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2004  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   "Ported" to C++ by RA. Actual MD5 code taken from glibc
 
