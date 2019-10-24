@@ -1,4 +1,4 @@
-/* $Id: mktemplate.cc,v 1.8 2004/06/16 15:21:49 atterer Exp $ -*- C++ -*-
+/* $Id: mktemplate.cc,v 1.16 2005/07/06 15:29:59 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -43,7 +43,8 @@
 #include <mktemplate.hh>
 #include <scan.hh>
 #include <string.hh>
-#include <zstream.hh>
+#include <zstream-gz.hh>
+#include <zstream-bz.hh>
 //______________________________________________________________________
 
 void MkTemplate::ProgressReporter::error(const string& message) {
@@ -58,15 +59,16 @@ MkTemplate::ProgressReporter MkTemplate::noReport;
 
 MkTemplate::MkTemplate(JigdoCache* jcache, bistream* imageStream,
     JigdoConfig* jigdoInfo, bostream* templateStream, ProgressReporter& pr,
-    int zipQuality, size_t readAmnt, bool addImage, bool addServers)
+    int zipQuality, size_t readAmnt, bool addImage, bool addServers,
+    bool useBzip2)
   : fileSizeTotal(0U), fileCount(0U), block(), readAmount(readAmnt),
-    off(), unmatchedStart(),
+    off(), unmatchedStart(), greedyMatching(true),
     cache(jcache),
     image(imageStream), templ(templateStream), zip(0),
     zipQual(zipQuality), reporter(pr), matches(new PartialMatchQueue()),
     sectorLength(),
     jigdo(jigdoInfo), addImageSection(addImage),
-    addServersSection(addServers),
+    addServersSection(addServers), useBzLib(useBzip2),
     matchExec() { }
 //______________________________________________________________________
 
@@ -157,10 +159,10 @@ namespace {
 } // namespace
 //______________________________________________________________________
 
-/* Build up a template DESC section by appending items to a
-   JigdoDescVec. Calls to descUnmatchedData() are allowed to
-   accumulate, so that >1 consecutive unmatched data areas are merged
-   into one in the DESC section. */
+/** Build up a template DESC section by appending items to a
+    JigdoDescVec. Calls to descUnmatchedData() are allowed to accumulate, so
+    that >1 consecutive unmatched data areas are merged into one in the DESC
+    section. */
 class MkTemplate::Desc {
 public:
   Desc() : files(), offset(0) { }
@@ -233,8 +235,11 @@ void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
      immediately matched once seen), and the first 1024 bytes of file B are
      equal to file A, and file B is in the image.
      [I think A gets matched, then the following line prevents that a partial
-     match for B is also recorded.] */
-  if (off - blockLen < unmatchedStart) return;
+     match for B is also recorded.]
+     Also prevents matches whose startOffset is <0, which could otherwise
+     happen because rsum covers a blockLen-sized area of 0x7f bytes at the
+     beginning. */
+  if (off < unmatchedStart + blockLen) return;
 
   PartialMatch* x; // Ptr to new entry in "matches"
   if (matches->full()) {
@@ -491,13 +496,23 @@ bool MkTemplate::checkMD5Match(byte* const buf,
   Assert(off == x->startOffset() + x->file()->size());
   // Heureka! *MATCH*
   // x = address of PartialMatch obj of file that matched
+
+  const PartialMatch* oldestMatch = matches->findLowestStartOffset();
+
+  if (!greedyMatching && x != oldestMatch) {
+    // A larger match is possible, so skip this match
+    debug("IGNORING match due to --no-greedy-matching: [%1,%2) %3",
+          x->startOffset(), off, x->file()->leafName());
+    matches->eraseFront(); // return x to free pool
+    return SUCCESS;
+  }
+
   reporter.matchFound(x->file(), x->startOffset());
   matchedParts.push_back(x->file());
 
   /* Re-read and write out data before the start of the match, i.e. of any
      half-finished bigger match (which we abandon now that we've found a
      smaller match inside it). */
-  const PartialMatch* oldestMatch = matches->findLowestStartOffset();
   if (x != oldestMatch && oldestMatch->startOffset() < off - stillBuffered) {
     unmatchedStart = min(off - stillBuffered, x->startOffset());
     debugRangeInfo(oldestMatch->startOffset(), unmatchedStart,
@@ -721,9 +736,14 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
   rsum.addBackNtimes(0x7f, blockLength);
 
   // Compression pipe for templ data
-  auto_ptr<Zobstream> zipDel(
-    new Zobstream(*templ, ZIPCHUNK_SIZE, zipQual, 15, 8, 256U,
-                  &templMd5Sum));
+  auto_ptr<Zobstream> zipDel;
+  if (useBzLib)
+    zipDel.reset(implicit_cast<Zobstream*>(
+      new ZobstreamBz(*templ, zipQual, 256U, &templMd5Sum) ));
+  else
+    zipDel.reset(implicit_cast<Zobstream*>(
+      new ZobstreamGz(*templ, ZIPCHUNK_SIZE, zipQual, 15, 8, 256U,
+                      &templMd5Sum) ));
   zip = zipDel.get();
   Desc desc; // Buffer for DESC data, will be appended to templ at end
   size_t data = 0; // Offset into buf of byte currently being processed
@@ -903,6 +923,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
   catch (Zerror ze) {
     string err = subst(_("Error during compression: %1"), ze.message);
     reporter.error(err);
+    try { zip->close(); } catch (Zerror zze) { }
     return FAILURE;
   }
 

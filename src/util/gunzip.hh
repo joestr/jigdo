@@ -1,4 +1,4 @@
-/* $Id: gunzip.hh,v 1.1.1.1 2003/07/04 22:30:16 atterer Exp $ -*- C++ -*-
+/* $Id: gunzip.hh,v 1.3 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   In-memory, push-oriented decompression of .gz files
 
@@ -37,9 +39,9 @@
     decompressed data to an object of your choice.
 
     Contains code to auto-detect .gz files: If the file starts with
-    \x1f\x8b\x08, the data is passed to zlib to decompress. Otherwise, it is
-    assumed that the file is not compressed and it is passed to the output IO
-    object unmodified.
+    \\x1f\\x8b\\x08, the data is passed to zlib to decompress. Otherwise, it
+    is assumed that the file is not compressed and it is passed to the output
+    IO object unmodified.
 
     Can deal with >1 concatenated .gz files; in this case, simply outputs the
     concatenated uncompressed data. */
@@ -62,8 +64,8 @@ public:
 
     /** Called from within Gunzip::inject() after each decompression step.
         @param self Gunzip object this IO object is registered with
-        @param decompressed Pointer to "size" new bytes of uncompressed
-               data */
+        @param decompressed Pointer to "size" new bytes of uncompressed data
+        @param size Number of bytes at decompressed */
     virtual void gunzip_data(Gunzip* self, byte* decompressed,
                              unsigned size) = 0;
 

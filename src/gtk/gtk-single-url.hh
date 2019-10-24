@@ -1,4 +1,4 @@
-/* $Id: gtk-single-url.hh,v 1.11 2003/09/12 23:08:01 atterer Exp $ -*- C++ -*-
+/* $Id: gtk-single-url.hh,v 1.17 2005/07/02 17:21:35 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   'Simple' file download, i.e. download data and write it to a file.
 
@@ -18,7 +20,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 
 #include <bstream-counted.hh>
 #include <jobline.hh>
@@ -34,9 +36,9 @@
     whenever the job has something to say.
 
     2) GtkDataSource-which-just-isnt-called-like-that, aka "child mode": The
-    frontend for a Job::DataSource object. This object is _not_ owned by the
-    GtkSingleUrl object. This is used if a MakeImageDl starts new child
-    downloads.
+    frontend for a Job::DataSource object. This DataSource object is _not_
+    owned by the GtkSingleUrl object. This is used if a MakeImageDl starts
+    new child downloads.
 
     The two modes share so much code that IMHO doing two classes would not be
     better. */
@@ -61,9 +63,11 @@ public:
       (more accurately, the methods that this GtkSingleUrl inherits from
       Job::DataSource::IO). See also GtkMakeImage::makeImageDl_new().
 
+      @param uriStr URL
       @param destDesc A descriptive string like "/foo/bar/image, offset
       3453", NOT a filename! Supplied for information only, to be displayed
-      to the user. */
+      to the user.
+      @param download The download we are attached to */
   GtkSingleUrl(const string& uriStr, const string& destDesc,
                Job::DataSource* download);
   virtual ~GtkSingleUrl();
@@ -100,8 +104,8 @@ private:
   // From Job::DataSource:IO
   virtual void job_deleted();
   virtual void job_succeeded();
-  virtual void job_failed(string* message);
-  virtual void job_message(string* message);
+  virtual void job_failed(const string& message);
+  virtual void job_message(const string& message);
   virtual void dataSource_dataSize(uint64 n);
   virtual void dataSource_data(const byte* data, unsigned size,
                               uint64 currentSize);
@@ -114,7 +118,7 @@ private:
   void updateWindow();
   void resumeAsk(struct stat* fileInfo); // Ask user "resume/overwrite?"
   static void resumeResponse(GtkDialog*, int r, gpointer data);
-  void openOutputAndRun(bool pragmaNoCache = false); // Allocate download job
+  void openOutputAndRun(/*bool pragmaNoCache = false*/); // Allocate download job
   void openOutputAndResume(); // Alloc job and read resume data from file
   void updateTreeView(); // Update our line in GtkTreeView
   void failedPermanently(string* message);

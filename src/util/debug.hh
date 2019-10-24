@@ -1,4 +1,4 @@
-/* $Id: debug.hh,v 1.6 2003/09/16 23:32:10 atterer Exp $ -*- C++ -*-
+/* $Id: debug.hh,v 1.9 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 1999-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,10 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
+
+  Debugging aids, including Error objects and assertions.
 
   The Error class is just a convenient base class for all kinds of
   errors which result in a text error message for printing to the
@@ -41,6 +45,25 @@
 // };
 
 // inline bool optDebug() { return OptDebug::optDebug(); }
+//______________________________________________________________________
+
+/* For C (not C++), GCC 2.95 gives an error if a function param name is not
+   given. GCC 3.4 gives a warning if it is given, but unused. Define param
+   name to nothing for 3.4 */
+#if defined __GNUC__ && __GNUC__ < 3
+#  define UNUSED_PARAM(_p) _p
+#else
+#  define UNUSED_PARAM(_p)
+#endif
+
+
+/** To avoid warnings if a function argument is only used by Paranoid(), i.e.
+    only if DEBUG is defined */
+#if DEBUG
+#  define DEBUG_ONLY_PARAM(_p) _p
+#else
+#  define DEBUG_ONLY_PARAM(_p)
+#endif
 //______________________________________________________________________
 
 namespace Debug {
@@ -83,8 +106,8 @@ struct Error {
   string message;
 };
 
-/* Thrown to indicate: Don't report anything, but unwind stack and
-   return specified value from main() */
+/** Thrown to indicate: Don't report anything, but unwind stack and
+    return specified value from main() */
 struct Cleanup {
   explicit Cleanup(int r) : returnValue(r) { }
   int returnValue;

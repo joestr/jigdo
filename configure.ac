@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.ac,v 1.2 2004/06/20 16:17:32 atterer Exp $
+dnl $Id: configure.ac,v 1.23 2005/07/09 22:21:33 atterer Exp $
 AC_INIT(src/jigdo-file.cc)
 AC_CONFIG_HEADER(src/config.h)
 dnl ______________________________________________________________________
@@ -37,15 +37,15 @@ AC_PROG_AWK
 AC_LANG_C
 AC_PROG_CC
 dnl Add -Wno-unused-parameter to CFLAGS if supported
-ORIG_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wno-unused-parameter" # GCC >=3.0
-AC_TRY_COMPILE(, int x = 0, , CFLAGS="$ORIG_CFLAGS")
+dnl ORIG_CFLAGS="$CFLAGS"
+dnl CFLAGS="$CFLAGS -Wno-unused-parameter" # GCC >=3.0
+dnl AC_TRY_COMPILE(, int x = 0, , CFLAGS="$ORIG_CFLAGS")
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 CFLAGS=`echo "$CFLAGS" | sed 's/\(^\| \)-g\( \|$\)/ /'`
 CXXFLAGS=`echo "$CXXFLAGS" | sed 's/\(^\| \)-g\( \|$\)/ /'`
 IF_GXX2="#"
-IF_NOGXX2=""
+IFNOT_GXX2=""
 if test "$GXX" = yes; then
     AC_MSG_CHECKING(for GCC version)
     gccver=`$CXX -dumpversion`
@@ -53,7 +53,7 @@ if test "$GXX" = yes; then
     case "$gccver" in
         2.*)
             IF_GXX2=""
-            IF_NOGXX2="#";;
+            IFNOT_GXX2="#";;
         3.0|3.0.*|3.1|3.1.*|3.3|3.3.*)
         #AC_MSG_RESULT([   * Big file support may be broken in GCC 3.2 and])
         #AC_MSG_RESULT([   * 3.3! If you compile jigdo on Linux (and maybe])
@@ -63,7 +63,7 @@ if test "$GXX" = yes; then
     esac
 fi
 AC_SUBST(IF_GXX2)
-AC_SUBST(IF_NOGXX2)
+AC_SUBST(IFNOT_GXX2)
 AC_PROG_INSTALL
 dnl ____________________
 
@@ -91,6 +91,15 @@ fi
 AC_SUBST(exe)
 AC_SUBST(IF_WINDOWS)
 AC_SUBST(IF_UNIX)
+
+if test "$is_windows" = "yes"; then
+    if test "$ac_cv_prog_cc_g" = "yes"; then
+        CFLAGS="$CFLAGS -mms-bitfields -march=pentium"
+    fi
+    if test "$ac_cv_prog_cxx_g" = "yes"; then
+        CXXFLAGS="$CXXFLAGS -mms-bitfields -march=pentium"
+    fi
+fi
 dnl ____________________
 
 AC_CACHE_CHECK(whether the C++ compiler is recent enough,
@@ -102,8 +111,9 @@ AC_CACHE_CHECK(whether the C++ compiler is recent enough,
         template<typename T = double> struct X {
           template<class U> void function(T* t, U* u);
         };
+        template<> struct X<void> { void function(void* t, int* u); };
       }
-      template<> void B::X<void>::function(void* t, int* u);
+      void B::X<void>::function(void*, int*) { }
     },, jigdo_cv_prog_cxx_recent="yes", jigdo_cv_prog_cxx_recent="no")
 )
 if test "$jigdo_cv_prog_cxx_recent" = "no"; then
@@ -138,6 +148,19 @@ else
 fi
 dnl ________________________________________
 
+dnl Doesn't work
+dnl AC_CACHE_CHECK([whether C++ supports accessing files larger than 4 GB],
+dnl                jigdo_cv_prog_cxx_lfs,
+dnl     AC_TRY_COMPILE([#include <fstream>],
+dnl         [using namespace std; ifstream i; i.seekg(0x100000000, ios::beg);],
+dnl         jigdo_cv_prog_cxx_lfs="yes", jigdo_cv_prog_cxx_lfs="no")
+dnl )
+dnl if test "$jigdo_cv_prog_cxx_lfs" = "no"; then
+dnl     AC_MSG_RESULT([   * There is a problem accessing large files.])
+dnl     AC_MSG_RESULT([   * jigdo may be unable to work with DVD-sized images.])
+dnl fi
+dnl ________________________________________
+
 AC_CHECK_PROG(have_wget, wget, yes, no)
 if test "$have_wget" = "no"; then
     AC_MSG_RESULT([   * wget was not found on your system. Please install])
@@ -152,7 +175,7 @@ AC_ARG_ENABLE(debug,
 AC_MSG_RESULT(\"$jigdo_debug\")
 if test "$jigdo_debug" = "yes"; then
     IF_DEBUG=""
-    IF_NODEBUG="#"
+    IFNOT_DEBUG="#"
     AC_DEFINE(DEBUG, 1)
     if test "$ac_cv_prog_cc_g" = "yes"; then CFLAGS="$CFLAGS -g"; fi
     if test "$ac_cv_prog_cxx_g" = "yes"; then CXXFLAGS="$CXXFLAGS -g"; fi
@@ -160,11 +183,31 @@ elif test "$jigdo_debug" != "no"; then
     AC_MSG_ERROR(Invalid argument to --enable-debug option)
 else
     IF_DEBUG="#"
-    IF_NODEBUG=""
+    IFNOT_DEBUG=""
     AC_DEFINE(DEBUG, 0)
 fi
 AC_SUBST(IF_DEBUG)
-AC_SUBST(IF_NODEBUG)
+AC_SUBST(IFNOT_DEBUG)
+
+AC_MSG_CHECKING(for value of --with-pkg-config-prefix)
+AC_ARG_WITH(pkg-config-prefix,
+[  --with-pkg-config-prefix=PATH  When cross-compiling, specify prefix of
+                      libraries/headers for target architecture [none]],
+    jigdo_pkg_config_prefix="$withval", jigdo_pkg_config_prefix="")
+if test "$jigdo_pkg_config_prefix" = ""; then
+    AC_MSG_RESULT(not set)
+    jigdo_pkg_config_switch=""
+else
+    AC_MSG_RESULT(\"$jigdo_pkg_config_prefix\")
+    if test "$GXX" = "yes"; then
+        CFLAGS="$CFLAGS -I$jigdo_pkg_config_prefix/include -L$jigdo_pkg_config_prefix/lib"
+        CXXFLAGS="$CXXFLAGS -I$jigdo_pkg_config_prefix/include -L$jigdo_pkg_config_prefix/lib"
+        CPPFLAGS="$CPPFLAGS -I$jigdo_pkg_config_prefix/include"
+        LDFLAGS="$LDFLAGS -L$jigdo_pkg_config_prefix/lib"
+    fi
+    export PKG_CONFIG_PATH="$jigdo_pkg_config_prefix/lib/pkgconfig"
+    jigdo_pkg_config_prefix="--define-variable=prefix=$jigdo_pkg_config_prefix"
+fi
 
 dnl dnl cppunit
 dnl CPPUNITCFLAGS='# `cppunit-config --cflags`'
@@ -225,6 +268,21 @@ fi
 if test "$have_zlib" != "no"; then LIBS="$have_zlib $LIBS"; fi
 
 
+AC_CHECK_LIB(bz2, BZ2_bzCompressInit, have_bzlib="-lbz2", have_bzlib="no")
+if test "$is_windows" = yes; then
+    dnl For some reason, can't check for BZ2_bzCompressInit without #include <bzlib.h>
+    AC_CHECK_LIB(bz2, main, have_bzlib="-lbz2", )
+    AC_CHECK_LIB(bz2.dll, main, have_bzlib="-lbz2.dll", )
+fi
+AC_CHECK_HEADER(bzlib.h, have_bzlib_h="yes", have_bzlib_h="no")
+if test "$have_bzlib" = "no" -o "$have_bzlib_h" = "no"; then
+    AC_MSG_RESULT([   * Please install libbz2, it is needed by all of the])
+    AC_MSG_RESULT([   * programs.])
+    installDevel "libbz2" "libbz2"
+fi
+if test "$have_bzlib" != "no"; then LIBS="$have_bzlib $LIBS"; fi
+
+
 AC_MSG_CHECKING(for value of --with-libdb)
 AC_ARG_WITH(libdb,
     [  --without-libdb         Don't use libdb (it's necessary for jigdo-file's cache)], #'
@@ -234,7 +292,7 @@ if test "$jigdo_libdb" = "yes"; then
     AC_CHECK_HEADER(db.h, have_db_h="yes", have_db_h="no")
     AC_MSG_CHECKING(for libdb version in db.h)
     printf "#include <db.h>\nDB_VERSION_MAJOR DB_VERSION_MINOR\n" >conftest.c
-    set `eval $ac_cpp conftest.c | egrep '^ *[[0-9]] *'`; v="$1"; vv="$2"
+    set x `eval $ac_cpp conftest.c | egrep '^ *[[0-9]] *'`; v="$2"; vv="$3"
     AC_MSG_RESULT($v.$vv)
     if test "$v" -ne 3 -a "$v" -ne 4; then
         AC_MSG_RESULT([   * Warning: jigdo is only known to work with libdb])
@@ -301,99 +359,82 @@ if test "$jigdo_gui" = "yes"; then
 fi
 GTKCFLAGS="# GUI application disabled by configure script"
 GTKLIBS="$GTKCFLAGS"
-LIBWWWCFLAGS="$GTKCFLAGS"
-LIBWWWLIBS="$GTKCFLAGS"
+GLIBLIBS="$GTKCFLAGS"
+dnl LIBWWWCFLAGS="$GTKCFLAGS"
+dnl LIBWWWLIBS="$GTKCFLAGS"
+CURLCFLAGS="$GTKCFLAGS"
+CURLLIBS="$GTKCFLAGS"
 dnl The following adds flags for GTK+ and glib
 if test "$jigdo_gui" = "yes"; then
-    AC_MSG_CHECKING(for value of --with-pkg-config-prefix)
-    AC_ARG_WITH(pkg-config-prefix,
-    [  --with-pkg-config-prefix=PATH  When cross-compiling, specify prefix of
-                          libraries/headers for target architecture [none]],
-        jigdo_pkg_config_prefix="$withval", jigdo_pkg_config_prefix="")
-    if test "$jigdo_pkg_config_prefix" = ""; then
-        AC_MSG_RESULT(not set)
-    else
-        AC_MSG_RESULT(\"$jigdo_pkg_config_prefix\")
-        jigdo_pkg_config_prefix="--define-variable=prefix=$jigdo_pkg_config_prefix"
-    fi
-
-    AC_MSG_CHECKING(for GTK+ 2.0.6 or later)
+    AC_MSG_CHECKING(for GTK+ 2.4.0 or later)
     gtk_ver="`pkg-config $jigdo_pkg_config_prefix gtk+-2.0 --modversion`"
     AC_MSG_RESULT($gtk_ver)
-    if pkg-config gtk+-2.0 --atleast-version=2.0.6; then true; else
+    if pkg-config gtk+-2.0 --atleast-version=2.4.0; then true; else
         AC_MSG_RESULT([   * Installed version of GTK+ is too old])
         jigdo_gui_failed
     fi
-    GTKCFLAGS="`pkg-config $jigdo_pkg_config_prefix gtk+-2.0 --cflags 2>/dev/null`"
-    GTKLIBS="`pkg-config $jigdo_pkg_config_prefix gtk+-2.0 --libs 2>/dev/null`"
+    if test "$is_windows" = yes; then gth="gthread-2.0"; else gth=""; fi
+    GTKCFLAGS="`pkg-config $jigdo_pkg_config_prefix gtk+-2.0 $gth --cflags 2>/dev/null`"
+    GTKLIBS="`pkg-config $jigdo_pkg_config_prefix gtk+-2.0 $gth --libs 2>/dev/null`"
+    GLIBLIBS="`pkg-config $jigdo_pkg_config_prefix glib-2.0 $gth --libs 2>/dev/null`"
 fi
+dnl ____________________
 
-dnl The following adds flags for libwww
+dnl The following adds flags for libcurl
+dnl On Windows, no curl-config is supplied
 if test "$jigdo_gui" = "yes"; then
-    AC_MSG_CHECKING(for libwww 5.3.2 or later)
-    jigdo_libwwwver="`libwww-config --version 2>&1`"
-    AC_MSG_RESULT($jigdo_libwwwver)
-    case "$jigdo_libwwwver" in
-        dnl Extra [] around [0-9] style wildcards, or M4 swallows them
-        [[6-9]*|5.[4-9]*|5.[1-9][0-9]*|5.3.[2-9]*|5.3.[1-9][0-9]*])
-            LIBWWWCFLAGS="`libwww-config --cflags 2>/dev/null`"
-            LIBWWWLIBS="`libwww-config --libs 2>/dev/null`"
-            dnl Some versions of libwww-config include "-I/usr/include" in
-            dnl their --cflags output, which completely upsets some versions
-            dnl of GCC.
-            LIBWWWCFLAGS=`echo " $LIBWWWCFLAGS " | sed -e 's% -I/usr/include/* % %'`
-            dnl If we are cross-compiling for Windows and the wrong
-            dnl (ie host system's) libwww-config was executed above, we
-            dnl may need to turn -lz from its output into -lzdll. Yuk,
-            dnl that's hacky, but then it'll save people some trouble
-            case "$is_windows $LIBS " in
-                yes*"-lzdll "*)
-                    LIBWWWLIBS=`echo " $LIBWWWLIBS " | sed -e 's% -lz % -lzdll %'`
-            esac
+  if test "$is_windows" = "no"; then
+    AC_MSG_CHECKING(for libcurl 7.11.0 or later)
+    set x `curl-config --version 2>&1`
+    shift
+    case "$1" in [[0-9]*]) ;; *) shift;; esac
+    jigdo_curlver="$1"
+    AC_MSG_RESULT($jigdo_curlver)
+    case "$jigdo_curlver" in
+        [[1-9][0-9].*|[8-9].*|7.1[1-9]*|7.[2-9][0-9]*])
+            CURLCFLAGS="`curl-config --cflags 2>/dev/null`"
+            CURLLIBS="`curl-config --libs 2>/dev/null`"
             ;;
         *)
-        AC_MSG_RESULT([   * libwww not installed, or the installed version])
-        AC_MSG_RESULT([   * is too old, or libwww-config is not in \$PATH.])
-        AC_MSG_RESULT([   * Please install libwww 5.3.2 or later, it is])
+        AC_MSG_RESULT([   * libcurl not installed, or the installed version])
+        AC_MSG_RESULT([   * is too old, or curl-config is not in \$PATH.])
+        AC_MSG_RESULT([   * Please install libcurl 7.11.0 or later, it is])
         AC_MSG_RESULT([   * needed by the jigdo GUI application.])
-        installDevel "libwww" "w3c-libwww-devel/libopenssl0"
-        jigdo_gui_failed
+        installDevel "libcurl2" "libcurl2"
     esac
+  else
+    AC_CHECK_LIB(curl, curl_global_init, have_libcurl="-lcurl", have_libcurl="no")
+    AC_CHECK_LIB(curldll, curl_global_init, have_libcurl="-lcurldll", )
+    AC_CHECK_LIB(libcurl, curl_global_init, have_libcurl="-llibcurl", )
+    AC_CHECK_HEADER(curl/curl.h, have_curl_h="yes", have_curl_h="no")
+    if test "$have_libcurl" = "no" -o "$have_curl_h" = "no"; then
+        AC_MSG_RESULT([   * Please install libcurl 7.11.0 or later, it is])
+        AC_MSG_RESULT([   * needed by the jigdo GUI application.])
+    else
+        CURLCFLAGS=""
+	CURLLIBS="$have_libcurl"
+    fi
+  fi
 fi
 
 if test "$jigdo_gui" = "yes"; then IF_GUI=""; else IF_GUI="#"; fi
 AC_SUBST(IF_GUI)
 AC_SUBST(GTKCFLAGS)
 AC_SUBST(GTKLIBS)
-AC_SUBST(LIBWWWCFLAGS)
-AC_SUBST(LIBWWWLIBS)
+AC_SUBST(GLIBLIBS)
+dnl AC_SUBST(LIBWWWCFLAGS)
+dnl AC_SUBST(LIBWWWLIBS)
+AC_SUBST(CURLCFLAGS)
+AC_SUBST(CURLLIBS)
 dnl ____________________
 
-dnl Both MinGW32 and glib declare 'struct dirent' and 'struct DIR'. If
-dnl there are problems using the relevant headers together, do some
-dnl really dirty things with the preprocessor to disable the glib
-dnl declaration.
-dnl Update: Only happens with old versions, can probably remove this.
-dirent_hack="no"
-if test "$is_windows" = yes; then
-    CPPFLAGS_orig="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS $GTKCFLAGS"
-    AC_MSG_CHECKING(for conflicting 'struct dirent' in dirent.h and glib.h)
-    AC_TRY_COMPILE([#include <dirent.h>
-                    #include <glib.h>], , dirent_hack="no",dirent_hack="yes")
-    if test "$dirent_hack" = "yes"; then
-        AC_TRY_COMPILE([#include <dirent.h>
-                        #define dirent other_dirent
-                        #define DIR other_DIR
-                        #include <glib.h>], , , dirent_hack="no")
-    fi
-    AC_MSG_RESULT($dirent_hack)
-    CPPFLAGS="$CPPFLAGS_orig"
-fi
-if test "$dirent_hack" = "yes"; then
-    AC_DEFINE(DIRENT_HACK, 1)
-else
-    AC_DEFINE(DIRENT_HACK, 0)
+if test "$jigdo_gui" = "yes" && test ! -e "$srcdir/src/gtk/interface.hh"; then
+  AC_CHECK_PROG(have_glade, glade-2, yes, no)
+  if test "$have_glade" = "no"; then
+    AC_MSG_RESULT([   * glade-2 was not found on your system. Please install])
+    AC_MSG_RESULT([   * it, it is needed to compile the jigdo GUI (actually,])
+    AC_MSG_RESULT([   * to create the file src/gtk/interface.hh)])
+  fi
 fi
 dnl ____________________
 
@@ -570,22 +611,24 @@ AC_MSG_RESULT(\"$USE_NLS\")
 AC_SUBST(USE_NLS)
 CATALOGS=""
 if test "$USE_NLS" = "yes"; then
-    AC_CHECK_LIB(intl, dgettext, x="yes", x="no")
-    if test "$x" = "yes"; then
+    oldLIBS="$LIBS"
+    AC_MSG_CHECKING(for dgettext in <libintl.h> and libc)
+    AC_TRY_LINK([#include <libintl.h>], dgettext(0, 0),
+                have_intl="yes", have_intl="no");
+    AC_MSG_RESULT($have_intl)
+    if test "$have_intl" = "no"; then
         LIBS="$LIBS -lintl";
-        AC_CHECK_LIB(iconv, iconv, LIBS="$LIBS -liconv")
+        AC_MSG_CHECKING(for dgettext in <libintl.h> and -lintl)
+        AC_TRY_LINK([#include <libintl.h>], dgettext(0, 0),
+                    have_intl="yes", have_intl="no");
+        AC_MSG_RESULT($have_intl)
     fi
-
-    AC_CACHE_CHECK([whether dgettext() works],
-                   jigdo_cv_func_dgettext,
-        AC_TRY_LINK([#include <libintl.h>], [dgettext("", "")],
-                    jigdo_cv_func_dgettext="yes",jigdo_cv_func_dgettext="no")
-    )
-    if test "$jigdo_cv_func_dgettext" = "no"; then
+    if test "$have_intl" = "no"; then
         AC_MSG_RESULT([   * Disabling gettext support - jigdo will not be])
         AC_MSG_RESULT([   * able to display translated status/error])
         AC_MSG_RESULT([   * messages instead of the default English ones.])
         USE_NLS="no"
+        LIBS="$oldLIBS"
     fi
 fi
 if test "$USE_NLS" = "yes"; then
@@ -619,33 +662,44 @@ dnl ______________________________________________________________________
 
 dnl Checks for other --enable-xxx, --with-xxx switches
 
-AC_MSG_CHECKING(for value of --enable-libwww-hacks)
-AC_ARG_ENABLE(libwww-hacks,
-    [  --disable-libwww-hacks  Don't compile fixed versions of some libwww
-                          code (Try this if you see link errors/crashes)],
-    jigdo_libwww_hacks=$enableval, jigdo_libwww_hacks=yes)
-AC_MSG_RESULT(\"$jigdo_libwww_hacks\")
-if test "$jigdo_libwww_hacks" = yes; then
-    IF_LIBWWW_HACKS="" # enable hacks
-elif test "$jigdo_libwww_hacks" != no; then
-    AC_MSG_ERROR(Invalid argument to --enable-libwww-hacks option)
-else
-    IF_LIBWWW_HACKS="#" # disable hacks, by commenting out Makefile line
-fi
-AC_SUBST(IF_LIBWWW_HACKS)
+dnl AC_MSG_CHECKING(for value of --enable-libwww-hacks)
+dnl AC_ARG_ENABLE(libwww-hacks,
+dnl     [  --disable-libwww-hacks  Don't compile fixed versions of some libwww
+dnl                           code (Try this if you see link errors/crashes)],
+dnl     jigdo_libwww_hacks=$enableval, jigdo_libwww_hacks=yes)
+dnl AC_MSG_RESULT(\"$jigdo_libwww_hacks\")
+dnl if test "$jigdo_libwww_hacks" = yes; then
+dnl     IF_LIBWWW_HACKS="" # enable hacks
+dnl elif test "$jigdo_libwww_hacks" != no; then
+dnl     AC_MSG_ERROR(Invalid argument to --enable-libwww-hacks option)
+dnl else
+dnl     IF_LIBWWW_HACKS="#" # disable hacks, by commenting out Makefile line
+dnl fi
+dnl AC_SUBST(IF_LIBWWW_HACKS)
 dnl ______________________________________________________________________
 
 dnl Do this at end in order not to influence other compile tests which
 dnl might return warnings. Turning the warnings into errors would make
 dnl the tests fail.
-if test "$jigdo_debug" = "yes"; then
-    #if test "$GCC" = yes; then CFLAGS="$CFLAGS -Werror"; fi
-    if test "$GXX" = yes; then CXXFLAGS="$CXXFLAGS -Werror"; fi
-fi
+dnl if test "$jigdo_debug" = "yes"; then
+dnl     #if test "$GCC" = yes; then CFLAGS="$CFLAGS -Werror"; fi
+dnl     if test "$GXX" = yes; then CXXFLAGS="$CXXFLAGS -Werror"; fi
+dnl fi
 if test "$GXX" = "yes"; then
     CFLAGS="-Wall $CFLAGS -W"
     CXXFLAGS="$CXXFLAGS -Wall -W -Wpointer-arith -Wconversion -Woverloaded-virtual"
 fi
+dnl ______________________________________________________________________
+
+if test "$cross_compiling" = yes; then
+  IF_CROSSCOMPILING=""
+  IFNOT_CROSSCOMPILING="#"
+else
+  IF_CROSSCOMPILING="#"
+  IFNOT_CROSSCOMPILING=""
+fi
+AC_SUBST(IF_CROSSCOMPILING)
+AC_SUBST(IFNOT_CROSSCOMPILING)
 dnl ______________________________________________________________________
 
 dnl Touch TAGS to prevent it from being recreated when a normal user
@@ -653,11 +707,24 @@ dnl builds the program. TAGS should only be updated once changes are
 dnl made to the source.
 touch "$srcdir/src/TAGS"
 
+SUBDIRS="glibcurl gtk job net util"
 SRC_MAKEDEPS="$srcdir/src/Makedeps"
+dnl When bootstrapping from CVS, we need to make sure that correct
+dnl dependencies cause gtk/interface.hh to be created
+if test -e "$SRC_MAKEDEPS"; then true; else
+  AC_MSG_RESULT(Creating $SRC_MAKEDEPS)
+  touch "$SRC_MAKEDEPS"
+  echo >"$srcdir/src/gtk/interface.hh"
+  (cd "$srcdir/src"
+   find . -type f '(' -name '*.cc' -o -name '*.c' ')' \
+   | xargs "$ac_cv_prog_AWK" -f ../scripts/depend.awk "$srcdir" $SUBDIRS -
+  )
+  rm -f "$SRC_MAKEDEPS.bak" "$srcdir/src/gtk/interface.hh"
+fi
 AC_SUBST_FILE(SRC_MAKEDEPS)
 
 dnl Create subdirs in src directory
-for dir in "" gtk job net util; do
+for dir in "" $SUBDIRS; do
     test ! -d "src/$dir" && mkdir "src/$dir"
 done
 AC_OUTPUT(Makefile doc/Makefile src/Makefile po/Makefile)

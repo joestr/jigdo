@@ -1,6 +1,6 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
-#  |_) /|  Copyright (C) 2001-2003  |  richard@
+#  |_) /|  Copyright (C) 2001-2004  |  richard@
 #  | \/¯|  Richard Atterer          |  atterer.net
 #  ¯ '` ¯
 srcdir =	@srcdir@
@@ -9,66 +9,83 @@ VPATH =		@srcdir@
 prefix =	@prefix@
 datadir =	@datadir@
 
-SUBDIRS =	gtk job net util
-SUBINCLUDE =	-I"$(srcdir)/gtk" -I"$(srcdir)/job" -I"$(srcdir)/net" \
-		-I"$(srcdir)/util" 
+SUBDIRS =	glibcurl gtk job net util
+SUBINCLUDE =	-I"$(srcdir)/glibcurl" -I"$(srcdir)/gtk" -I"$(srcdir)/job" \
+		-I"$(srcdir)/net" -I"$(srcdir)/util"
+
+# Prevent these variables from being taken from the environment
+X =
+Y =
 
 # -I. to pick up config.h, _FILE_OFFSET_BITS for big file support under Linux
 CPPFLAGS =	@CPPFLAGS@ -I. -I"$(srcdir)" $(SUBINCLUDE) \
 		-D_FILE_OFFSET_BITS=64 @DEFS@ \
 		-DPACKAGE_DATA_DIR="\"$(datadir)/jigdo/\"" \
 		-DPACKAGE_LOCALE_DIR="\"$(datadir)/locale\"" \
-		$(GTKCFLAGS) $(LIBWWWCFLAGS)
+		$(GTKCFLAGS) $(CURLCFLAGS) # $(LIBWWWCFLAGS)
 CC =		@CC@
 CFLAGS =	@CFLAGS@ $(X)
 CXX =		@CXX@
 CXXFLAGS =	@CXXFLAGS@ $(X)
 LD =		@CXX@
+LD_C =		@CC@
 LDFLAGS =	@LIBS@ @LDFLAGS@ $(Y)
+LIBS =		@LIBS@
 AWK =		@AWK@
 GLADECODE =	glade-2 -w # Create code from .glade file
-DOC =		doc++ --tables --footer /dev/null --filenames --html \
-		    --no-java-graphs --dir html
+DOC =		doxygen
 WINDRES =	windres
 GTKCFLAGS =	@GTKCFLAGS@
 GTKLIBS =	@GTKLIBS@
-LIBWWWCFLAGS =	@LIBWWWCFLAGS@
-LIBWWWLIBS =	@LIBWWWLIBS@
+GLIBLIBS =	@GLIBLIBS@
+#LIBWWWCFLAGS =	@LIBWWWCFLAGS@
+#LIBWWWLIBS =	@LIBWWWLIBS@
+CURLCFLAGS =	@CURLCFLAGS@
+CURLLIBS =	@CURLLIBS@
 
 programs =	jigdo-file@exe@ @IF_GUI@ jigdo@exe@
-debug-programs = @IF_DEBUG@ torture@exe@
-libwww-hacks =	@IF_LIBWWW_HACKS@ net/libwww-HTFTP.o net/libwww-HTHost.o
+debug-programs = torture@exe@ util/random@exe@ \
+		@IF_GUI@ glibcurl/glibcurl-example@exe@
+#libwww-hacks =	@IF_LIBWWW_HACKS@ net/libwww-HTFTP.o net/libwww-HTHost.o
 windows-res =	@IF_WINDOWS@ jigdo.res
-test-programs =	job/jigdo-io-test@exe@ job/makeimagedl-info-test@exe@ \
-		net/proxyguess-test@exe@ \
-		util/rsyncsum-test@exe@ util/gunzip-test@exe@ \
-		util/log-test@exe@ util/md5sum-test@exe@ \
-		util/mimestream-test@exe@ util/string-utf-test@exe@
+test-programs =	job/jigdo-io-test@exe@ \
+		job/makeimagedl-info-test@exe@ job/url-mapping-test@exe@ \
+		net/proxyguess-test@exe@ net/uri-test@exe@ \
+		util/autonullptr-test@exe@ util/rsyncsum-test@exe@ \
+		util/gunzip-test@exe@ util/log-test@exe@ \
+		util/md5sum-test@exe@ util/mimestream-test@exe@ \
+		util/string-utf-test@exe@
 
 # fmt -s -w1|sed 's%[^a-zA-Z0-9./-]\+%%g'|sort|fmt -w60|sed 's%$% \\%'
-objects-jigdo =	compat.o gtk/gtk-makeimage.o gtk/gtk-single-url.o gtk/gui.o \
-		gtk/interface.o gtk/jigdo.o gtk/jobline.o gtk/joblist.o \
-		gtk/messagebox.o gtk/support.o gtk/treeiter.o jigdoconfig.o \
-		job/cached-url.o job/datasource.o job/jigdo-io.o \
-		job/makeimage.o job/makeimagedl.o job/makeimagedl-info.o \
-		job/single-url.o \
-		net/download.o net/glibwww-callbacks.o net/glibwww-init.o \
-		net/proxyguess.o util/bstream.o util/configfile.o util/glibc-getopt.o \
+objects-jigdo =	compat.o glibcurl/glibcurl.o gtk/gtk-makeimage.o \
+		gtk/gtk-single-url.o gtk/gui.o gtk/interface.o gtk/jigdo.o \
+		gtk/jobline.o gtk/joblist.o gtk/messagebox.o gtk/support.o \
+		gtk/treeiter.o jigdoconfig.o job/cached-url.o \
+		job/datasource.o job/jigdo-io.o job/makeimage.o \
+		job/makeimagedl-info.o \
+		job/makeimagedl.o job/single-url.o \
+		job/url-mapping.o net/download.o net/uri.o net/proxyguess.o \
+		util/bstream.o util/configfile.o util/glibc-getopt.o \
 		util/glibc-getopt1.o util/glibc-md5.o util/gunzip.o \
 		util/log.o util/md5sum.o util/progress.o util/string-utf.o \
-		$(libwww-hacks) $(windows-res) \
+		$(windows-res) \
 		util/debug.o # this must come last!
+#^ net/glibwww-callbacks.o net/glibwww-init.o
 objects-jigdo-file = cachefile.o compat.o jigdo-file-cmd.o jigdo-file.o \
 		jigdoconfig.o mkimage.o mkjigdo.o mktemplate.o \
-		partialmatch.o recursedir.o scan.o util/bstream.o util/configfile.o \
-		util/glibc-getopt.o util/glibc-getopt1.o util/glibc-md5.o \
-		util/log.o util/md5sum.o util/rsyncsum.o util/string.o \
-		zstream.o \
+		partialmatch.o recursedir.o scan.o util/bstream.o \
+		util/configfile.o util/glibc-getopt.o util/glibc-getopt1.o \
+		util/glibc-md5.o util/log.o util/md5sum.o util/rsyncsum.o \
+		util/string.o zstream.o zstream-bz.o zstream-gz.o \
 		util/debug.o # this must come last!
 objects-torture = cachefile.o compat.o jigdoconfig.o mkimage.o mkjigdo.o \
 		mktemplate.o partialmatch.o recursedir.o scan.o torture.o \
-		util/bstream.o util/configfile.o util/glibc-md5.o util/log.o util/md5sum.o \
-		util/rsyncsum.o util/string.o zstream.o \
+		util/bstream.o util/configfile.o util/glibc-md5.o \
+		util/log.o util/md5sum.o util/rsyncsum.o util/string.o \
+		zstream.o zstream-bz.o zstream-gz.o \
+		util/debug.o # this must come last!
+objects-random = util/glibc-md5.o util/log.o util/md5sum.o util/random.o \
+		util/string.o \
 		util/debug.o # this must come last!
 #______________________________
 
@@ -84,15 +101,15 @@ objects-torture = cachefile.o compat.o jigdoconfig.o mkimage.o mkjigdo.o \
 
 .PHONY:         all all-msg clean distclean mostlyclean maintainer-clean \
                 dep depend doc strip test test-v test-c
-all:		all-msg Makefile $(programs) $(debug-programs) \
-		@IF_DEBUG@@IF_NOGXX2@ test
+all:		all-msg Makefile $(programs) @IF_DEBUG@ $(debug-programs) \
+		@IFNOT_GXX2@ test-c @IFNOT_CROSSCOMPILING@ test
 all-msg:
 		-@if test "$$EMACS" != t; then \
 		    echo "export cpp='$(CPPFLAGS)'"; \
 		    echo 'export cxx="$$cpp $(CXXFLAGS)"'; \
 		    echo 'export c="$$cpp $(CFLAGS)"'; \
 		fi
-check:		$(programs) torture
+check:		$(programs) torture@exe@
 		@echo 
 		@echo '*** Warning - this will take a few minutes and ~100MB'
 		@echo '*** disk space, and will bash the disc quite a bit...'
@@ -109,6 +126,7 @@ clean mostlyclean:
 		done
 		rm -f gtk/interface.hh.tmp gtk/gui.cc.tmp gtk/gui.hh.tmp
 		rm -f $(programs) $(debug-programs) $(test-programs)
+		rm -rf apidoc mktemplate-testdir
 distclean:	clean
 		for d in . $(SUBDIRS); do \
 		    rm -f $$d/TAGS $$d/*~ $$d/\#*\# $$d/*.bak; \
@@ -117,7 +135,7 @@ distclean:	clean
 		rm -rf html
 		if test ! -h ironmaiden; then rm -rf ironmaiden; fi
 doc:
-		find . -type f | egrep '\.(cc|hh|ih|fh|h)$$' | xargs $(DOC)
+		$(DOC)
 maintainer-clean: distclean
 		rm -f gtk/interface.cc gtk/interface.hh
 		rm -f Makedeps
@@ -143,33 +161,44 @@ dep depend:	gtk/interface.cc
 		    cd .. && sh config.status; \
 		fi
 strip:
-		for p in $(programs); do \
-		    if test -f "$$p"; then \
-		        strip -R .comment -R .note "$$p"; \
-		    fi; \
-		done
+		for p in $(programs); do if test -f "$$p"; then \
+		    strip -R .comment -R .note "$$p"; fi; done
 
 TEST-DEFAULTOBJS = util/log.o util/string-utf.o util/debug.o
-TEST-LDFLAGS =	$(LDFLAGS) $(GTKLIBS) # $(LIBWWWLIBS)
+TEST-LDFLAGS =	@LDFLAGS@ $(GLIBLIBS)
 EXE =@exe@
 # Compile only
 test-c:		$(test-programs)
 # Compile and run
-test:		$(test-programs)
+test:		$(test-programs) jigdo-file@exe@ util/random@exe@
 		@echo "Running unit tests..."; \
 		for p in $(test-programs); do \
 		    if "$$p"; then continue; fi; \
 		    echo "$$p failed, for details enter: $$p all"; exit 1; \
 		done; \
-		set $(test-programs); echo "All $$# tests succeeded"
+		testscripts="`cd $(srcdir) && echo *-test*.sh`"; \
+		export srcdir="$(srcdir)"; \
+		for p in $$testscripts; do \
+		    if sh "$(srcdir)/$$p"; then continue; fi; \
+		    echo "$$p failed"; exit 1; \
+		done; \
+		set $(test-programs) $$testscripts; \
+		    echo "All $$# tests succeeded"
 # Compile and run, re-run in verbose mode after error
-test-v:		$(test-programs)
+test-v:		$(test-programs) jigdo-file@exe@ util/random@exe@
 		@echo "Running unit tests..."; \
 		for p in $(test-programs); do \
 		    if "$$p"; then echo "OK: $$p"; continue; fi; \
 		    echo "$$p failed"; "$$p" all; exit 1; \
 		done; \
-		set $(test-programs); echo "All $$# tests succeeded"
+		testscripts="`cd $(srcdir) && echo *-test*.sh`"; \
+		export srcdir="$(srcdir)"; \
+		for p in $$testscripts; do \
+		    if sh "$(srcdir)/$$p"; then echo "OK: $$p"; continue; fi; \
+		    echo "$$p failed"; sh "$(srcdir)/$$p" all; exit 1; \
+		done; \
+		set $(test-programs) $$testscripts; \
+		    echo "All $$# tests succeeded"
 
 config.h:	$(srcdir)/../jigdo.spec
 		rm -f config.h
@@ -188,11 +217,18 @@ jigdo.res:	jigdo.rc jigdo32.ico
 
 jigdo@exe@:	$(objects-jigdo)
 		$(LD) -o $@ $(objects-jigdo) $(LDFLAGS) $(GTKLIBS) \
-		    $(LIBWWWLIBS) @IF_WINDOWS@@IF_NODEBUG@ -mwindows
+		    $(CURLLIBS) @IF_WINDOWS@ -lws2_32 @IFNOT_DEBUG@ -mwindows
+glibcurl/glibcurl-example@exe@:	glibcurl/glibcurl-example.o \
+		    glibcurl/glibcurl.o
+		$(LD_C) -o $@ glibcurl/glibcurl-example.o \
+		    glibcurl/glibcurl.o $(LDFLAGS) $(GTKLIBS) $(CURLLIBS) \
+		    @IF_WINDOWS@ -lws2_32
 jigdo-file@exe@: $(objects-jigdo-file)
 		$(LD) -o $@ $(objects-jigdo-file) $(LDFLAGS)
 torture@exe@:	$(objects-torture)
 		$(LD) -o $@ $(objects-torture) $(LDFLAGS)
+util/random@exe@: $(objects-random)
+		$(LD) -o $@ $(objects-random) $(LDFLAGS)
 mimestreamtest@exe@: mimestreamtest.o util/debug.o
 		$(LD) -o $@ mimestreamtest.o util/log.o util/string-utf.o \
 		    util/debug.o $(LDFLAGS) $(GTKLIBS)
@@ -216,5 +252,7 @@ gtk/interface.cc gtk/interface.hh: $(srcdir)/../jigdo.glade \
 		cd $(srcdir) && rm -f gtk/gui.cc.tmp gtk/gui.hh.tmp \
 		    gtk/interface.cc.tmp gtk/interface.hh.tmp
 #______________________________________________________________________
+
+LDFLAGS_WINSOCK = @IF_WINDOWS@ -lws2_32
 
 @SRC_MAKEDEPS@

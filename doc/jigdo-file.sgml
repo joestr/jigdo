@@ -7,9 +7,9 @@
       <firstname>Richard</firstname><surname>Atterer</surname>
     </author>
     <copyright>
-      <year>2001-2003</year><holder>Richard Atterer</holder>
+      <year>2001-2005</year><holder>Richard Atterer</holder>
     </copyright>
-    <date>Sep 13, 2003</date>
+    <date>Jul 2, 2005</date>
   </refentryinfo>
   <refmeta>
     <refentrytitle>jigdo-file</refentrytitle>
@@ -490,10 +490,20 @@
             file, from <option>-0</option> (no compression) to
             <option>-9</option> (maximum compression). The default is
             <option>-9</option>, which can make the template
-            generation quite slow. The compression algorithm used is
-            the same as for <citerefentry>
+            generation quite slow. By default, the compression
+            algorithm used is the same as for <citerefentry>
             <refentrytitle>gzip</refentrytitle><manvolnum>1</manvolnum>
             </citerefentry>.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><option>--gzip</option> and <option>--bzip2</option></term>
+          <listitem>
+            <para>Choose between the gzip and bzip2 compression
+            algorithms. The default is gzip. Bzip2 usually gives
+            a better compression ratio, but compression is
+            significantly slower than with gzip.</para>
           </listitem>
         </varlistentry>
 
@@ -687,6 +697,40 @@
             with an earlier use of this option.</para>
           </listitem>
         </varlistentry>
+
+        <varlistentry>
+          <term><option>--greedy-matching</option></term>
+          <listitem>
+            <para><emphasis>This is the default.</emphasis> Imagine
+            that your image contains a <filename>.tar</filename> file
+            which in turn contains another file
+            <filename>x</filename>, and that you provide both the
+            <filename>.tar</filename> and the files inside it on the
+            command line. When <command>jigdo-file</command> scans the
+            image, it encounters the beginning of the
+            <filename>.tar</filename> file, and then the file
+            <filename>x</filename>.</para>
+
+	    <para>At this point, a decision must be made: Should the
+	    smaller file <filename>x</filename> be recorded as
+	    matched, or should it be ignored in favour of the larger
+	    (and thus better) match of the <filename>.tar</filename>
+	    file?  Unfortunately, at this point it is not clear
+	    whether there will actually be a full match of the
+	    <filename>.tar</filename>, so by default, the program
+	    prefers the small match.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><option>--no-greedy-matching</option></term>
+          <listitem>
+            <para>In the case where a large partial match is present
+            and a shorter match has been confirmed, ignore the small
+            match. (See the option above.)</para>
+          </listitem>
+        </varlistentry>
+
       </variablelist>
 
     </refsect2>
@@ -850,6 +894,29 @@
       <option>--cache</option> option must be present for this
       command.</para>
 
+      <variablelist>
+        <varlistentry>
+          <term><option>--no-scan-whole-file</option></term>
+          <listitem>
+
+            <para><emphasis>This is the default.</emphasis> This only
+            causes the first <option>--md5-block-size</option> bytes
+            of each file to be read. If the cache is used later by
+            <command>jigdo-file make-image</command>, the rest of the
+            file will be read once these first bytes are recognized in
+            the input image.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><option>--scan-whole-file</option></term>
+          <listitem>
+            <para>Immediately read the entire file contents and store
+            them in the cache.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+
     </refsect2>
     <!-- ========================================= -->
     <refsect2 id="md5sum">
@@ -987,18 +1054,23 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
 
     <para>`<filename>.jigdo</filename>' files can optionally be
     compressed with <citerefentry>
-	<refentrytitle>gzip</refentrytitle><manvolnum>1</manvolnum>
+    <refentrytitle>gzip</refentrytitle><manvolnum>1</manvolnum>
     </citerefentry>. <command>jigdo-file</command> always outputs
-    uncompressed files, which you can compress yourself. 
+    uncompressed files, which you can compress yourself.
     <command>jigdo-lite</command> supports single uncompressed and
-    compressed files. <command>jigdo</command> additionally supports
+    compressed files.</para>
+
+    <para>(Behaviour which may change in the future and which should
+    not be relied upon: <command>jigdo</command> additionally supports
     any number of concatenated plaintext and gzipped parts in the
     files - for example, you can compress a
     `<filename>.jigdo</filename>' file and then add a couple of lines
-    of uncompressed data to the end. In all cases, the
-    `<filename>.gz</filename>' extension should be removed from the
-    filename - the tools will determine automatically from the file
-    contents whether a file is compressed or not.</para>
+    of uncompressed data to the end.)</para>
+
+    <para>In all cases, the `<filename>.gz</filename>' extension
+    should be removed from the filename - the tools will determine
+    automatically from the file contents whether a file is compressed
+    or not.</para>
 
     <para>Below is a description of the individual section names used
     by jigdo.</para>
@@ -1174,7 +1246,10 @@ Any text, except that lines must not begin with `['.</screen>
       <para>Lines of this form cause the content of the specified
       jigdo file to be downloaded and parsed just like the main jigdo
       file. The effect will be the same as copying the included file's
-      contents into the file which contains the include directive.</para>
+      contents into the file which contains the include
+      directive. (Exception: Any relative URLs are always resolved
+      using the URL of the `<filename>.jigdo</filename>' file that
+      contains that relative URL.)</para>
 
       <para>The URL argument can be an absolute or relative URL. 
       Relative URLs are assumed to be relative to the URL of the jigdo

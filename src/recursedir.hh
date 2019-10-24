@@ -1,4 +1,4 @@
-/* $Id: recursedir.hh,v 1.1.1.1 2003/07/04 22:29:24 atterer Exp $ -*- C++ -*-
+/* $Id: recursedir.hh,v 1.6 2005/07/04 10:25:10 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Create recursive directory listing, avoiding symlink loops
 
@@ -26,12 +28,13 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 
 #include <debug.hh>
 #include <recursedir.fh>
 //______________________________________________________________________
 
+/** Errors which occur during RecurseDir's work */
 struct RecurseError : Error {
   explicit RecurseError(const string& m) : Error(m) { }
   explicit RecurseError(const char* m) : Error(m) { }
@@ -50,14 +53,15 @@ public:
                  fileList(), listStream(0) { }
   inline ~RecurseDir();
 
-  /// Provide single file/directory name to output or recurse into
+  /** Provide single file/directory name to output or recurse into */
   void addFile(const char* name) { objects.push(string(name)); }
+  /** Provide single file/directory name to output or recurse into */
   void addFile(const string& name) { objects.push(name); }
-  /// To read filenames from stdin, pass an empty string
+  /** To read filenames from stdin, pass an empty string */
   void addFilesFrom(const char* name) { objectsFrom.push(string(name)); }
   void addFilesFrom(const string& name) { objectsFrom.push(name); }
 
-  /// Are there no filename sources present at all?
+  /** Are there no filename sources present at all? */
   bool empty() const { return objects.empty() && objectsFrom.empty(); }
 
   /** Returns FAILURE if no more names. After a RecurseError has been
@@ -66,8 +70,12 @@ public:
       @param fileInfo getName() must call stat() for any filename it
       returns, in order to determine whether it is a directory. If the
       information returned by stat() is useful for you, supply your
-      own struct stat for getName() to use. */
-  bool getName(string& result, struct stat* fileInfo = 0)
+      own struct stat for getName() to use.
+      @param checkFiles if true, normal operation, check whether files exist
+      before using cache entries. If false, only check whether cache entry
+      present and return it if so. */
+  bool getName(string& result, struct stat* fileInfo = 0,
+               bool checkFiles = true)
       throw(RecurseError, bad_alloc);
 
   /** Flush list of "already visited device/inode pairs", which would

@@ -1,4 +1,4 @@
-/* $Id: recursedir.cc,v 1.7 2003/08/15 11:38:30 atterer Exp $ -*- C++ -*-
+/* $Id: recursedir.cc,v 1.9 2005/07/02 22:05:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -35,7 +35,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 
 #include <string.hh>
 //______________________________________________________________________
@@ -134,7 +134,8 @@ namespace {
 } // local namespace
 //________________________________________
 
-bool RecurseDir::getName(string& result, struct stat* fileInfo)
+bool RecurseDir::getName(string& result, struct stat* fileInfo,
+                         bool checkFiles) 
     throw(RecurseError, bad_alloc) {
   static struct stat fInfo;
   if (fileInfo == 0) fileInfo = &fInfo;
@@ -221,6 +222,18 @@ bool RecurseDir::getName(string& result, struct stat* fileInfo)
         && !(len == 1))
       result.erase(len - 1);
 #   endif
+
+    /* FIXME: "make-template --no-check-files" should 1) scan any files given
+       on the cmd line, 2) later, while scanning through the image, only
+       operate on the cache contents; if a matching md5sum block is found, it
+       could be from an old cache entry (which is not verified if
+       checkFiles==true) or a new entry that was set up/updated during step
+       1). Advantage: Unlike the way it is now, *all* files in the cache will
+       then be used during the image scan, not just those from the cmd
+       line. */
+#   warning TODO hackish
+    // This also ignores directories given on the "make-template" command line:
+    if (!checkFiles) return SUCCESS;
 
     /* 'result' now holds the name of a file (=> we output it) or a
        directory (=> we recurse into it). There is no distinction

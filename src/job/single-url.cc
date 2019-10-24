@@ -1,4 +1,4 @@
-/* $Id: single-url.cc,v 1.12 2003/09/16 23:32:10 atterer Exp $ -*- C++ -*-
+/* $Id: single-url.cc,v 1.17 2005/04/09 22:31:29 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2002-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -31,11 +31,11 @@ using namespace Job;
 
 DEBUG_UNIT("single-url")
 
-SingleUrl::SingleUrl(DataSource::IO* ioPtr, const string& uri)
-  : DataSource(ioPtr), download(uri, this), progressVal(),
+SingleUrl::SingleUrl(/*IOPtr DataSource::IO* ioPtr, */const string& uri)
+  : DataSource(/*ioPtr*/), download(uri, this), progressVal(),
     destStreamVal(0), destOff(0), destEndOff(0), resumeLeft(0),
     haveResumeOffset(false), haveDestination(false),
-    havePragmaNoCache(false), tries(0) {
+    /*havePragmaNoCache(false),*/ tries(0) {
   debug("SingleUrl %1", this);
 }
 //________________________________________
@@ -71,12 +71,13 @@ void SingleUrl::setDestination(BfstreamCounted* destStream,
 }
 
 void SingleUrl::run() {
+  debug("SingleUrl %1 run()", this);
   if (!haveResumeOffset) setResumeOffset(0);
   haveResumeOffset = false;
   if (!haveDestination) setDestination(0, 0, 0);
   haveDestination = false;
-  if (!havePragmaNoCache) setPragmaNoCache(false);
-  havePragmaNoCache = false;
+//   if (!havePragmaNoCache) setPragmaNoCache(false);
+//   havePragmaNoCache = false;
 
   if (destEndOff > destOff)
     progressVal.setDataSize(destEndOff - destOff);
@@ -96,7 +97,7 @@ void SingleUrl::resumeFailed() {
   debug("resumeFailed");
   setNoResumePossible();
   string error(_("Resume failed"));
-  if (io) io->job_failed(&error);
+  IOSOURCE_SEND(DataSource::IO, io, job_failed, (error));
   download.stop();
   progressVal.setAutoTick(false);
   return;
@@ -111,7 +112,7 @@ void SingleUrl::download_dataSize(uint64 n) {
     if (n > 0 && n != progressVal.dataSize()) resumeFailed();
   }
   if (!resuming()) {
-    if (io) io->dataSource_dataSize(n);
+    IOSOURCE_SEND(DataSource::IO, io, dataSource_dataSize, (n));
     return;
   }
 }
@@ -120,8 +121,8 @@ void SingleUrl::download_dataSize(uint64 n) {
 bool SingleUrl::writeToDestStream(uint64 off, const byte* data,
                                   unsigned size) {
   if (destStream() == 0 /*|| stopLaterId != 0*/) return SUCCESS;
-  debug("writeToDestStream %1 %2 bytes at offset %3",
-        destStream(), size, off);
+  //debug("writeToDestStream %1 %2 bytes at offset %3",
+  //      destStream(), size, off);
 
   // Never go beyond destEndOff
   unsigned realSize = size;
@@ -132,10 +133,8 @@ bool SingleUrl::writeToDestStream(uint64 off, const byte* data,
   destStream()->seekp(off, ios::beg);
   writeBytes(*destStream(), data, realSize);
   if (!*destStream()) {
-    if (io) {
-      string error = subst("%L1", strerror(errno));
-      io->job_failed(&error);
-    }
+    string error = subst("%L1", strerror(errno));
+    IOSOURCE_SEND(DataSource::IO, io, job_failed, (error));
     download.stop();
     //stopLater();
     progressVal.setAutoTick(false);
@@ -143,10 +142,8 @@ bool SingleUrl::writeToDestStream(uint64 off, const byte* data,
   }
   if (realSize < size) {
     // Server sent more than we expected; error
-    if (io) {
-      string error = _("Server sent more data than expected");
-      io->job_failed(&error);
-    }
+    string error = _("Server sent more data than expected");
+    IOSOURCE_SEND(DataSource::IO, io, job_failed, (error));
     download.stop();
     //stopLater();
     progressVal.setAutoTick(false);
@@ -162,15 +159,16 @@ void SingleUrl::download_data(const byte* data, unsigned size,
   Paranoid(resuming() || progressVal.currentSize() == currentSize - size);
   //g_usleep(10000);
   string s;
-  unsigned limit = (size < 65 ? size : 65);
+  unsigned limit = (size < 60 ? size : 60);
   for (unsigned i = 0; i < limit; ++i)
     if (data[i] >= 32 && data[i] < 127) s += data[i]; else s += '.';
   debug("%5 Got %1 currentSize=%2, realoffset=%3: %4",
         size, progressVal.currentSize(), currentSize - size, s, this);
 # endif
 
+  // && !download.pausedSoon())
   if (!progressVal.autoTick() // <-- extra check for efficiency only
-      && !download.pausedSoon())
+      && !download.paused())
     progressVal.setAutoTick(true);
 
   if (!resuming()) {
@@ -178,7 +176,8 @@ void SingleUrl::download_data(const byte* data, unsigned size,
     progressVal.setCurrentSize(currentSize);
     if (writeToDestStream(destOff + currentSize - size, data, size)
         == FAILURE) return;
-    if (io) io->dataSource_data(data, size, currentSize);
+    IOSOURCE_SEND(DataSource::IO, io,
+                  dataSource_data, (data, size, currentSize));
     return;
   }
   //____________________
@@ -220,7 +219,7 @@ void SingleUrl::download_data(const byte* data, unsigned size,
   }
 
   string info = subst(_("Resuming... %1kB"), resumeLeft / 1024);
-  if (io) io->job_message(&info);
+  IOSOURCE_SEND(DataSource::IO, io, job_message, (info));
 
   if (resumeLeft > 0) return;
 
@@ -232,30 +231,32 @@ void SingleUrl::download_data(const byte* data, unsigned size,
     progressVal.setCurrentSize(currentSize);
     if (writeToDestStream(destOff + currentSize - size, data, size)
         == FAILURE) return;
-    if (io) io->dataSource_data(data, size, currentSize);
+    IOSOURCE_SEND(DataSource::IO, io,
+                  dataSource_data, (data, size, currentSize));
   }
 }
 //______________________________________________________________________
 
 void SingleUrl::download_succeeded() {
   progressVal.setAutoTick(false);
-  if (io) io->job_succeeded();
+  IOSOURCE_SEND(DataSource::IO, io, job_succeeded, ());
 }
 //______________________________________________________________________
 
 void SingleUrl::download_failed(string* message) {
   progressVal.setAutoTick(false);
-  if (io) io->job_failed(message);
+  IOSOURCE_SEND(DataSource::IO, io, job_failed, (*message));
 }
 //______________________________________________________________________
 
 void SingleUrl::download_message(string* message) {
-  if (io) io->job_message(message);
+  IOSOURCE_SEND(DataSource::IO, io, job_message, (*message));
 }
 //______________________________________________________________________
 
 bool SingleUrl::paused() const {
-  return download.pausedSoon();
+  //return download.pausedSoon();
+  return download.paused();
 }
 
 void SingleUrl::pause() {

@@ -1,4 +1,4 @@
-/* $Id: proxyguess-test.cc,v 1.3 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
+/* $Id: proxyguess-test.cc,v 1.5 2004/09/11 23:26:30 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -18,10 +18,12 @@
 #include <algorithm>
 #include <map>
 #include <sstream>
+#include <glib.h>
 
 #include <debug.hh>
-#include <glibwww.hh>
 #include <log.hh>
+
+#include <glibcurl.h>
 //______________________________________________________________________
 
 #if WINDOWS
@@ -79,13 +81,13 @@ namespace {
 
 }
 
-void glibwww_add_proxy(const gchar *protocol, const gchar *proxy) {
+void glibcurl_add_proxy(const gchar *protocol, const gchar *proxy) {
   if (!proxySettings.empty()) proxySettings += ',';
   proxySettings += protocol;
   proxySettings += '=';
   proxySettings += proxy;
 }
-void glibwww_add_noproxy(const gchar *host) {
+void glibcurl_add_noproxy(const gchar *host) {
   if (!proxySettings.empty()) proxySettings += ',';
   proxySettings += "noproxy=";
   proxySettings += host;

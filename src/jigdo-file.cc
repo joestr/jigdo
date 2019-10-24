@@ -1,4 +1,4 @@
-/* $Id: jigdo-file.cc,v 1.8 2004/04/16 14:20:29 atterer Exp $ -*- C++ -*-
+/* $Id: jigdo-file.cc,v 1.19 2005/07/05 12:47:17 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -23,7 +23,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 #include <zlib.h>
 
 #include <compat.hh>
@@ -52,8 +52,12 @@ size_t JigdoFileCmd::blockLength    =   1*1024U;
 size_t JigdoFileCmd::md5BlockLength = 128*1024U - 55;
 size_t JigdoFileCmd::readAmount     = 128*1024U;
 int JigdoFileCmd::optZipQuality = Z_BEST_COMPRESSION;
+bool JigdoFileCmd::optBzip2 = false;
 bool JigdoFileCmd::optForce = false;
 bool JigdoFileCmd::optMkImageCheck = true;
+bool JigdoFileCmd::optCheckFiles = true;
+bool JigdoFileCmd::optScanWholeFile = false;
+bool JigdoFileCmd::optGreedyMatching = true;
 bool JigdoFileCmd::optAddImage = true;
 bool JigdoFileCmd::optAddServers = true;
 bool JigdoFileCmd::optHex = false;
@@ -229,7 +233,7 @@ void MyProgressReporter::print(string s, bool addNewline) {
     prevLine = "";
   } else {
     // Yes, overwrite with next message
-    cerr << '\r';
+    cerr << '\r' << flush;
     prevLine = s;
   }
 }
@@ -238,14 +242,14 @@ void MyProgressReporter::print(string s, bool addNewline) {
 /* If stdout is redirected to a file, the file should just contain the
    progress reports, none of the padding space chars. */
 void MyProgressReporter::coutInfo(const string& message) {
-  cout << message;
+  cout << message << flush; // Need to flush because we mix cout and cerr
   if (message.size() < prevLine.size()) {
     size_t nrSpaces = prevLine.size() - message.size();
     while (nrSpaces >= 10) { cerr << "          "; nrSpaces -= 10; }
     if (nrSpaces > 0) cerr << ("         " + 9 - nrSpaces);
   }
   cout << endl;
-  cerr << '\r';
+  cerr << '\r' << flush;
   /* Ensure good-looking progress reports even if cout goes to a file
      and cerr to the terminal. */
   if (message.size() > prevLine.size())
@@ -280,13 +284,13 @@ MyQuietProgressReporter reporterQuiet;
 inline void printUsage(bool detailed, size_t blockLength,
                        size_t md5BlockLength, size_t readAmount) {
   if (detailed) {
-    cout << _(
+    cout << subst(_(
     "\n"
-    "Copyright (C) 2001-2003 Richard Atterer <http://atterer.net>\n"
+    "Copyright (C) 2001-%1 Richard Atterer <http://atterer.net>\n"
     "This program is free software; you can redistribute it and/or modify\n"
     "it under the terms of the GNU General Public License, version 2. See\n"
     "the file COPYING or <http://www.gnu.org/copyleft/gpl.html> for details.\n"
-    "\n");
+    "\n"), CURRENT_YEAR);
   }
   cout << subst(_(
     "\n"
@@ -332,6 +336,7 @@ inline void printUsage(bool detailed, size_t blockLength,
     "                   URI instead of default `file:' URI\n"
     "                   [print-missing] Override mapping in input jigdo\n"
     "  -0 to -9         Set amount of compression in output template\n"
+    "      --bzip2      Use bzip2 compression instead of default --gzip\n"
     "      --cache=FILE Store/reload information about any files scanned\n"),
     (WINDOWS ? "C:" : ""), DIRSEPS, SPLITSEP, EXTSEPS);
   if (detailed) {
@@ -362,9 +367,20 @@ inline void printUsage(bool detailed, size_t blockLength,
     "  --readbuffer=BYTES [default %3k]\n"
     "                   Amount of data to read at a time\n"
     "  --check-files [default]\n"
+    "                   [make-template,md5sum] Check if files exist and\n"
+    "                   get or verify checksums, date and size\n"
     "                   [make-image] Verify checksum of files written to\n"
     "                   image\n"
-    "  --no-check-files [make-image] Do not verify checksums\n"
+    "  --no-check-files [make-template,md5sum] when used with --cache,\n"
+    "                   [make-image] Do not verify checksums of files\n"
+    "  --scan-whole-file [scan] Scan whole file instead of only first block\n"
+    "  --no-scan-whole-file [scan] Scan only first block [default]\n"
+    "  --greedy-matching [make-template] Prefer immediate matches of small\n"
+    "                   files now over possible (but uncertain) matches of \n"
+    "                   larger files later [default]\n"
+    "  --no-greedy-matching\n"
+    "                   [make-template] Skip a smaller match and prefer a\n"
+    "                   pending larger one, with the risk of missing both\n"
     "  --image-section [default]\n"
     "  --no-image-section\n"
     "  --servers-section [default]\n"
@@ -381,8 +397,9 @@ inline void printUsage(bool detailed, size_t blockLength,
     "                   LABEL, LABELPATH, MATCHPATH, LEAF, MD5SUM, FILE\n"
     "                   e.g. 'mkdir -p \"${LABEL:-.}/$MATCHPATH\" && ln -f \"$FILE\" \"${LABEL:-.}/$MATCHPATH$LEAF\"'\n"
     "  --no-hex [default]\n"
-    "  --hex            [md5sum, list-template] Output checksums in \n"
-    "                   hexadecimal, not Base64\n"),
+    "  --hex            [md5sum, list-template] Output checksums in\n"
+    "                   hexadecimal, not Base64\n"
+    "  --gzip           [default] Use gzip compression, not --bzip2\n"),
     blockLength, md5BlockLength, readAmount / 1024) << endl;
   }
   return;
@@ -446,7 +463,7 @@ void deduceName2(string& dest, const char* ext, const string& src) {
   Paranoid(dest.empty());
   string::size_type lastDot = src.rfind(EXTSEP);
   if (lastDot != string::npos) {
-    if (src.rfind(DIRSEP, lastDot + 1) != string::npos)
+    if (src.find(DIRSEP, lastDot + 1) != string::npos)
       lastDot = string::npos;
   }
   dest.assign(src, 0U, lastDot);
@@ -466,7 +483,8 @@ enum {
   LONGOPT_LABEL, LONGOPT_URI, LONGOPT_ADDSERVERS, LONGOPT_NOADDSERVERS,
   LONGOPT_ADDIMAGE, LONGOPT_NOADDIMAGE, LONGOPT_NOCACHE, LONGOPT_CACHEEXPIRY,
   LONGOPT_MERGE, LONGOPT_HEX, LONGOPT_NOHEX, LONGOPT_DEBUG, LONGOPT_NODEBUG,
-  LONGOPT_MATCHEXEC
+  LONGOPT_MATCHEXEC, LONGOPT_BZIP2, LONGOPT_GZIP, LONGOPT_SCANWHOLEFILE,
+  LONGOPT_NOSCANWHOLEFILE, LONGOPT_GREEDYMATCHING, LONGOPT_NOGREEDYMATCHING
 };
 
 // Deal with command line switches
@@ -479,12 +497,15 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
 
   while (true) {
     static const struct option longopts[] = {
+      { "bzip2",              no_argument,       0, LONGOPT_BZIP2 },
       { "cache",              required_argument, 0, 'c' },
       { "cache-expiry",       required_argument, 0, LONGOPT_CACHEEXPIRY },
       { "check-files",        no_argument,       0, LONGOPT_MKIMAGECHECK },
       { "debug",              optional_argument, 0, LONGOPT_DEBUG },
       { "files-from",         required_argument, 0, 'T' }, // "-T" like tar's
       { "force",              no_argument,       0, 'f' },
+      { "greedy-matching",    no_argument,       0, LONGOPT_GREEDYMATCHING },
+      { "gzip",               no_argument,       0, LONGOPT_GZIP },
       { "help",               no_argument,       0, 'h' },
       { "help-all",           no_argument,       0, 'H' },
       { "hex",                no_argument,       0, LONGOPT_HEX },
@@ -492,19 +513,22 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
       { "image-section",      no_argument,       0, LONGOPT_ADDIMAGE },
       { "jigdo",              required_argument, 0, 'j' },
       { "label",              required_argument, 0, LONGOPT_LABEL },
-      { "md5-block-size",     required_argument, 0, LONGOPT_MD5SIZE },
       { "match-exec",         required_argument, 0, LONGOPT_MATCHEXEC },
+      { "md5-block-size",     required_argument, 0, LONGOPT_MD5SIZE },
       { "merge",              required_argument, 0, LONGOPT_MERGE },
       { "min-length",         required_argument, 0, LONGOPT_MINSIZE },
       { "no-cache",           no_argument,       0, LONGOPT_NOCACHE },
       { "no-check-files",     no_argument,       0, LONGOPT_NOMKIMAGECHECK },
       { "no-debug",           no_argument,       0, LONGOPT_NODEBUG },
       { "no-force",           no_argument,       0, LONGOPT_NOFORCE },
+      { "no-greedy-matching", no_argument,       0, LONGOPT_NOGREEDYMATCHING },
       { "no-hex",             no_argument,       0, LONGOPT_NOHEX },
       { "no-image-section",   no_argument,       0, LONGOPT_NOADDIMAGE },
+      { "no-scan-whole-file", no_argument,       0, LONGOPT_NOSCANWHOLEFILE },
       { "no-servers-section", no_argument,       0, LONGOPT_NOADDSERVERS },
       { "readbuffer",         required_argument, 0, LONGOPT_BUFSIZE },
       { "report",             required_argument, 0, 'r' },
+      { "scan-whole-file",    no_argument,       0, LONGOPT_SCANWHOLEFILE },
       { "servers-section",    no_argument,       0, LONGOPT_ADDSERVERS },
       { "template",           required_argument, 0, 't' },
       { "uri",                required_argument, 0, LONGOPT_URI },
@@ -520,6 +544,8 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
       optZipQuality = c - '0'; break;
+    case LONGOPT_BZIP2: optBzip2 = true; break;
+    case LONGOPT_GZIP:  optBzip2 = false; break;
     case 'h': case 'H': optHelp = c; break;
     case 'v': optVersion = true; break;
     case 'T': fileNames.addFilesFrom(
@@ -552,8 +578,14 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
         error = true;
       }
       break;
-    case LONGOPT_MKIMAGECHECK: optMkImageCheck = true; break;
-    case LONGOPT_NOMKIMAGECHECK: optMkImageCheck = false; break;
+    case LONGOPT_MKIMAGECHECK: optMkImageCheck = true;
+                               optCheckFiles = true; break;
+    case LONGOPT_NOMKIMAGECHECK: optMkImageCheck = false;
+                                 optCheckFiles = false; break;
+    case LONGOPT_GREEDYMATCHING: optGreedyMatching = true; break;
+    case LONGOPT_NOGREEDYMATCHING: optGreedyMatching = false; break;
+    case LONGOPT_SCANWHOLEFILE: optScanWholeFile = true; break;
+    case LONGOPT_NOSCANWHOLEFILE: optScanWholeFile = false; break;
     case LONGOPT_ADDSERVERS: optAddServers = true; break;
     case LONGOPT_NOADDSERVERS: optAddServers = false; break;
     case LONGOPT_ADDIMAGE: optAddImage = true; break;

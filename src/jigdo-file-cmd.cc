@@ -1,4 +1,4 @@
-/* $Id: jigdo-file-cmd.cc,v 1.10 2004/06/18 23:22:47 atterer Exp $ -*- C++ -*-
+/* $Id: jigdo-file-cmd.cc,v 1.16 2005/07/10 11:12:18 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -17,7 +17,7 @@
 #include <memory>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 #include <errno.h>
 
 #include <compat.hh>
@@ -39,8 +39,9 @@ bistream* openForInput(bistream*& dest, const string& name) throw(Cleanup) {
     dest = &bcin;
     return 0;
   }
-  dest = new bifstream(name.c_str(), ios::binary);
-  if (!*dest) {
+  bifstream* fdest = new bifstream(name.c_str(), ios::binary);
+  dest = fdest;
+  if (!*dest /*|| !fdest->is_open()*/) {
     cerr << subst(_("%1: Could not open `%2' for input: %3"),
                   binName(), name, strerror(errno)) << endl;
     throw Cleanup(3);
@@ -60,8 +61,9 @@ istream* openForInput(istream*& dest, const string& name) throw(Cleanup) {
     dest = reinterpret_cast<istream*>(&cin);
     return 0;
   }
-  dest = new ifstream(name.c_str(), ios::binary);
-  if (!*dest) {
+  ifstream* fdest = new ifstream(name.c_str(), ios::binary);
+  dest = fdest;
+  if (!*dest || !fdest->is_open()) {
     cerr << subst(_("%1: Could not open `%2' for input: %3"),
                   binName(), name, strerror(errno)) << endl;
     throw Cleanup(3);
@@ -240,6 +242,7 @@ int JigdoFileCmd::makeTemplate() {
 
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
   cache.setParams(blockLength, md5BlockLength);
+  cache.setCheckFiles(optCheckFiles);
   if (addLabels(cache)) return 3;
   while (true) {
     try { cache.readFilenames(fileNames); } // Recurse through directories
@@ -249,8 +252,10 @@ int JigdoFileCmd::makeTemplate() {
   // Create and run MkTemplate operation
   auto_ptr<MkTemplate>
     op(new MkTemplate(&cache, image, &jc, templ, *optReporter,
-                     optZipQuality, readAmount, optAddImage, optAddServers));
+                      optZipQuality, readAmount, optAddImage, optAddServers,
+                      optBzip2));
   op->setMatchExec(optMatchExec);
+  op->setGreedyMatching(optGreedyMatching);
   size_t lastDirSep = imageFile.rfind(DIRSEP);
   if (lastDirSep == string::npos) lastDirSep = 0; else ++lastDirSep;
   string imageFileLeaf(imageFile, lastDirSep);
@@ -565,9 +570,12 @@ int JigdoFileCmd::scanFiles() {
     break;
   }
   JigdoCache::iterator ci = cache.begin(), ce = cache.end();
-  while (ci != ce) {
-    ci->getSums(&cache, 0); // Cause first md5 block to be read
-    ++ci;
+  if (optScanWholeFile) {
+    // Cause entire file to be read
+    while (ci != ce) { ci->getMD5Sum(&cache); ++ci; }
+  } else {
+    // Only cause first md5 block to be read; not scanning the whole file
+    while (ci != ce) { ci->getSums(&cache, 0); ++ci; }
   }
   return 0;
   // Cache data is written out when the JigdoCache is destroyed
@@ -582,6 +590,7 @@ int JigdoFileCmd::scanFiles() {
 int JigdoFileCmd::md5sumFiles() {
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
   cache.setParams(blockLength, md5BlockLength);
+  cache.setCheckFiles(optCheckFiles);
   while (true) {
     try { cache.readFilenames(fileNames); } // Recurse through directories
     catch (RecurseError e) { optReporter->error(e.message); continue; }

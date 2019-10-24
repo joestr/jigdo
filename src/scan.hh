@@ -1,4 +1,4 @@
-/* $Id: scan.hh,v 1.2 2004/06/09 09:43:55 atterer Exp $ -*- C++ -*-
+/* $Id: scan.hh,v 1.5 2005/07/02 22:05:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -7,7 +7,9 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
-  Scanning of input files
+*//** @file
+
+  Scanning of input files, cache of information for each scanned file.
 
 */
 
@@ -28,16 +30,17 @@
 #include <recursedir.fh>
 #include <rsyncsum.hh>
 #include <scan.fh>
+#include <string.hh>
 //______________________________________________________________________
 
 /** First part of the filename of a "part", a directory on the local
     filesystem. It will not appear in the location list - it is just
     prepended to the filename to actually access the file data. */
 class LocationPath {
-  /// Objects are only created by JigdoCache
+  /** Objects are only created by JigdoCache */
   friend class JigdoCache;
 public:
-  // Sort LocationPaths by the directory name
+  /** Sort LocationPaths by the directory name */
   bool operator<(const LocationPath& x) const { return path < x.path; }
   const string& getPath() const { return path; }
   const string& getLabel() const { return label; }
@@ -66,21 +69,23 @@ typedef set<LocationPath> LocationPathSet;
     only when the 2nd MD5 sum or the entire file's sum is requested,
     the file is scanned til EOF. */
 class FilePart {
-  /// Objects are only created by JigdoCache
+  /** Objects are only created by JigdoCache */
   friend class JigdoCache;
 public:
-  // Sort FileParts by RsyncSum of first bytes
+  /** Sort FileParts by RsyncSum of first bytes */
   inline const string& getPath() const;
   LocationPathSet::iterator getLocation() { return path; }
+  /** @return The further dir names and the leafname, after what getPath()
+      returns. */
   inline const string& leafName() const;
   inline uint64 size() const;
   inline time_t mtime() const;
   /** Returns null ptr if error and you don't throw it in your
       JigdoCache error handler */
   inline const MD5* getSums(JigdoCache* c, size_t blockNr);
-  /// Returns null ptr if error and you don't throw it
+  /** Returns null ptr if error and you don't throw it */
   inline const MD5Sum* getMD5Sum(JigdoCache* c);
-  /// Returns null ptr if error and you don't throw it
+  /** Returns null ptr if error and you don't throw it */
   inline const RsyncSum64* getRsyncSum(JigdoCache* c);
 
   /** Mark the FilePart as deleted. Unlike the STL containers'
@@ -190,11 +195,11 @@ class JigdoCache {
   friend class FilePart;
 public:
   class ProgressReporter;
-  /// cacheFileName can be "" for no file cache
+  /** cacheFileName can be "" for no file cache */
   explicit JigdoCache(const string& cacheFileName,
       size_t expiryInSeconds = 60*60*24*30, size_t bufLen = 128*1024,
       ProgressReporter& pr = noReport);
-  /// The dtor will try to write cached data to the cache file
+  /** The dtor will try to write cached data to the cache file */
   ~JigdoCache();
 
   /** Read a list of filenames from the object and store them in the
@@ -223,10 +228,14 @@ public:
       re-opened/re-allocated automatically if/when needed. */
   void deallocBuffer() { buffer.resize(0); }
 
-  /// Return reporter supplied by JigdoCache creator
+  /** Return reporter supplied by JigdoCache creator */
   ProgressReporter* getReporter() { return &reporter; }
 
-  /// Returns number of files in cache
+  /** Set and get whether to check if files exist in the filesystem */
+  inline void setCheckFiles(bool check) { checkFiles = check; }
+  inline bool getCheckFiles() const { return checkFiles; }
+
+  /** Returns number of files in cache */
   inline size_t size() const { return nrOfFiles; }
 
   /** Make a label for a certain directory name known. E.g.
@@ -241,12 +250,12 @@ public:
   const LocationPathSet::iterator addLabel(
     const StringP& path, const StringL& label, const StringU& uri = "");
 
-  /// Access to the members like for a list<>
+  /** Access to the members like for a list<> */
   typedef FilePart value_type;
   typedef FilePart& reference;
   //____________________
 
-  /// Only part of the iterator functionality implemented ATM
+  /** Only part of the iterator functionality implemented ATM */
   class iterator {
     friend class JigdoCache;
     friend class FilePart;
@@ -269,7 +278,7 @@ public:
     list<FilePart>::iterator part;
   };
   friend class JigdoCache::iterator;
-  /// First element of the JigdoCache
+  /** First element of the JigdoCache */
   inline iterator begin();
   /** NB the list auto-extends, so the value of end() may change while
       you iterate over a JigdoCache. */
@@ -283,6 +292,9 @@ private:
   static ProgressReporter noReport;
 
   size_t blockLength, md5BlockLength;
+
+  /* Check if files exist in the filesystem */
+  bool checkFiles;
 
   /* List of files in the cache (not vector<> because jigdo-file keeps
      ptrs, and if a vector realloc()s, all elements' addresses may
@@ -406,8 +418,22 @@ template <class RecurseDir>
 void JigdoCache::readFilenames(RecurseDir& rd) {
   string name;
   while (true) {
-    bool status = rd.getName(name, &fileInfo); // Might throw error
+    bool status = rd.getName(name, &fileInfo, checkFiles); // Might throw error
     if (status == FAILURE) return; // No more names
+#   if HAVE_LIBDB
+    if (!checkFiles) {
+      const byte* data;
+      size_t dataSize;
+      try {
+        if (cacheFile->findName(data, dataSize, name, fileInfo.st_size,
+                                fileInfo.st_mtime).failed())
+          continue;
+      } catch (DbError e) {
+        string err = subst(_("Error accessing cache: %1"), e.message);
+        reporter.error(err);
+      }
+    }
+#   endif
     if (fileInfo.st_size == 0) continue; // Skip zero-length files
     addFile(name);
   }

@@ -1,4 +1,4 @@
-/* $Id: joblist.cc,v 1.11 2004/05/29 22:55:59 atterer Exp $ -*- C++ -*-
+/* $Id: joblist.cc,v 1.15 2005/07/02 17:21:35 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -19,7 +19,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 
 #include <jobline.hh>
 #include <joblist.hh>
@@ -28,8 +28,10 @@
 #include <treeiter.hh>
 //______________________________________________________________________
 
-#if DEBUG
+#ifndef DOXYGEN_SKIP
+#  if DEBUG
 Logger JobList::debug("joblist");
+#  endif
 #endif
 
 JobList GUI::jobList;
@@ -41,12 +43,15 @@ vector<GdkPixbuf*> JobList::progressGfx;
 GValue JobList::progressValue;
 //______________________________________________________________________
 
-JobList::~JobList() {
+void JobList::finalize() {
   /* Don't delete any widgets, GTK should take care of this itself when the
      window is deleted. */
 
   // Delete active callback, if any
-  if (selectRowIdleId != 0) g_source_remove(selectRowIdleId);
+  if (selectRowIdleId != 0) {
+    g_source_remove(selectRowIdleId);
+    selectRowIdleId = 0;
+  }
 
   /* Delete Jobs. When deleted, the job will erase itself from the list, so
      just keep getting the first list element.
@@ -60,7 +65,19 @@ JobList::~JobList() {
       delete get(&row);
     }
   }
-  if (store()) g_object_unref(store());
+  if (store()) {
+    g_object_unref(store());
+    storeVal = 0;
+  }
+
+  for (vector<GdkPixbuf*>::iterator i = progressGfx.begin(),
+         e = progressGfx.end(); i != e; ++i)
+    g_object_unref(*i);
+  progressGfx.clear();
+}
+
+JobList::~JobList() {
+  finalize();
 }
 //______________________________________________________________________
 
@@ -131,17 +148,21 @@ void JobList::pixbufForJobLine_init() {
   memset(&progressValue, 0, sizeof(progressValue));
   g_value_init(&progressValue, G_TYPE_FROM_INSTANCE(progressImage));
 
-  int width = gdk_pixbuf_get_width(progressImage);
-  int height = gdk_pixbuf_get_height(progressImage);
+  unsigned width = gdk_pixbuf_get_width(progressImage);
+  unsigned height = gdk_pixbuf_get_height(progressImage);
   // height must be evenly divisible by PROGRESS_SUBDIV
   Assert(height % PROGRESS_SUBDIV == 0);
-  int subHeight = height / PROGRESS_SUBDIV;
+  unsigned subHeight = height / PROGRESS_SUBDIV;
 
-  for (int y = 0; y < height; y += subHeight) {
+  for (unsigned y = 0; y < height; y += subHeight) {
     GdkPixbuf* sub = gdk_pixbuf_new_subpixbuf(progressImage, 0, y,
                                               width, subHeight);
     progressGfx.push_back(sub);
   }
+  Paranoid(progressGfx.size() == PROGRESS_SUBDIV);
+  /* progressImage shares pixels with the subpixbufs, so will not be deleted
+     immediately: */
+  g_object_unref(progressImage);
 }
 //________________________________________
 

@@ -1,8 +1,9 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01
+Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
 <HTML>
  <HEAD>
   <TITLE>jigdo-lite</TITLE><META NAME="GENERATOR" CONTENT="Modular DocBook
-  HTML Stylesheet Version 1.7"></HEAD>
+  HTML Stylesheet Version 1.79"></HEAD>
  <BODY CLASS="REFENTRY" BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000FF"
   VLINK="#840084" ALINK="#0000FF">
   <H1><A NAME="AEN1"></A>jigdo-lite</H1>
@@ -27,9 +28,27 @@
    <P>`<TT>.jigdo</TT>' files that contain references to Debian mirrors are
     treated specially: When such a file is recognized, you are asked to
     select one mirror out of a list of all Debian mirrors.</P>
-   <P>If <VAR>URL</VAR> is not given on the command line, the script
-    prompts for a location to download the `<TT>.jigdo</TT>' file from.</P
-   ></DIV>
+   <P>If <CODE>URL</CODE> is not given on the command line, the script
+    prompts for a location to download the `<TT>.jigdo</TT>' file from. The
+    following command line options are recognized:</P>
+   <P></P>
+   <DIV>
+    <DL>
+     <DT><CODE>-h</CODE> <CODE>--help</CODE></DT>
+     <DD>
+      <P>Output short summary of command syntax.</P></DD>
+     <DT><CODE>-v</CODE> <CODE>--version</CODE></DT>
+     <DD>
+      <P>Output version number.</P></DD>
+     <DT><CODE>--scan</CODE> <TT><I>FILES</I></TT></DT>
+     <DD>
+      <P>Do not ask for "Files to scan", use this path.</P></DD>
+     <DT><CODE>--noask</CODE></DT>
+     <DD>
+      <P>Do not ask any questions, instead behave as if the user had
+       pressed Return at all prompts. This can be useful when running <B
+       >jigdo-lite</B> from cron jobs or in other non-interactive
+       environments.</P></DD></DL></DIV></DIV>
   <DIV><A NAME="SEEALSO"></A>
    <H2>SEE ALSO</H2>
    <P> <SPAN><SPAN>jigdo-file</SPAN>(1)</SPAN>, <SPAN><SPAN

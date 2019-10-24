@@ -1,4 +1,4 @@
-/* $Id: cached-url.hh,v 1.1 2003/09/03 19:28:13 atterer Exp $ -*- C++ -*-
+/* $Id: cached-url.hh,v 1.3 2004/09/09 23:50:21 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
   COPYING for details.
+
+*//** @file
 
   Spool data from cache file
 
@@ -33,6 +35,7 @@ namespace Job {
   class CachedUrl;
 }
 
+/** Spool data from cache file */
 class Job::CachedUrl : public Job::DataSource {
 public:
   /** Create object, but don't start outputting data yet - use run() to do
@@ -40,7 +43,7 @@ public:
       @param filename File to spool from
       @param prio "Priority" - if >1 CachedUrls are running, the ones with
       lower prio get spooled first. */
-  CachedUrl(DataSource::IO* ioPtr, const string& filename, uint64 prio);
+  CachedUrl(const string& filename, uint64 prio);
   virtual ~CachedUrl();
 
   virtual void run();

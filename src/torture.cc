@@ -1,4 +1,4 @@
-/* $Id: torture.cc,v 1.6 2004/06/16 15:21:49 atterer Exp $ -*- C++ -*-
+/* $Id: torture.cc,v 1.9 2005/07/02 17:21:35 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
+#include <unistd-jigdo.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -213,7 +213,7 @@ namespace {
     explicit File(const char* fileName, size_t s = 0, size_t n = 0);
     File() : data(0) { }
     inline File(const File& f);
-    inline File& File::operator=(const File& f);
+    inline File& operator=(const File& f);
     inline ~File();
     size_t size;
     size_t nr;
@@ -436,10 +436,10 @@ namespace {
 //______________________________________________________________________
 
 int main(int argc, char* argv[]) {
-  if (argc < 2 || argc > 3) {
+  if (argc < 2 || argc > 4) {
     cout << "Syntax: " << argv[0] << " <number>  to create files for "
-      "one test case\n        " << argv[0] << " <number1> <number2>  "
-      "to create test cases [1..2) AND RUN THEM" << endl;
+      "one test case\n        " << argv[0] << " <number1> <number2> "
+      "[debugOptions]  to create test cases [1..2) AND RUN THEM" << endl;
     exit(2);
   }
   if (argc == 2) {
@@ -453,6 +453,7 @@ int main(int argc, char* argv[]) {
 #   endif
     uint32 nr1 = static_cast<uint32>(atol(argv[1]));
     uint32 nr2 = static_cast<uint32>(atol(argv[2]));
+    if (argc == 4) Logger::scanOptions(argv[3], argv[0]);
     ofstream report(TORTURE_DIR "report");
     bool returnStatus = true;
     for (uint32 tc = nr1; tc < nr2; ++tc) {
@@ -478,6 +479,7 @@ int main(int argc, char* argv[]) {
         JigdoConfig jc(TORTURE_DIR "image"EXTSEPS"jigdo",
                        cfDel.release(), reporter);
         bofstream templ(TORTURE_DIR "image"EXTSEPS"template", ios::binary);
+        Assert(templ);
 
         RecurseDir fileNames;
         for (size_t i = 0; i < files.size(); ++i) { // Add files

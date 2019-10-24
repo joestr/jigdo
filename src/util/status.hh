@@ -1,4 +1,4 @@
-/* $Id: status.hh,v 1.2 2004/01/09 10:51:58 atterer Exp $ -*- C++ -*-
+/* $Id: status.hh,v 1.4 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
   COPYING for details.
+
+*//** @file
 
   Return type for functions to show success or failure
 
@@ -37,6 +39,10 @@ private:
 
 static const Status OK = Status(Status::OK);
 static const Status FAILED = Status(Status::FAILED);
+
+inline bool operator==(const Status& a, const Status& b) {
+  return a.code == b.code;
+}
 //______________________________________________________________________
 
 /** Version of Status which can contain more than 2 values. Explicitly making
@@ -65,5 +71,9 @@ public:
      explicitly in if() conditions! */
   int code;
 };
+
+inline bool operator==(const XStatus& a, const XStatus& b) {
+  return a.code == b.code;
+}
 
 #endif

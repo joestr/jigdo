@@ -1,4 +1,4 @@
-/* $Id: joblist.hh,v 1.7 2004/05/29 22:55:59 atterer Exp $ -*- C++ -*-
+/* $Id: joblist.hh,v 1.10 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -6,6 +6,8 @@
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
+
+*//** @file
 
   Interface to the GtkTreeView of running jobs (downloads etc),
   GUI::window.jobs, i.e. the list at the bottom of the jigdo window.
@@ -38,17 +40,20 @@
     ~JobList deletes all JobLine objects in the list. */
 class JobList : NoCopy {
 public:
-  // Assumed number of columns in job display (progress bar, URL)
   enum {
-    COLUMN_STATUS, // Pixmap "% done" + text message ("x kB/sec" etc)
-    COLUMN_OBJECT, // URL
-    COLUMN_DATA, // pointer to JobLine object (not displayed on screen)
+    /** Pixmap "% done" + text message ("x kB/sec" etc) */
+    COLUMN_STATUS,
+    /** URL */
+    COLUMN_OBJECT,
+    /** pointer to JobLine object (not displayed on screen) */
+    COLUMN_DATA,
+    /** Assumed number of columns in job display (progress bar, URL) */
     NR_OF_COLUMNS
   };
   static const int WIDTH_STATUS = 280;
 
-  /* Time values are in milliseconds. All values should be multiples
-     of TICK_INTERVAL */
+  /** Time values are in milliseconds. All values should be multiples
+      of TICK_INTERVAL */
   static const int TICK_INTERVAL = 250; // = progress report update interval
 
   LOCAL_DEBUG_UNIT_DECL;
@@ -57,6 +62,9 @@ public:
   inline JobList();
   /** Any Jobs still in the list are deleted */
   ~JobList();
+  /** Like the dtor; later call to the dtor will not cause anything to
+      happen */
+  void finalize();
 
   /** The GTK data structure that contains the linked list of items for this
       JobList. */
@@ -149,7 +157,7 @@ private:
 
   /* Used by initAfterGtk(): Nr of pixbufs to subdivide the progress XPM
      into, filename to load from. */
-  static const int PROGRESS_SUBDIV = 61;
+  static const unsigned PROGRESS_SUBDIV = 61;
   static const char* const PROGRESS_IMAGE_FILE;
   static GdkPixbuf* progressImage; // Pixel data
   static vector<GdkPixbuf*> progressGfx; // sub-GdkPixbufs of progressImage
@@ -171,7 +179,7 @@ private:
 };
 //______________________________________________________________________
 
-/// Global list of running jobs
+/** Global list of running jobs */
 namespace GUI {
   extern JobList jobList;
 }

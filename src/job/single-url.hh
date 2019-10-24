@@ -1,4 +1,4 @@
-/* $Id: single-url.hh,v 1.11 2003/09/12 23:08:01 atterer Exp $ -*- C++ -*-
+/* $Id: single-url.hh,v 1.15 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2002-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -7,7 +7,9 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
-  Single HTTP or FTP retrievals
+*//** @file
+
+  Single HTTP or FTP retrievals.
   More low-level code which interfaces with libwww is in download.cc
   Higher-level GUI code is in gtk-single-url.cc
 
@@ -64,7 +66,7 @@ public:
 
   /** Create object, but don't start the download yet - use run() to do that.
       @param uri URI to download */
-  SingleUrl(DataSource::IO* ioPtr, const string& uri);
+  SingleUrl(/*IOPtr DataSource::IO* ioPtr, */const string& uri);
   virtual ~SingleUrl();
 
   /** Set offset to resume from - download must not yet have been started,
@@ -97,7 +99,7 @@ public:
       don't add "Pragma: no-cache" header.
       @param pragmaNoCache If true, perform a "reload", discarding anything
       cached e.g. in a proxy. */
-  inline void setPragmaNoCache(bool pragmaNoCache);
+//   inline void setPragmaNoCache(bool pragmaNoCache);
 
   /** Start download or resume it
 
@@ -186,17 +188,17 @@ private:
 
   /* Was setResumeOffset()/setDestination()/setPragmaNoCache() called before
      run()? If false, run() will call it with default values. */
-  bool haveResumeOffset, haveDestination, havePragmaNoCache;
+  bool haveResumeOffset, haveDestination; //, havePragmaNoCache;
 
   int tries; // Nr of tries resuming after interrupted connection
 };
 //======================================================================
 
 
-void Job::SingleUrl::setPragmaNoCache(bool pragmaNoCache) {
-  download.setPragmaNoCache(pragmaNoCache);
-  havePragmaNoCache = true;
-}
+// void Job::SingleUrl::setPragmaNoCache(bool pragmaNoCache) {
+//   download.setPragmaNoCache(pragmaNoCache);
+//   havePragmaNoCache = true;
+// }
 int Job::SingleUrl::currentTry() const { return tries; }
 bool Job::SingleUrl::resuming() const { return resumeLeft > 0; }
 bool Job::SingleUrl::failed() const { return download.failed(); }
@@ -205,6 +207,8 @@ BfstreamCounted* Job::SingleUrl::destStream() const {
   return destStreamVal.get(); }
 
 bool Job::SingleUrl::resumePossible() const {
+//   msg("Job::SingleUrl::resumePossible tries=%1 interr=%2 curSiz=%3",
+//       tries, download.interrupted(), progressVal.currentSize());
   if (tries >= MAX_TRIES || !download.interrupted()) return false;
   if (progressVal.currentSize() == 0
       || progressVal.dataSize() == 0) return true;

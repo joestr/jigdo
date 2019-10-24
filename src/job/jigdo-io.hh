@@ -1,4 +1,4 @@
-/* $Id: jigdo-io.hh,v 1.8 2004/02/04 15:34:40 atterer Exp $ -*- C++ -*-
+/* $Id: jigdo-io.hh,v 1.16 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.net
@@ -7,15 +7,9 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
+*//** @file
+
   IO object for .jigdo downloads; download, gunzip, interpret
-
-  Data (=downloaded bytes, status info) flows as follows:
-
-  class:       Download ->    SingleUrl      -> JigdoIO -> GtkSingleUrl
-  data member:             childDl->source()      this        frontend
-
-  The JigdoIO owns the SingleUrl (and the Download *object* inside it), but
-  it doesn't own the GtkSingleUrl.
 
 */
 
@@ -40,26 +34,18 @@ namespace Job {
   struct JigdoIOTest;
 }
 
+/** IO object for .jigdo downloads; download, gunzip, interpret */
 class Job::JigdoIO : NoCopy, public Job::DataSource::IO, Gunzip::IO {
 public:
-
-  /** The supported major version format number inside .jigdo files. E.g. "1"
-      means that this code will accept all .jigdo files whose [Jigdo]
-      sections contain "Version=" lines followed by 0.x or 1.x version
-      numbers. A hard (non-recoverable) error happens for 2.x or bigger
-      numbers. */
-  static const int SUPPORTED_FORMAT = 1;
 
   /** Create a new JigdoIO which is owned by m, gets data from download (will
       register itself with download's IOPtr) and passes it on to childIo.
       @param c Object which owns us (it is the MakeImageDl's child, but our
       master)
-      @param download Gives the data of the .jigdo file to us
-      @param childIo Provided by the frontend, e.g. a GtkSingleUrl object */
-  JigdoIO(MakeImageDl::Child* c, const string& url,
-          DataSource::IO* frontendIo);
+      @param url URL of the .jigdo file */
+  JigdoIO(MakeImageDl::Child* c, const string& url/* IOPtr,
+          DataSource::IO* frontendIo*/);
   ~JigdoIO();
-  virtual Job::IO* job_removeIo(Job::IO* rmIo);
 
   inline MakeImageDl* master() const;
   inline DataSource* source() const;
@@ -69,7 +55,7 @@ private:
 
   /* Create object for an [Include]d file */
   JigdoIO(MakeImageDl::Child* c, const string& url,
-          DataSource::IO* frontendIo, JigdoIO* parentJigdo,
+          /*DataSource::IO* frontendIo,*/ JigdoIO* parentJigdo,
           int inclLine);
 
   /** @return Root object of the include tree */
@@ -96,7 +82,7 @@ private:
   void generateError(const string& msg);
   void generateError(const char* msg);
   // As above, but directly pass on error string, do not add URL/line
-  void generateError_plain(string* err);
+  void generateError_plain(const string& err);
   // True after above was called
   inline bool failed() const;
   // Called by gunzip_data(): New .jigdo line ready. Arg is empty on exit.
@@ -110,10 +96,10 @@ private:
   // Virtual methods from DataSource::IO
   virtual void job_deleted();
   virtual void job_succeeded();
-  virtual void job_failed(string* message);
-  virtual void job_message(string* message);
+  virtual void job_failed(const string& message);
+  virtual void job_message(const string& message);
   virtual void dataSource_dataSize(uint64 n);
-  virtual void dataSource_data(const byte* data, size_t size,
+  virtual void dataSource_data(const byte* data, unsigned size,
                                uint64 currentSize);
 
   // Virtual methods from Gunzip::IO
@@ -123,8 +109,7 @@ private:
   virtual void gunzip_failed(string* message);
 
   MakeImageDl::Child* childDl;
-  string urlVal;
-  DataSource::IO* frontend; // Object provided by frontend for this download
+  string urlVal; // Absolute URL of this .jigdo file
 
   /* Representation of the tree of [Include] directives. Most of the time,
      the order of data in the .jigdo files is not relevant, with one
@@ -147,14 +132,8 @@ private:
   int imageSectionLine; // 0 if no [Image] found yet
   string imageName;
   string imageInfo, imageShortInfo;
-  string templateUrl;
+  SmartPtr<PartUrlMapping> templateUrls; // Can contain a list of altern. URLs
   MD5* templateMd5;
-
-  /* When an error happens inside gunzip_data(), cannot immediately tell the
-     master about it, because it would delete the DataSource => the Download
-     would be deleted from within download_data(). */
-  static gboolean childFailed_callback(gpointer data);
-  int childFailedId;
 
   /* Transparent gunzipping of .jigdo file. GUNZIP_BUF_SIZE is also the max
      size a single line in the .jigdo is allowed to have */

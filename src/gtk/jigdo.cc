@@ -1,4 +1,4 @@
-/* $Id: jigdo.cc,v 1.9 2003/11/11 14:15:56 atterer Exp $ -*- C++ -*-
+/* $Id: jigdo.cc,v 1.14 2005/07/09 22:21:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.net
@@ -10,6 +10,11 @@
 */
 
 #include <config.h>
+
+#if DEBUG
+#  include <string.h>
+#  include <unistd-jigdo.h>
+#endif
 
 #include <iostream>
 #include <string>
@@ -25,9 +30,8 @@
 #include <string-utf.hh>
 #include <support.hh>
 
-#if DEBUG
-#  include <string.h>
-#  include <unistd.h>
+#if WINDOWS
+#  include <windows.h>
 #endif
 //______________________________________________________________________
 
@@ -104,8 +108,9 @@ inline void cmdOptions(int argc, char* argv[]) {
     "Options:\n"
     "  -h  --help       Output help\n"
     "  -Y  --proxy=on/off/guess [guess]\n"
-    "                   Turn proxy on or off, or guess from Mozilla/KDE/\n"
-    "                   wget/lynx settings\n"
+    "                   Turn proxy on (i.e. use env vars http_proxy,\n"
+    "                   ftp_proxy, all_proxy) or off, or guess (from\n"
+    "                   Mozilla/KDE/wget/lynx settings)\n"
     "  -v  --version    Output version info\n"
     "  --debug[=all|=UNIT1,UNIT2...|=help]\n"
     "                   Print debugging information for all units, or for\n"
@@ -172,6 +177,7 @@ int main(int argc, char *argv[]) {
       add_pixmap_directory("gfx");
 #     endif
       string pixDir = packageDataDir; pixDir += "pixmaps";
+      add_pixmap_directory("..\\gfx");
       add_pixmap_directory(pixDir.c_str());
     }
     cmdOptions(argc, argv);
@@ -180,8 +186,17 @@ int main(int argc, char *argv[]) {
 
     // Initialize networking code
     Download::init();
-    if (optProxy != OFF) glibwww_parse_proxy_env();
-    if (optProxy == GUESS) proxyGuess();
+    if (optProxy == OFF) {
+      // Make libcurl ignore environment variables, simply by unsetting them
+      putenv("http_proxy=");
+      putenv("https_proxy=");
+      putenv("ftp_proxy=");
+      putenv("gopher_proxy=");
+      putenv("no_proxy=");
+      putenv("all_proxy=");
+    } else if (optProxy == GUESS) {
+      proxyGuess();
+    }
 
     // Start downloads of any URIs specified on command line
     const char* dest = g_get_current_dir();
@@ -195,8 +210,12 @@ int main(int argc, char *argv[]) {
   }
   catch (Cleanup c) {
     msg("[Cleanup %1]", c.returnValue);
+    GUI::jobList.finalize();
+    Download::cleanup();
     return c.returnValue;
   }
+  GUI::jobList.finalize();
+  Download::cleanup();
 
 # if DEBUG && !WINDOWS
   const char* preload = getenv("LD_PRELOAD");
