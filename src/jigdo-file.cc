@@ -656,22 +656,22 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
     const char* command = argv[optind++];
     struct CodesEntry { char* name; Command code; };
     const CodesEntry codes[] = {
-      { "make-template",     MAKE_TEMPLATE },
-      { "mt",                MAKE_TEMPLATE },
-      { "make-image",        MAKE_IMAGE },
-      { "mi",                MAKE_IMAGE },
-      { "print-missing",     PRINT_MISSING },
-      { "pm",                PRINT_MISSING },
-      { "print-missing-all", PRINT_MISSING_ALL },
-      { "pma",               PRINT_MISSING_ALL },
-      { "verify",            VERIFY },
-      { "ver",               VERIFY },
-      { "scan",              SCAN },
-      { "sc",                SCAN },
-      { "list-template",     LIST_TEMPLATE },
-      { "ls",                LIST_TEMPLATE },
-      { "md5sum",            MD5SUM },
-      { "md5",               MD5SUM }
+      { (char *)"make-template",     MAKE_TEMPLATE },
+      { (char *)"mt",                MAKE_TEMPLATE },
+      { (char *)"make-image",        MAKE_IMAGE },
+      { (char *)"mi",                MAKE_IMAGE },
+      { (char *)"print-missing",     PRINT_MISSING },
+      { (char *)"pm",                PRINT_MISSING },
+      { (char *)"print-missing-all", PRINT_MISSING_ALL },
+      { (char *)"pma",               PRINT_MISSING_ALL },
+      { (char *)"verify",            VERIFY },
+      { (char *)"ver",               VERIFY },
+      { (char *)"scan",              SCAN },
+      { (char *)"sc",                SCAN },
+      { (char *)"list-template",     LIST_TEMPLATE },
+      { (char *)"ls",                LIST_TEMPLATE },
+      { (char *)"md5sum",            MD5SUM },
+      { (char *)"md5",               MD5SUM }
     };
 
     const CodesEntry *c = codes;
