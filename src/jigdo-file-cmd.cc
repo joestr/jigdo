@@ -53,7 +53,7 @@ bistream* openForInput(bistream*& dest, const string& name) throw(Cleanup) {
 /* Open named file or stdin if name is "-". Store pointer to stream obj in
    dest and return it (except when it points to an object which should not be
    deleted by the caller; in this case return null). */
-istream* openForInput(istream*& dest, const string& name) throw(Cleanup) {
+istream* openForInput(istream*& dest, const string& name) {
   if (name == "-") {
     /* EEEEK! There's no standard way to switch mode of cin to binary. (There
        might be an implementation-dependent way? close()ing and re-open()ing
@@ -103,7 +103,7 @@ bostream* openForOutput(bostream*& dest, const string& name) throw(Cleanup) {
 }
 #endif
 
-ostream* openForOutput(ostream*& dest, const string& name) throw(Cleanup) {
+ostream* openForOutput(ostream*& dest, const string& name) {
   if (name == "-") {
     dest = reinterpret_cast<ostream*>(&cout); // EEEEK!
     return 0;

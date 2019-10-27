@@ -65,7 +65,7 @@ namespace {
    a file from which filenames are read, in contrast, stays at the
    head of "objectsFrom" until the file is closed, to allow for
    proper error messages to be generated. */
-bool RecurseDir::getNextObjectName(string& result) throw(RecurseError) {
+bool RecurseDir::getNextObjectName(string& result) {
   while (true) {
     
     // Try to assign the name of an object (name or dir) to result
@@ -136,8 +136,7 @@ bool RecurseDir::getNextObjectName(string& result) throw(RecurseError) {
 //________________________________________
 
 bool RecurseDir::getName(string& result, struct stat* fileInfo,
-                         bool checkFiles) 
-    throw(RecurseError, bad_alloc) {
+                         bool checkFiles) {
   static struct stat fInfo;
   if (fileInfo == 0) fileInfo = &fInfo;
 

@@ -73,7 +73,7 @@ bool JigdoDesc::isTemplate(bistream& file) {
 }
 //______________________________________________________________________
 
-void JigdoDesc::seekFromEnd(bistream& file) throw(JigdoDescError) {
+void JigdoDesc::seekFromEnd(bistream& file) {
   file.seekg(-6, ios::end);
   debug("JigdoDesc::seekFromEnd0: now at file offset %1",
         static_cast<uint64>(file.tellg()));
@@ -110,8 +110,7 @@ void JigdoDesc::seekFromEnd(bistream& file) throw(JigdoDescError) {
 }
 //______________________________________________________________________
 
-bistream& JigdoDescVec::get(bistream& file)
-    throw(JigdoDescError, bad_alloc) {
+bistream& JigdoDescVec::get(bistream& file) {
   /* Need auto_ptr: If we did a direct push_back(new JigdoDesc), the
      "new" might succeed, but the push_back() fail with bad_alloc =>
      mem leak */

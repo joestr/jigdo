@@ -72,7 +72,7 @@ public:
   /** Assuming that a DESC section is at the end of a file, set the
       file pointer to the start of the section, allowing you to call
       read() immediately afterwards. */
-  static void seekFromEnd(bistream& file) throw(JigdoDescError);
+  static void seekFromEnd(bistream& file);
   /** Create image file from template and files (via JigdoCache) */
   static int makeImage(JigdoCache* cache, const string& imageFile,
     const string& imageTmpFile, const string& templFile,
@@ -230,7 +230,7 @@ public:
       the "DESC" must have been read already. If error is thrown,
       position of file pointer is undefined. A type 1 (IMAGE_INFO)
       will end up at this->back(). */
-  bistream& get(bistream& file) throw(JigdoDescError, bad_alloc);
+  bistream& get(bistream& file);
 
   /** Write a DESC section to a binary stream. Note that there should
       not be two contiguous Unmatched regions - this is not checked.
@@ -291,8 +291,7 @@ bool JigdoDesc::WrittenFile::operator==(const JigdoDesc& x) const {
 }
 //________________________________________
 
-inline bistream& operator>>(bistream& s, JigdoDescVec& v)
-    throw(JigdoDescError, bad_alloc) {
+inline bistream& operator>>(bistream& s, JigdoDescVec& v) {
   return v.get(s);
 }
 
