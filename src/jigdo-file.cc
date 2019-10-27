@@ -418,11 +418,14 @@ size_t scanMemSize(const char* str) {
   switch (*s) { // Fallthrough mania!
   case 'g': case 'G':
     x = x * 1024;
+    // fall through
   case 'm': case 'M':
     x = x * 1024;
+    // fall through
   case 'k': case 'K':
     x = x * 1024;
     if (*++s == '\0') return x;
+    // fall through
   default:
     cerr << subst(_("%1: Invalid size specifier `%2'"), binName(), str)
          << endl;

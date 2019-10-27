@@ -49,12 +49,16 @@ namespace {
       // NB: fallthrough:
     case Z_STREAM_ERROR:
       if (m.empty()) m = "zlib Z_STREAM_ERROR";
+      // fallthrough
     case Z_DATA_ERROR:
       if (m.empty()) m = "zlib Z_DATA_ERROR";
+      // fallthrough
     case Z_BUF_ERROR:
       if (m.empty()) m = "zlib Z_BUF_ERROR";
+      // fallthrough
     case Z_VERSION_ERROR:
       if (m.empty()) m = "zlib Z_VERSION_ERROR";
+      // fallthrough
     default:
       throw Zerror(status, m);
     }
