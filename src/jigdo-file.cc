@@ -777,7 +777,7 @@ int main(int argc, char* argv[]) {
       returnValue = JigdoFileCmd::md5sumFiles();  break;
     }
   }
-  catch (bad_alloc) { outOfMemory(); }
+  catch (bad_alloc &) { outOfMemory(); }
   catch (Cleanup c) {
     msg("[Cleanup %1]", c.returnValue);
     return c.returnValue;
