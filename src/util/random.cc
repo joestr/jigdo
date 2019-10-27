@@ -137,7 +137,7 @@ int main(int argc, const char* argv[]) {
     // Write random bytes
     while (bytesArg > 0) {
       uint32 n = (bytesArg > 1024 ? 1024 : bytesArg);
-      for (uint32 i = 0; i < n; ++i) buf[i] = rand.get(8);
+      for (uint32 i = 0; i < n; ++i) buf[i] = (byte)rand.get(8);
       cout.write((char*)(buf), n);
       bytesArg -= n;
     }
