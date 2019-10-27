@@ -76,7 +76,7 @@ namespace {
 // Absolute minimum for --min-length (i.e. blockLength), in bytes
 const size_t MINIMUM_BLOCKLENGTH = 256;
 
-char optHelp = '\0';
+int optHelp = '\0';
 bool optVersion = false;
 
 // Return value of main(), for "delayed error exit"
@@ -221,9 +221,9 @@ void MyProgressReporter::print(string s, bool addNewline) {
   } else {
     /* Same length as previous - to reduce cursor flicker, only redraw
        as much as necessary */
-    int i = s.size() - 1;
+    ssize_t i = s.size() - 1;
     while (i >= 0 && s[i] == prevLine[i]) --i;
-    for (int j = 0; j <= i; ++j) cerr << s[j];
+    for (ssize_t j = 0; j <= i; ++j) cerr << s[j];
   }
 
   // Should the message just printed be overwritten on next call?

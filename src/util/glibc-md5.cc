@@ -218,7 +218,7 @@ void MD5Sum::md5_process_bytes(const void* buffer, size_t len,
       size_t add = 128 - left_over > len ? len : 128 - left_over;
 
       memcpy (&ctx->buffer[left_over], buffer, add);
-      ctx->buflen += add;
+      ctx->buflen += (uint32)add;
 
       if (ctx->buflen > 64)
         {
@@ -274,7 +274,7 @@ void MD5Sum::md5_process_bytes(const void* buffer, size_t len,
            left_over -= 64;
            memcpy (ctx->buffer, &ctx->buffer[64], left_over);
          }
-       ctx->buflen = left_over;
+       ctx->buflen = (uint32)left_over;
      }
  }
 
@@ -305,7 +305,7 @@ void MD5Sum::md5_process_block(const void* buffer, size_t len, md5_ctx* ctx)
   /* First increment the byte count.  RFC 1321 specifies the possible
      length of the file up to 2^64 bits.  Here we only compute the
      number of bytes.  Do a double word increment.  */
-  ctx->total[0] += len;
+  ctx->total[0] += (uint32)len;
   if (ctx->total[0] < len)
     ++ctx->total[1];
 

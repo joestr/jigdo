@@ -91,7 +91,8 @@ Status CacheFile::find(const byte*& resultData, size_t& resultSize,
                        const string& fileName, uint64 fileSize, time_t mtime) {
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
-  key.size = fileName.size();
+  key.size = (u_int32_t)fileName.size(); // filename size is safely
+					 // less than 32 bits!
 
   AutoCursor cursor;
   // Cursor with no transaction id, no flags
@@ -135,7 +136,8 @@ Status CacheFile::findName(const byte*& resultData, size_t& resultSize,
     time_t& resultMtime) {
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
-  key.size = fileName.size();
+  key.size = (u_int32_t)fileName.size(); // filename size is safely
+					 // less than 32 bits!
 
   AutoCursor cursor;
   // Cursor with no transaction id, no flags
@@ -206,7 +208,7 @@ byte* CacheFile::insert_prepare(size_t inSize) {
   void* tmp = realloc(data.data, USER_DATA + inSize);
   if (tmp == 0) throw bad_alloc();
   data.data = tmp;
-  data.size = USER_DATA + inSize;
+  data.size = (u_int32_t)(USER_DATA + inSize);
   return static_cast<byte*>(tmp) + USER_DATA;
 }
 
@@ -226,7 +228,8 @@ void CacheFile::insert_perform(const string& fileName, time_t mtime,
   // Insert in database
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
-  key.size = fileName.size();
+  key.size = (u_int32_t)fileName.size(); // filename size is safely
+					 // less than 32 bits!
   db->put(db, 0, &key, &data, 0); // No transaction, overwrite
 
 //   cerr << "CacheFile write `"<<fileName<<'\'';

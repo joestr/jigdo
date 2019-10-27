@@ -82,7 +82,7 @@ string Subst::subst(const char* format, int args, const Subst arg[]) {
   // Create output
   string result;
   const char* i = format - 1;
-  char max = '1' + args;
+  int max = '1' + args;
   while (*++i != '\0') {
     if (*i != '%') { result += *i; continue; }
     ++i;

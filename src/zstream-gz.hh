@@ -52,8 +52,8 @@ protected:
   virtual unsigned partId();
   virtual void deflateEnd();
   virtual void deflateReset();
-  virtual unsigned totalOut() const { return z.total_out; }
-  virtual unsigned totalIn() const { return z.total_in; }
+  virtual unsigned totalOut() const { return (unsigned)z.total_out; }
+  virtual unsigned totalIn() const { return (unsigned)z.total_in; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
   virtual byte* nextOut() const { return z.next_out; }
@@ -87,8 +87,8 @@ public:
   ZibstreamGz() : status(0), memReleased(true) { }
   ~ZibstreamGz() { Assert(memReleased); }
 
-  virtual unsigned totalOut() const { return z.total_out; }
-  virtual unsigned totalIn() const { return z.total_in; }
+  virtual unsigned totalOut() const { return (unsigned)z.total_out; }
+  virtual unsigned totalIn() const { return (unsigned)z.total_in; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
   virtual byte* nextOut() const { return z.next_out; }

@@ -243,7 +243,7 @@ bostream& JigdoDescVec::put(bostream& file, MD5Sum* md) const {
   uint64 descLen = 4 + 6*2; // Length of DESC part
   unsigned bufLen = 4 + 6;
   for (const_iterator i = begin(), e = end(); i != e; ++i) {
-    unsigned s = (*i)->serialSizeOf();
+    unsigned s = (unsigned)(*i)->serialSizeOf();
     bufLen = max(bufLen, s);
     descLen += s;
   }
@@ -451,7 +451,7 @@ namespace {
        unmatched image data is already compressed, which means that
        when it is compressed again by jigdo, it will get slightly
        larger. */
-    auto_ptr<Zibstream> data(new Zibstream(*templ, readAmount + 8*1024));
+    auto_ptr<Zibstream> data(new Zibstream(*templ, (unsigned int)readAmount + 8*1024));
 #   if HAVE_WORKING_FSTREAM
     if (img == 0) img = &cout; // EEEEEK!
 #   else
@@ -485,7 +485,7 @@ namespace {
                 reporter.error(_("Premature end of template data"));
                 return 3;
               }
-              data->read(buf, (toWrite < readAmount ? toWrite : readAmount));
+              data->read(buf, (unsigned int)(toWrite < readAmount ? toWrite : readAmount));
               size_t n = data->gcount();
               writeBytes(*img, buf, n);
               reportBytesWritten(n, off, nextReport, totalBytes, reporter);

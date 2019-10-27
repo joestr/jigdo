@@ -27,7 +27,7 @@ Logger* Logger::list = 0;
 Logger msg("general");
 
 Logger::Logger(const char* unitName, bool enabled)
-    : unitNameVal(unitName), unitNameLen(strlen(unitName)),
+    : unitNameVal(unitName), unitNameLen((unsigned char)strlen(unitName)),
       enabledVal(enabled), next(list) {
   list = this;
 }
@@ -74,7 +74,7 @@ void Logger::scanOptions(const string& s, const char* binName) {
   unsigned i = 0;
   string word;
   bool enable;
-  unsigned len = s.length();
+  unsigned long len = s.length();
   while (i < len) {
     word.erase();
     enable = true;

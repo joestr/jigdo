@@ -129,10 +129,10 @@ namespace {
                        const size_t bufferLength, Zobstream* zip) {
     Paranoid(begin <= bufferLength && end <= bufferLength);
     if (begin < end) {
-      zip->write(buf + begin, end - begin);
+      zip->write(buf + begin, (unsigned int)(end - begin));
     } else {
-      zip->write(buf + begin, bufferLength - begin);
-      zip->write(buf, end);
+      zip->write(buf + begin, (unsigned int)(bufferLength - begin));
+      zip->write(buf, (unsigned int)end);
     }
   }
   //____________________
@@ -313,7 +313,7 @@ bool MkTemplate::rereadUnmatched(FilePart* file, uint64 count) {
     readBytes(*inputFile, tmpBuf.get(),
               (readAmount < count ? readAmount : count));
     size_t n = inputFile->gcount();
-    zip->write(tmpBuf.get(), n); // will catch Zerror "upstream"
+    zip->write(tmpBuf.get(), (unsigned int)n); // will catch Zerror "upstream"
     Paranoid(n <= count);
     count -= n;
   }
@@ -652,7 +652,7 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     nextAlignedOff += blockLength;
     Assert(nextAlignedOff > off);
 
-    unsigned len = nextAlignedOff - off;
+    unsigned long len = nextAlignedOff - off;
     if (len > nextEvent - off) len = nextEvent - off;
     // Advance rsum by len bytes in one go
 #   if DEBUG
@@ -959,7 +959,7 @@ bool MkTemplate::run(const string& imageLeafName,
   }
 
   // Hash table performance drops when linked lists become long => "+1"
-  int    blockBits = bitWidth(fileCount) + 1;
+  int    blockBits = bitWidth((uint32)fileCount) + 1;
   uint32 blockMask = (1 << blockBits) - 1;
   block.resize(blockMask + 1);
 

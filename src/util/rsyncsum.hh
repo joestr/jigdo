@@ -145,8 +145,9 @@ RsyncSum& RsyncSum::addBack(byte x) {
 RsyncSum& RsyncSum::addBackNtimes(byte x, size_t n) {
   uint32 a = sum;
   uint32 b = sum >> 16;
-  b += n * a + (n * (n + 1) / 2) * (x + CHAR_OFFSET); // Gauﬂ
-  a += n * (x + CHAR_OFFSET);
+  uint32 tn = (uint32)n;
+  b += tn * a + (tn * (tn + 1) / 2) * (x + CHAR_OFFSET); // Gauﬂ
+  a += tn * (x + CHAR_OFFSET);
   sum = ((a & 0xffff) + (b << 16)) & 0xffffffff;
   return *this;
 }
@@ -154,7 +155,8 @@ RsyncSum& RsyncSum::addBackNtimes(byte x, size_t n) {
 RsyncSum& RsyncSum::removeFront(byte x, size_t areaSize) {
   uint32 a = sum;
   uint32 b = sum >> 16;
-  b -= areaSize * (x + CHAR_OFFSET);
+  uint32 ta = (uint32)areaSize;
+  b -= ta * (x + CHAR_OFFSET);
   a -= x + CHAR_OFFSET;
   sum = ((a & 0xffff) + (b << 16)) & 0xffffffff;
   return *this;

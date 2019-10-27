@@ -58,8 +58,8 @@ RsyncSum& RsyncSum::addBack(const byte* mem, size_t len) {
 RsyncSum& RsyncSum::removeFront(const byte* mem, size_t len,
                                 size_t areaSize) {
   RsyncSum front(mem, len);
-  uint32 a = sum;
-  uint32 b = sum >> 16;
+  unsigned long a = sum;
+  unsigned long b = sum >> 16;
   /* The following is much cheaper than subtracting
      (areaSize-i)*(mem[i]+CHAR_OFFSET) from b for each i, 0<=i<len,
      because only one multiplication is needed, not len. */

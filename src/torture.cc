@@ -334,13 +334,13 @@ namespace {
       if (zeroes) {
         cerr << "Will fill with zero bytes\n";
         for (size_t i = 0; i < BUF_SIZE; ++i) buf[i] = 0;
-        zeroFile = files.size();
+        zeroFile = (int)files.size();
       }
       size_t sizeLeft = size;
       while (sizeLeft > 0 && o) {
         size_t n = (sizeLeft < BUF_SIZE ? sizeLeft : BUF_SIZE);
         if (!zeroes)
-          for (size_t i = 0; i < n; ++i) buf[i] = rand.get(8);
+          for (size_t i = 0; i < n; ++i) buf[i] = (byte)rand.get(8);
         writeBytes(o, buf, n);
         if (!o) cerr << "Argh - write() failed! (" << strerror(errno)
                      << ')' << endl;

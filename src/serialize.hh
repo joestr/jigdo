@@ -129,7 +129,7 @@ private:
 //@{
 template<class NumType, class Iterator>
 inline Iterator serialize1(NumType x, Iterator i) {
-  *i = x & 0xff; ++i;
+  *i = (unsigned char)(x & 0xff); ++i;
   return i;
 }
 template<class NumType, class ConstIterator>
@@ -153,10 +153,10 @@ inline ConstIterator unserialize2(NumType& x, ConstIterator i) {
 
 template<class NumType, class Iterator>
 inline Iterator serialize4(NumType x, Iterator i) {
-  *i = x & 0xff; ++i;
-  *i = (x >> 8) & 0xff; ++i;
-  *i = (x >> 16) & 0xff; ++i;
-  *i = (x >> 24) & 0xff; ++i;
+  *i = (unsigned char)(x & 0xff); ++i;
+  *i = (unsigned char)((x >> 8) & 0xff); ++i;
+  *i = (unsigned char)((x >> 16) & 0xff); ++i;
+  *i = (unsigned char)((x >> 24) & 0xff); ++i;
   return i;
 }
 template<class NumType, class ConstIterator>
