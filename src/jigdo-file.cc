@@ -776,8 +776,7 @@ int main(int argc, char* argv[]) {
     case JigdoFileCmd::SCAN:
       returnValue = JigdoFileCmd::scanFiles();    break;
     case JigdoFileCmd::VERIFY:
-      returnValue = JigdoFileCmd::verifyImageMD5();  break;
-      // FIXME! Needs update to use SHA256
+      returnValue = JigdoFileCmd::verifyImage();  break;
     case JigdoFileCmd::LIST_TEMPLATE:
       returnValue = JigdoFileCmd::listTemplate(); break;
     case JigdoFileCmd::MD5SUM:

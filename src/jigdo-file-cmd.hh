@@ -115,8 +115,7 @@ class JigdoFileCmd {
   static int makeImage();
   static int printMissing(Command command = PRINT_MISSING);
   static int scanFiles();
-  static int verifyImageMD5();
-  static int verifyImageSHA256();
+  static int verifyImage();
   static int listTemplate();
   static int md5sumFiles();
   static int sha256sumFiles();

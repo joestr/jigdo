@@ -258,9 +258,14 @@ bistream& JigdoDescVec::get(bistream& file) {
 
   if (empty())
     throw JigdoDescError(_("Invalid template data - corrupted file?"));
+
+  // Sanity check for an imageinfo/imageinfosha256 entry on the end of
+  // the chain
   JigdoDesc::ImageInfo* ii = dynamic_cast<JigdoDesc::ImageInfo*>(back());
-  if (ii == 0 || ii->size() != off) {
-    if (ii != 0) debug("JigdoDesc::read4: %1 != %2", ii->size(), off);
+  JigdoDesc::ImageInfoSHA256* ii2 = dynamic_cast<JigdoDesc::ImageInfoSHA256*>(back());
+  if ((ii == 0 && ii2 == 0)
+      || (ii != 0 && ii->size() != off)
+      || (ii2 != 0 && ii2->size() != off)) {
     throw JigdoDescError(_("Invalid template data - corrupted file?"));
   }
   return file;
