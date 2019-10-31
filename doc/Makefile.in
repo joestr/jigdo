@@ -37,7 +37,7 @@ all:		jigdo-file.1 jigdo-file.html jigdo-lite.1 jigdo-lite.html \
 doc mostlyclean dep depend check: ;
 
 clean:		Makefile
-		rm -rf tmp
+		rm -rf tmp *~
 distclean:	Makefile
 		rm -rf tmp
 		rm -f *~ \#*\# *.bak
