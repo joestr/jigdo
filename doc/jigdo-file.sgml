@@ -270,8 +270,8 @@
       </varlistentry>
 
       <varlistentry>
-        <term><option>--md5-block-size=<replaceable
-          >BYTES</replaceable></option></term>
+        <term><option>--checksum-block-size</option>
+          <option>--md5-block-size=<replaceable>BYTES</replaceable></option></term>
         <listitem>
           <para><emphasis>Uninteresting internal parameter.</emphasis>
           Set size of blocks into which files are subdivided. The
@@ -549,7 +549,7 @@
             <para>When <emphasis>adding</emphasis> new information to
             the supplied file, <command>jigdo-file</command> will not
             insert new lines into the `<literal>[Parts]</literal>'
-            section if an entry for the same MD5 checksum (but not
+            section if an entry for the same checksum (but not
             necessarily with the same URI!) already exists, and it
             will not insert new lines into the
             `<literal>[Servers]</literal>' section if a completely
@@ -672,6 +672,10 @@
 
                 <listitem><para><envar>MD5SUM</envar>="<literal
                 >lNVdUSqbo2yqm33webrhnw</literal>" - The md5sum of the
+                matched file, in Base64-like format.</para></listitem>
+
+                <listitem><para><envar>SHA256SUM</envar>="<literal
+                >QXBJ8VZKeh0NXH0uOhdhgguPPE5tT1wvYO27sLx9Fsc</literal>" - The sha256sum of the
                 matched file, in Base64-like format.</para></listitem>
 
                 <listitem><para><envar>FILE</envar>="<literal
@@ -825,10 +829,11 @@
       <para>If the checksum cannot be found in the
       `<literal>[Parts]</literal>' section (this Should Not Happen
       unless you deleted that section), a lookup is instead made for
-      `MD5Sum:<replaceable>&lt;checksum&gt;</replaceable>', just like
-      with <command>jigdo</command>. (Thus, if you want to get rid of
-      the `<literal>[Parts]</literal>' section, you can do so if you
-      rename each part to its own checksum.)</para>
+      `MD5Sum:<replaceable>&lt;checksum&gt;</replaceable>' and
+      `SHA256Sum:<replaceable>&lt;checksum&gt;</replaceable>', just
+      like with <command>jigdo</command>. (Thus, if you want to get
+      rid of the `<literal>[Parts]</literal>' section, you can do so
+      if you rename each part to its own checksum.)</para>
 
       <variablelist>
         <varlistentry>
@@ -900,7 +905,7 @@
           <listitem>
 
             <para><emphasis>This is the default.</emphasis> This only
-            causes the first <option>--md5-block-size</option> bytes
+            causes the first <option>--checksum-block-size</option> bytes
             of each file to be read. If the cache is used later by
             <command>jigdo-file make-image</command>, the rest of the
             file will be read once these first bytes are recognized in
@@ -945,6 +950,33 @@
 
     </refsect2>
     <!-- ========================================= -->
+    <refsect2 id="sha256sum">
+      <title><command>sha256sum</command>, <command>sha256</command></title>
+
+      <para>Reads all the <replaceable>FILES</replaceable> and prints
+      out SHA256 checksums of their contents. This command is quite
+      similar to <citerefentry>
+        <refentrytitle>sha256sum</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry>, except that the checksum is output in the
+      Base64-like encoding which is also used elsewhere by
+      <command>jigdo-file</command>.</para>
+
+      <para>The <replaceable>FILES</replaceable> arguments are
+      processed in the same way as with the other commands, which
+      means that recursion automatically takes place for any arguments
+      that are directories, and that symbolic links are not listed
+      except when the file(s) they point to are not reachable
+      directly.</para>
+
+      <para>In the checksum list printed on standard output, only the
+      part of the filename following any `<literal>//</literal>' (or
+      `<literal>\.\</literal>' on Windows) is printed. Any
+      <option>--cache</option> will be used for querying files' SHA256
+      checksums and/or writing the checksums of scanned files.</para>
+
+
+    </refsect2>
+    <!-- ========================================= -->
     <refsect2 id="list-template">
       <title><command>list-template</command>, <command>ls</command></title>
 
@@ -965,10 +997,10 @@
       already been successfully written to the temporary file:</para>
 
       <screen
->in-template  <replaceable>offset-in-image  length</replaceable>
-need-file    <replaceable>offset-in-image  length  file-md5sum  filestart-rsyncsum</replaceable>
-have-file    <replaceable>offset-in-image  length  file-md5sum  filestart-rsyncsum</replaceable>
-image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable>
+>in-template      <replaceable>offset-in-image  length</replaceable>
+need-file-md5     <replaceable>offset-in-image  length  file-md5sum  filestart-rsyncsum</replaceable>
+have-file-sha256  <replaceable>offset-in-image  length  file-sha256sum  filestart-rsyncsum</replaceable>
+image-info-sha256 <replaceable>image-length  rsyncsum-size image-sha1sum  </replaceable>
 </screen>
 
     </refsect2>
@@ -998,7 +1030,7 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
     of the image could not be matched (e.g. it was directory
     information), the data is compressed and written directly to the
     template. However, if a matching file was found, its data is
-    omitted from the template. Instead, only a reference (an MD5
+    omitted from the template. Instead, only a reference (an MD5 or SHA256
     checksum of the file) is inserted in the template.</para>
 
     <para>Note that the template data only contains binary data, it
@@ -1006,10 +1038,10 @@ image-info   <replaceable>image-length  image-md5sum  rsyncsum-size</replaceable
     edited in case any of these values need to be changed. All that
     information is stored in the `<filename>.jigdo</filename>' file, a
     text file to which you can add URLs for your server(s). The jigdo
-    file provides a mapping for each MD5 checksum to one or more
+    file provides a mapping for each MD5/SHA256 checksum to one or more
     alternative download locations for the corresponding part.</para>
 
-    <para>Apart from the mapping of MD5 sums to URIs, the jigdo file
+    <para>Apart from the mapping of MD5/SHA256 sums to URIs, the jigdo file
     also contains an URI pointing to a download location for the
     template file. This way, the <command>jigdo</command> download
     tool only needs to be given one URI (that of the
@@ -1096,6 +1128,7 @@ Generator=jigdo-file/1.0.0</screen>
 Filename=<replaceable>"filename for saving on user's disc"</replaceable>
 Template=<replaceable>"URI where to fetch template file"</replaceable>
 Template-MD5Sum=OQ8riqT1BuyzsrT9964A7g
+Template-SHA256Sum=MVJIxGifflRF9K8ERdbqoyns4Ucw9Xy1ubdnE6CtMbo
 ShortInfo=<replaceable>single-line description of the image (200 characters max.)</replaceable>
 Info=<replaceable>long description (5000 characters max.)</replaceable></screen>
 
@@ -1105,9 +1138,10 @@ Info=<replaceable>long description (5000 characters max.)</replaceable></screen>
       >pathname</replaceable>' (<emphasis>UNIMPLEMENTED</emphasis>),
       as described below.</para>
 
-      <para>The `Template-MD5Sum' entry is added by
-      <command>jigdo-file</command> and specifies the MD5 checksum of
-      the generated `<filename>.template</filename>' file. It is used
+      <para>The `Template-MD5Sum' and/or `Template-MD5Sum' entries are
+      added by
+      <command>jigdo-file</command> and specify the checksum of the
+      generated `<filename>.template</filename>' file. It is used
       by <command>jigdo</command> to detect cases where the downloaded
       template data is corrupted or belongs to a different
       image.</para>
@@ -1156,7 +1190,7 @@ kyfebwu6clbYqqWUdFIyaw=LabelB:some/path/part2
 -J9UAimo0Bqg9c0oOXI1mQ=http://some.where.com/part3</screen>
 
       <para>All lines in the section, which provides the mapping from
-      MD5 checksums to URIs, have the same format: On the left side of
+      checksums to URIs, have the same format: On the left side of
       the `<literal>=</literal>' the checksum (encoded with a
       Base64-like encoding) is given, and on the right a string
       corresponding to the part with this checksum; either a complete
@@ -1166,20 +1200,21 @@ kyfebwu6clbYqqWUdFIyaw=LabelB:some/path/part2
       <replaceable>Label</replaceable> in the
       `<literal>[Servers]</literal>' section.</para>
 
-      <para>In case a particular MD5 checksum cannot be found in any
+      <para>In case a particular checksum cannot be found in any
       `<literal>[Parts]</literal>' section by
       <command>jigdo</command>, the program will perform a lookup for
-      `<literal>MD5Sum:</literal><replaceable
-      >&lt;checksum&gt;</replaceable>', e.g. for
-      `<literal>MD5Sum:xJNkjrq8NYMraeGavUpllw</literal>' if you
-      deleted the line for `part0' above.</para>
+      `<literal>MD5Sum:</literal><replaceable >&lt;checksum&gt;</replaceable>'
+      and
+      `<literal>SHA256Sum:</literal><replaceable >&lt;checksum&gt;</replaceable>',
+      e.g. for `<literal>MD5Sum:xJNkjrq8NYMraeGavUpllw</literal>' if
+      you deleted the line for `part0' above.</para>
 
       <para>A checksum appearing multiple times in this section
       indicates alternative download locations for the part.</para>
 
       <para>There may be any number of `<literal>[Parts]</literal>'
       sections in the file; they are all considered when looking up
-      MD5 checksums.</para>
+      checksums.</para>
 
       <para><command>jigdo-file</command> always puts the
       `<literal>[Parts]</literal>' section at the end of the file, and
@@ -1505,6 +1540,12 @@ Any text, except that lines must not begin with `['.</screen>
       </citerefentry>,
       <citerefentry>
         <refentrytitle>md5sum</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry>,
+      <citerefentry>
+        <refentrytitle>sha256sum</refentrytitle><manvolnum>1</manvolnum>
+      </citerefentry>,
+      <citerefentry>
+        <refentrytitle>jigit-mkimage</refentrytitle><manvolnum>1</manvolnum>
       </citerefentry>
     </para>
 
@@ -1517,6 +1558,11 @@ Any text, except that lines must not begin with `['.</screen>
     Download</ulink> was written by Richard Atterer
     <email>jigdo atterer.org</email>, to make downloading of CD ROM
     images for the Debian Linux distribution more convenient.</para>
+
+    <para>Steve McIntyre <email>steve einval.com</email> picked up
+    later development of jigdo after Richard had moved on - see
+    the <ulink url="https://git.einval.com/cgi-bin/gitweb.cgi?p=jigdo.git;a=summary">git
+    repo work</ulink> or packages in Debian for more recent releases.
 
   </refsect1>
 </refentry>

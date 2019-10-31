@@ -34,11 +34,11 @@ looked up in a hash table which contains the checksums of the input
 files.
 
 As soon as the first blockLen bytes of a file have been seen in the
-image this way, the program starts calculating the MD5 sum of blocks
-of length md5BlockLength (where blockLen < md5BlockLength; the
-defaults are 1k, 64k resp.). These MD5 checksums are compared to
-pre-calculated MD5 sums of md5BlockLength-sized chunks of the file
-that matched, until one doesn't match, or the last one matched.
+image this way, the program starts calculating the checksums of blocks
+of length csumBlockLength (where blockLen < csumBlockLength; the
+defaults are 1k, 64k resp.). These checksums are compared to
+pre-calculated sums of md5BlockLength-sized chunks of the file that
+matched, until one doesn't match, or the last one matched.
 
 Unfortunately, having to deal with situations like overlapping matches
 in the image, and output of the .template to stdout, lead to quite
@@ -57,15 +57,14 @@ The jigdo-file file cache
 
 Even without --cache specified, jigdo-file uses an internal cache for
 holding information about files. This information includes at least:
-file length, rsync sum of head of file, MD5 sums of chunks of file,
-MD5 sum of the entire file.
+file length, rsync sum of head of file, checksums of chunks of file,
+checksums of the entire file.
 
 When files are first entered into the cache, the entire file is *not*
 yet read, only enough of it to generate the rsync sum and the first
-chunk's MD5 sum. (If this is also the last MD5 sum because the file is
-small, everything is generated.) The rest of the file is only read "on
-demand" if/when necessary.
-
+chunk's checksums. (If this is also the last block checksum because
+the file is small, everything is generated.) The rest of the file is
+only read "on demand" if/when necessary.
 
 
 File format of .template and .tmp files
@@ -75,7 +74,7 @@ The image template files consist of three types of parts:
 
  - Header: Short ASCII header identifying the file as a jigdo template
  - Raw data: those parts of the image that were not matched,
-   compressed with zlib
+   compressed with zlib/bzip2
  - Description: A description of the image, saying which parts were
    matched by files and are thus not included in the template
 
@@ -130,10 +129,10 @@ Description
 This is binary data. Integer values are little-endian. File lengths
 are 6 bytes long - 256TB ought to be enough for everybody...
 
-The order of entries with type==2 or type==6 corresponds to how
-matched files and areas of unmatched data appear in the image file.
-There must only be one entry of type==5 in the list [which must
-probably be the last entry].
+The order of entries with type==2 or type==6/9 corresponds to how
+matched files and areas of unmatched data appear in the image
+file. There must only be one entry of type==5/8 in the list [which
+must probably be the last entry].
 
 The pseudo program below would be suitable for decoding the
 description data.
@@ -148,6 +147,10 @@ description data.
  6      imgLen        "Length in bytes of the original image"
 16      imgMD5        "MD5 checksum of the original image"
  4      blockLen      "Nr of bytes used for calculating RsyncSums below"
+                    case 8: "Information about the image file, using SHA256"
+ 6      imgLen        "Length in bytes of the original image"
+32      imgSHA256     "SHA256 checksum of the original image"
+ 4      blockLen      "Nr of bytes used for calculating RsyncSums below"
                     case 2: "Unmatched data, contained in 'Raw data'"
  6      skipLen       "Length in bytes of area of unmatched data"
                     case 6: "Information about matched file"
@@ -155,9 +158,16 @@ description data.
  8      fileRsync     "RsyncSum64 of first blockLen bytes of the file.
                        fileLen < blockLen never happens."
 16      fileMD5       "MD5 checksum of the file"
+                    case 9: "Information about matched file, using SHA256"
+ 6      fileLen       "Length in bytes of file contained in image"
+ 8      fileRsync     "RsyncSum64 of first blockLen bytes of the file.
+                       fileLen < blockLen never happens."
+32      fileSHA256    "SHA256 checksum of the file"
                   }
                 }
  6      descLen "Length of part - identical to descLen at start of part"
+
+
 ----------------------------------------------------------------------
 The following types are obsolete:
 
@@ -184,8 +194,8 @@ available at the end of template creation.]
 
 Note: In the DESC part appended to a *temporary image file*,
 jigdo-file uses another type of entry: Once the type of a type==6
-entry changes to type==7, that entry's data has successfully been
-written to the image.
+entry changes to type==7 (or type==7 to type==10), that entry's data
+has successfully been written to the image.
 
 
 Raw data
@@ -198,7 +208,7 @@ For each type==2 entry in the description data, the uncompressed
 stream contains skipLen bytes of data. This is data that did not match
 any of the files presented to the creator of the template.
 
-For each type==6 entry in the description data, the raw data stream
+For each type==6/7 entry in the description data, the raw data stream
 contains _nothing_at_all_ - in other words, the raw data is just a
 number of concatenated type==2 data chunks.
 
@@ -233,7 +243,6 @@ ranges.
 Note that the data of one type==2 entry in the description data may be
 distributed over more than one raw data part.
 
-
 File format version history
 ---------------------------
 
@@ -243,3 +252,4 @@ File format version history
 1.2 (jigdo-file/0.7.2): Format change in template files: In addition
     to raw data that is gzipped ("DATA"), allow bzip2 ("BZIP") raw
     data.
+1.3 (jigdo-file/0.8.0): Addition of sha256 data to augment/replace md5
