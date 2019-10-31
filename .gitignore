@@ -1,0 +1,5 @@
+*.o
+*~
+.gitignore
+config.log
+config.status
