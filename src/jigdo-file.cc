@@ -286,7 +286,8 @@ inline void printUsage(bool detailed, size_t blockLength,
   if (detailed) {
     cout << subst(_(
     "\n"
-    "Copyright (C) 2001-%1 Richard Atterer <http://atterer.org>\n"
+    "Copyright (C) 2001-2009 Richard Atterer <http://atterer.org>\n"
+    "Copyright (C) 2016-%1 Steve McIntyre <93sam@debian.org.>\n"
     "This program is free software; you can redistribute it and/or modify\n"
     "it under the terms of the GNU General Public License, version 2. See\n"
     "the file COPYING or <http://www.gnu.org/copyleft/gpl.html> for details.\n"

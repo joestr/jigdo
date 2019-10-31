@@ -154,7 +154,7 @@
 #define PACKAGE "jigdo"
 
 // For copyright messages, the year of the last change to the program code
-#define CURRENT_YEAR 2005
+#define CURRENT_YEAR 2019
 
 // __attribute__ only present with GCC
 #ifndef __GNUC__

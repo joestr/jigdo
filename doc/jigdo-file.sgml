@@ -5,11 +5,15 @@
     <address>jigdo atterer.org</address>
     <author>
       <firstname>Richard</firstname><surname>Atterer</surname>
+      <firstname>Steve</firstname><surname>Mcintyre</surname>
     </author>
     <copyright>
-      <year>2001-2005</year><holder>Richard Atterer</holder>
+      <year>2001-2009</year><holder>Richard Atterer</holder>
     </copyright>
-    <date>Jul 2, 2005</date>
+    <copyright>
+      <year>2016-2019</year><holder>Steve McIntyre</holder>
+    </copyright>
+    <date>Oct 31, 2019</date>
   </refentryinfo>
   <refmeta>
     <refentrytitle>jigdo-file</refentrytitle>
@@ -1559,7 +1563,7 @@ Any text, except that lines must not begin with `['.</screen>
     <email>jigdo atterer.org</email>, to make downloading of CD ROM
     images for the Debian Linux distribution more convenient.</para>
 
-    <para>Steve McIntyre <email>steve einval.com</email> picked up
+    <para>Steve McIntyre <email>93sam@debian.org</email> picked up
     later development of jigdo after Richard had moved on - see
     the <ulink url="https://git.einval.com/cgi-bin/gitweb.cgi?p=jigdo.git;a=summary">git
     repo work</ulink> or packages in Debian for more recent releases.
