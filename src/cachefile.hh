@@ -11,7 +11,7 @@
 
 /** @file
 
-  Cache with MD5 sums of file contents - used by JigdoCache in scan.hh
+  Cache with checksums of file contents - used by JigdoCache in scan.hh
 
   The created libdb3 database contains one table with a mapping from
   filenames (without trailing zero byte) to a binary structure. The
@@ -28,13 +28,16 @@
   This is not handled by CacheFile; it is passed as an opaque string of
   bytes to scan.hh classes:<pre>
    4   blockLength (of rsync sum)
-   4   md5BlockLength
-   4   blocks (number of valid md5 blocks in this entry)
+   4   csumBlockLength
+   4   blocks (number of valid checksum blocks in this entry)
    8   rsyncSum of file start (only valid if blocks > 0)
   16   fileMD5Sum (only valid if
-                   blocks == (fileSize+md5BlockLength-1)/md5BlockLength )
+                   blocks == (fileSize+csumBlockLength-1)/csumBlockLength )
+  32   fileSHA256Sum (only valid if
+                      blocks == (fileSize+csumBlockLength-1)/csumBlockLength )
   followed by n entries:
-  16   md5sum of block of size md5BlockLength</pre>
+  16   md5sum of block of size csumBlockLength</pre>
+  32   sha256sum of block of size csumBlockLength</pre>
 
   Why is mtime and size not part of the key? Because we only want to
   store one entry per file, not an additional entry whenever the file
@@ -68,7 +71,7 @@ struct DbError : public Error {
 };
 //______________________________________________________________________
 
-/** Cache with MD5 sums of file contents */
+/** Cache with checksums of file contents */
 class CacheFile {
 public:
   /** Create new database or open existing database */

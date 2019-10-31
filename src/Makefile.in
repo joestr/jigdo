@@ -53,7 +53,7 @@ test-programs =	job/jigdo-io-test@exe@ \
 		net/proxyguess-test@exe@ \
 		util/autonullptr-test@exe@ util/rsyncsum-test@exe@ \
 		util/gunzip-test@exe@ util/log-test@exe@ \
-		util/md5sum-test@exe@ util/mimestream-test@exe@ \
+		util/md5sum-test@exe@ util/sha256sum-test@exe@ util/mimestream-test@exe@ \
 		util/string-utf-test@exe@
 # net/uri-test@exe@ needs curl
 
@@ -67,8 +67,8 @@ objects-jigdo =	compat.o glibcurl/glibcurl.o gtk/gtk-makeimage.o \
 		job/makeimagedl.o job/single-url.o \
 		job/url-mapping.o net/download.o net/uri.o net/proxyguess.o \
 		util/bstream.o util/configfile.o util/glibc-getopt.o \
-		util/glibc-getopt1.o util/glibc-md5.o util/gunzip.o \
-		util/log.o util/md5sum.o util/progress.o util/string-utf.o \
+		util/glibc-getopt1.o util/glibc-md5.o util/glibc-sha256.o util/gunzip.o \
+		util/log.o util/md5sum.o util/sha256sum.o util/progress.o util/string-utf.o \
 		$(windows-res) \
 		util/debug.o # this must come last!
 #^ net/glibwww-callbacks.o net/glibwww-init.o
@@ -76,16 +76,18 @@ objects-jigdo-file = cachefile.o compat.o jigdo-file-cmd.o jigdo-file.o \
 		jigdoconfig.o mkimage.o mkjigdo.o mktemplate.o \
 		partialmatch.o recursedir.o scan.o util/bstream.o \
 		util/configfile.o util/glibc-getopt.o util/glibc-getopt1.o \
-		util/glibc-md5.o util/log.o util/md5sum.o util/rsyncsum.o \
+		util/glibc-md5.o util/glibc-sha256.o util/log.o util/md5sum.o \
+		util/sha256sum.o util/rsyncsum.o \
 		util/string.o zstream.o zstream-bz.o zstream-gz.o \
 		util/debug.o # this must come last!
 objects-torture = cachefile.o compat.o jigdoconfig.o mkimage.o mkjigdo.o \
 		mktemplate.o partialmatch.o recursedir.o scan.o torture.o \
-		util/bstream.o util/configfile.o util/glibc-md5.o \
-		util/log.o util/md5sum.o util/rsyncsum.o util/string.o \
+		util/bstream.o util/configfile.o util/glibc-md5.o util/glibc-sha256.o \
+		util/log.o util/md5sum.o util/sha256sum.o util/rsyncsum.o util/string.o \
 		zstream.o zstream-bz.o zstream-gz.o \
 		util/debug.o # this must come last!
-objects-random = util/glibc-md5.o util/log.o util/md5sum.o util/random.o \
+objects-random = util/glibc-md5.o util/glibc-sha256.o util/log.o util/md5sum.o \
+		util/sha256sum.o util/random.o \
 		util/string.o \
 		util/debug.o # this must come last!
 #______________________________

@@ -172,6 +172,11 @@ public:
     files.reserve((files.size() + 16) % 16);
     files.push_back(new JigdoDesc::ImageInfo(len, md5, blockLength));
   }
+  // Alternative: insert in DESC section: information about whole image
+  inline void imageInfoSha256(uint64 len, const SHA256Sum& sha256, size_t blockLength) {
+    files.reserve((files.size() + 32) % 32);
+    files.push_back(new JigdoDesc::ImageInfoSHA256(len, sha256, blockLength));
+  }
   // Insert in DESC section: info about some data that was not matched
   inline void unmatchedData(uint64 len) {
     JigdoDesc::UnmatchedData* u;
@@ -193,6 +198,13 @@ public:
     files.push_back(new JigdoDesc::MatchedFile(offset, len, r, md5));
     offset += len;
   }
+  // Alternative: Insert in DESC section: information about a file that matched
+  inline void matchedFileSHA256(uint64 len, const RsyncSum64& r,
+                          const SHA256Sum& sha256) {
+    files.reserve((files.size() + 32) % 32);
+    files.push_back(new JigdoDesc::MatchedFileSHA256(offset, len, r, sha256));
+    offset += len;
+  }
   inline bostream& put(bostream& s, MD5Sum* md) {
     files.put(s, md);
     return s;
@@ -208,10 +220,10 @@ private:
    them, anyway. */
 
 inline bool MkTemplate::scanFiles(size_t blockLength, uint32 blockMask,
-                                  size_t md5BlockLength) {
+                                  size_t csumBlockLength) {
   bool result = SUCCESS;
 
-  cache->setParams(blockLength, md5BlockLength);
+  cache->setParams(blockLength, csumBlockLength);
   FileVec::iterator hashPos;
 
   for (JigdoCache::iterator file = cache->begin();
@@ -227,7 +239,7 @@ inline bool MkTemplate::scanFiles(size_t blockLength, uint32 blockMask,
 //________________________________________
 
 void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
-    const size_t back, const size_t md5BlockLength, uint64& nextEvent,
+    const size_t back, const size_t csumBlockLength, uint64& nextEvent,
     FilePart* file) {
 
   /* Don't schedule match if its startOff (== off - blockLen) is impossible.
@@ -265,8 +277,8 @@ void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
   /* Rolling rsum matched - schedule an MD5Sum match. NB: In extreme cases,
      nextEvent may be equal to off */
   x->setStartOffset(off - blockLen);
-  size_t eventLen = (file->size() < md5BlockLength ?
-                     file->size() : md5BlockLength);
+  size_t eventLen = (file->size() < csumBlockLength ?
+                     file->size() : csumBlockLength);
   x->setNextEvent(matches, x->startOffset() + eventLen);
   debug(" %1: Head of %2 match at offset %3, my next event %4",
         off, file->leafName(), x->startOffset(), x->nextEvent());
@@ -280,7 +292,7 @@ void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
    appropriate entry in "matches". */
 void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
     const uint32& bitMask, const size_t blockLen, const size_t back,
-    const size_t md5BlockLength, uint64& nextEvent) {
+    const size_t csumBlockLength, uint64& nextEvent) {
 
   typedef const vector<FilePart*> FVec;
   FVec& hashEntry = block[sum.getHi() & bitMask];
@@ -292,7 +304,7 @@ void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
     const RsyncSum64* fileSum = file->getRsyncSum(cache);
     if (fileSum != 0 && *fileSum == sum)
       // Insert new partial file match in "matches" queue
-      checkRsyncSumMatch2(blockLen, back, md5BlockLength, nextEvent, file);
+      checkRsyncSumMatch2(blockLen, back, csumBlockLength, nextEvent, file);
     ++i;
   } while (i != e);
   return;
@@ -446,7 +458,7 @@ bool MkTemplate::matchExecCommands(PartialMatch* x) {
    buf[(data+stillBuffered-1)%bufferLength] */
 bool MkTemplate::checkMD5Match(byte* const buf,
     const size_t bufferLength, const size_t data,
-    const size_t md5BlockLength, uint64& nextEvent,
+    const size_t csumBlockLength, uint64& nextEvent,
     const size_t stillBuffered, Desc& desc) {
   PartialMatch* x = matches->front();
   Paranoid(x != 0 && matches->nextEvent() == off);
@@ -465,7 +477,7 @@ bool MkTemplate::checkMD5Match(byte* const buf,
   md.finishForReuse();
   //____________________
 
-  const MD5* xfileSum = x->file()->getSums(cache, x->blockNumber());
+  const MD5* xfileSum = x->file()->getMD5Sums(cache, x->blockNumber());
   if (debug)
     debug("checkMD5Match?: image %1, file %2 block #%3 %4",
           md.toString(), x->file()->leafName(), x->blockNumber(),
@@ -484,7 +496,7 @@ bool MkTemplate::checkMD5Match(byte* const buf,
     // Still some more to go - update x and its position in queue
     x->setBlockOffset(data);
     x->setBlockNumber(x->blockNumber() + 1);
-    x->setNextEvent(matches, min(x->nextEvent() + md5BlockLength,
+    x->setNextEvent(matches, min(x->nextEvent() + csumBlockLength,
                                  x->startOffset() + x->file()->size()));
     nextEvent = min(nextEvent, x->nextEvent());
     debug("checkMD5Match: match and more to go, next at off %1",
@@ -608,7 +620,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
 void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
     size_t bufferLength, size_t blockLength, uint32 blockMask,
-    size_t md5BlockLength) {
+    size_t csumBlockLength) {
 
 # if 0
   // Simple version
@@ -622,7 +634,7 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     *rsumBack = modAdd(*rsumBack, 1, bufferLength);
     if (((off - blockLength) & sectorMask) == 0) {
       checkRsyncSumMatch(*rsum, blockMask, blockLength, *rsumBack,
-                         md5BlockLength, nextEvent);
+                         csumBlockLength, nextEvent);
       sectorMask = sectorLength - 1;
       Paranoid(matches->empty()
                || matches->front()->startOffset() >= unmatchedStart);
@@ -690,7 +702,7 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     if (off == nextAlignedOff) {
       Paranoid(((off - blockLength) & sectorMask) == 0);
       checkRsyncSumMatch(*rsum, blockMask, blockLength, *rsumBack,
-                         md5BlockLength, nextEvent);
+                         csumBlockLength, nextEvent);
       Paranoid(matches->empty()
                || matches->front()->startOffset() >= unmatchedStart);
       sectorMask = sectorLength - 1;
@@ -706,22 +718,22 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
    Treat buf as a circular buffer. Read new data into at most half the
    buffer. Calculate a rolling checksum covering blockLength bytes. When it
    matches an entry in block, start calculating MD5Sums of blocks of length
-   md5BlockLength.
+   csumBlockLength.
 
    Since both image and templ can be non-seekable, we run into a problem in
    the following case: After the initial RsyncSum match, a few of the
-   md5BlockLength-sized chunks of one input file were matched, but not all,
+   csumBlockLength-sized chunks of one input file were matched, but not all,
    so in the end, there is no match. Consequently, we would now need to
    re-read that part of the image and pump it through zlib to templ - but we
    can't if the image is stdin! Solution: Since we know that the MD5Sum of a
    block matched part of an input file, we can re-read from there. */
 inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
-    size_t blockLength, uint32 blockMask, size_t md5BlockLength,
+    size_t blockLength, uint32 blockMask, size_t csumBlockLength,
     MD5Sum& templMd5Sum) {
   bool result = SUCCESS;
 
   /* Cause input files to be analysed */
-  if (scanFiles(blockLength, blockMask, md5BlockLength))
+  if (scanFiles(blockLength, blockMask, csumBlockLength))
     result = FAILURE;
 
   /* Initialise rolling sums with blockSize bytes 0x7f, and do the same with
@@ -853,7 +865,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
             } else {
               dataOld = data - dataOld; off += dataOld; n -= dataOld;
               checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
-                                 md5BlockLength, nextEvent);
+                                 csumBlockLength, nextEvent);
             }
             if (matches->full()) break;
           }
@@ -871,7 +883,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
             /* Look for matches of rsum. If found, insert appropriate
                entry in matches list and maybe modify nextEvent. */
             checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
-                               md5BlockLength, nextEvent);
+                               csumBlockLength, nextEvent);
 
             /* We mustn't by accident schedule an event for a part of
                the image that has already been flushed out of the
@@ -883,7 +895,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
           // Innermost loop - MATCHES IS FULL
           scanImage_mainLoop_fastForward(nextEvent, &rsum, buf, &data, &n,
               &rsumBack, bufferLength, blockLength, blockMask,
-              md5BlockLength);
+              csumBlockLength);
         } // endif (matches->full())
         if (matches->empty())
           debug(" %1: Event, matches empty", off);
@@ -898,7 +910,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
         while (!matches->empty() && matches->nextEvent() == off) {
           size_t stillBuffered = bufferLength - n;
           if (stillBuffered > off) stillBuffered = off;
-          if (checkMD5Match(buf, bufferLength, data, md5BlockLength,
+          if (checkMD5Match(buf, bufferLength, data, csumBlockLength,
                             nextEvent, stillBuffered, desc))
             return FAILURE; // no recovery possible, exit immediately
         }
@@ -971,7 +983,7 @@ bool MkTemplate::run(const string& imageLeafName,
      be able to read readAmount bytes into one buffer half in one go;
      must be able to start calculating an MD5Sum at a position that is
      blockLength bytes back in input; must be able to write out at
-     least previous md5BlockLength bytes in case there is no match. */
+     least previous csumBlockLength bytes in case there is no match. */
   size_t bufferLength = 2 *
     (max_MD5Len_blockLen > readAmount ? max_MD5Len_blockLen : readAmount);
   // Avoid reading less bytes than readAmount at any time
@@ -985,7 +997,7 @@ bool MkTemplate::run(const string& imageLeafName,
     debug("Nr of files: %1 (%2 bits)", fileCount, blockBits);
     debug("Total bytes: %1", fileSizeTotal);
     debug("blockLength: %1", cache->getBlockLen());
-    debug("md5BlockLen: %1", cache->getMD5BlockLen());
+    debug("csumBlockLen: %1", cache->getMD5BlockLen());
     debug("bufLen (kB): %1", bufferLength/1024);
     debug("zipQual:     %1", zipQual);
   }

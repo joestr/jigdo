@@ -49,7 +49,7 @@ size_t JigdoFileCmd::optCacheExpiry = 60*60*24*30; // default: 30 days
 vector<string> JigdoFileCmd::optLabels;
 vector<string> JigdoFileCmd::optUris;
 size_t JigdoFileCmd::blockLength    =   1*1024U;
-size_t JigdoFileCmd::md5BlockLength = 128*1024U - 55;
+size_t JigdoFileCmd::csumBlockLength = 128*1024U - 55;
 size_t JigdoFileCmd::readAmount     = 128*1024U;
 int JigdoFileCmd::optZipQuality = Z_BEST_COMPRESSION;
 bool JigdoFileCmd::optBzip2 = false;
@@ -137,7 +137,7 @@ public:
     m += _("scanning image");
     print(m, false);
   }
-  virtual void readingMD5(uint64 offInStream, uint64 size) {
+  virtual void readingChecksum(uint64 offInStream, uint64 size) {
     if (!printProgress) return;
     string m;
     append(m, 100 * offInStream / size, 3); // 3
@@ -282,7 +282,7 @@ MyQuietProgressReporter reporterQuiet;
 //______________________________________________________________________
 
 inline void printUsage(bool detailed, size_t blockLength,
-                       size_t md5BlockLength, size_t readAmount) {
+                       size_t csumBlockLength, size_t readAmount) {
   if (detailed) {
     cout << subst(_(
     "\n"
@@ -308,7 +308,8 @@ inline void printUsage(bool detailed, size_t blockLength,
     "  scan sc          Update cache with information about supplied files\n");
   cout << _(
     "  verify ver       Check whether image matches checksum from template\n"
-    "  md5sum md5       Print MD5 checksums similar to md5sum(1)\n");
+    "  md5sum md5       Print MD5 checksums similar to md5sum(1)\n"
+    "  sha256sum sha256 Print SHA256 checksums similar to sha256sum(1)\n");
   if (detailed) {
     cout << _(
     "  list-template ls Print low-level listing of contents of template\n"
@@ -361,17 +362,19 @@ inline void printUsage(bool detailed, size_t blockLength,
     "  --min-length=BYTES [default %1]\n"
     "                   [make-template] Minimum length of files to search\n"
     "                   for in image data\n"
-    "  --md5-block-size=BYTES [default %2]\n"
+    "  --checksum-block-size=BYTES [default %2]\n"
     "                   Uninteresting internal parameter -\n"
-    "                   jigdo-file enforces: min-length < md5-block-size\n"
+    "                   jigdo-file enforces: min-length < checksum-block-size\n"
+    "  --md5-block-size=BYTES\n"
+    "                   Alias for --checksum-block-size, deprecated.\n"
     "  --readbuffer=BYTES [default %3k]\n"
     "                   Amount of data to read at a time\n"
     "  --check-files [default]\n"
-    "                   [make-template,md5sum] Check if files exist and\n"
+    "                   [make-template,md5sum,sha256sum] Check if files exist and\n"
     "                   get or verify checksums, date and size\n"
     "                   [make-image] Verify checksum of files written to\n"
     "                   image\n"
-    "  --no-check-files [make-template,md5sum] when used with --cache,\n"
+    "  --no-check-files [make-template,md5sum,sha256sum] when used with --cache,\n"
     "                   [make-image] Do not verify checksums of files\n"
     "  --scan-whole-file [scan] Scan whole file instead of only first block\n"
     "  --no-scan-whole-file [scan] Scan only first block [default]\n"
@@ -394,13 +397,13 @@ inline void printUsage(bool detailed, size_t blockLength,
     "  --no-debug       No debugging info [default]\n"
     "  --match-exec=CMD [make-template] Execute command when files match\n"
     "                   CMD is passed to a shell, with environment set up:\n"
-    "                   LABEL, LABELPATH, MATCHPATH, LEAF, MD5SUM, FILE\n"
+    "                   LABEL, LABELPATH, MATCHPATH, LEAF, MD5SUM, SHA256SUM, FILE\n"
     "                   e.g. 'mkdir -p \"${LABEL:-.}/$MATCHPATH\" && ln -f \"$FILE\" \"${LABEL:-.}/$MATCHPATH$LEAF\"'\n"
     "  --no-hex [default]\n"
-    "  --hex            [md5sum, list-template] Output checksums in\n"
+    "  --hex            [md5sum,sha256sum,list-template] Output checksums in\n"
     "                   hexadecimal, not Base64\n"
     "  --gzip           [default] Use gzip compression, not --bzip2\n"),
-    blockLength, md5BlockLength, readAmount / 1024) << endl;
+    blockLength, csumBlockLength, readAmount / 1024) << endl;
   }
   return;
 }
@@ -490,7 +493,7 @@ void outOfMemory() {
 
 enum {
   LONGOPT_BUFSIZE = 0x100, LONGOPT_NOFORCE, LONGOPT_MINSIZE,
-  LONGOPT_MD5SIZE, LONGOPT_MKIMAGECHECK, LONGOPT_NOMKIMAGECHECK,
+  LONGOPT_CHECKSUMSIZE, LONGOPT_MKIMAGECHECK, LONGOPT_NOMKIMAGECHECK,
   LONGOPT_LABEL, LONGOPT_URI, LONGOPT_ADDSERVERS, LONGOPT_NOADDSERVERS,
   LONGOPT_ADDIMAGE, LONGOPT_NOADDIMAGE, LONGOPT_NOCACHE, LONGOPT_CACHEEXPIRY,
   LONGOPT_MERGE, LONGOPT_HEX, LONGOPT_NOHEX, LONGOPT_DEBUG, LONGOPT_NODEBUG,
@@ -525,7 +528,8 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
       { "jigdo",              required_argument, 0, 'j' },
       { "label",              required_argument, 0, LONGOPT_LABEL },
       { "match-exec",         required_argument, 0, LONGOPT_MATCHEXEC },
-      { "md5-block-size",     required_argument, 0, LONGOPT_MD5SIZE },
+      { "md5-block-size",     required_argument, 0, LONGOPT_CHECKSUMSIZE },
+      { "checksum-block-size",required_argument, 0, LONGOPT_CHECKSUMSIZE },
       { "merge",              required_argument, 0, LONGOPT_MERGE },
       { "min-length",         required_argument, 0, LONGOPT_MINSIZE },
       { "no-cache",           no_argument,       0, LONGOPT_NOCACHE },
@@ -571,7 +575,7 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
     case 'f': optForce = true; break;
     case LONGOPT_NOFORCE: optForce = false; break;
     case LONGOPT_MINSIZE:    blockLength = scanMemSize(optarg); break;
-    case LONGOPT_MD5SIZE: md5BlockLength = scanMemSize(optarg); break;
+    case LONGOPT_CHECKSUMSIZE: csumBlockLength = scanMemSize(optarg); break;
     case LONGOPT_BUFSIZE:     readAmount = scanMemSize(optarg); break;
     case 'r':
       if (strcmp(optarg, "default") == 0) {
@@ -623,7 +627,7 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
   if (optHelp != '\0' || optVersion) {
     if (optVersion) cout << "jigdo-file version " JIGDO_VERSION << endl;
     if (optHelp != '\0') printUsage(optHelp == 'H', blockLength,
-                                    md5BlockLength, readAmount);
+                                    csumBlockLength, readAmount);
     throw Cleanup(0);
   }
 
@@ -634,14 +638,14 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
 # endif
   //______________________________
 
-  // Silently correct invalid blockLength/md5BlockLength args
+  // Silently correct invalid blockLength/csumBlockLength args
   if (blockLength < MINIMUM_BLOCKLENGTH) blockLength = MINIMUM_BLOCKLENGTH;
-  if (blockLength >= md5BlockLength) md5BlockLength = blockLength + 1;
-  // Round to next k*64+55 for efficient MD5 calculation
-  md5BlockLength = ((md5BlockLength + 63 - 55) & ~63U) + 55;
+  if (blockLength >= csumBlockLength) csumBlockLength = blockLength + 1;
+  // Round to next k*64+55 for efficient checksum calculation
+  csumBlockLength = ((csumBlockLength + 63 - 55) & ~63U) + 55;
 
   Paranoid(blockLength >= MINIMUM_BLOCKLENGTH
-           && blockLength < md5BlockLength);
+           && blockLength < csumBlockLength);
   //______________________________
 
   // Complain if name of command isn't there
@@ -671,7 +675,9 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
       { (char *)"list-template",     LIST_TEMPLATE },
       { (char *)"ls",                LIST_TEMPLATE },
       { (char *)"md5sum",            MD5SUM },
-      { (char *)"md5",               MD5SUM }
+      { (char *)"md5",               MD5SUM },
+      { (char *)"sha256sum",         SHA256SUM },
+      { (char *)"sha256",            SHA256SUM }
     };
 
     const CodesEntry *c = codes;
@@ -769,12 +775,16 @@ int main(int argc, char* argv[]) {
     case JigdoFileCmd::SCAN:
       returnValue = JigdoFileCmd::scanFiles();    break;
     case JigdoFileCmd::VERIFY:
-      returnValue = JigdoFileCmd::verifyImage();  break;
+      returnValue = JigdoFileCmd::verifyImageMD5();  break;
+      // FIXME! Needs update to use SHA256
     case JigdoFileCmd::LIST_TEMPLATE:
       returnValue = JigdoFileCmd::listTemplate(); break;
     case JigdoFileCmd::MD5SUM:
       JigdoFileCmd::optCheckFiles = true; // Quick fix, possibly not 100% correct
       returnValue = JigdoFileCmd::md5sumFiles();  break;
+    case JigdoFileCmd::SHA256SUM:
+      JigdoFileCmd::optCheckFiles = true; // Quick fix, possibly not 100% correct
+      returnValue = JigdoFileCmd::sha256sumFiles();  break;
     }
   }
   catch (bad_alloc &) { outOfMemory(); }

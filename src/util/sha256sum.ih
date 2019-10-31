@@ -1,0 +1,50 @@
+/* $Id: sha256sum.ih,v 1.3 2004/06/20 20:35:15 atterer Exp $ -*- C++ -*-
+  __   _
+  |_) /|  Copyright (C) 2000-2004  |  richard@
+  | \/¯|  Richard Atterer          |  atterer.org
+  ¯ '` ¯
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License, version 2. See
+  the file COPYING for details.
+
+  Quite secure 256-bit checksum
+
+*/
+
+#ifndef SHA256SUM_IH
+#define SHA256SUM_IH
+
+#include <mimestream.hh>
+//______________________________________________________________________
+
+ostream& operator<<(ostream& s, const SHA256& r) {
+  Base64String m;
+  m.write(r.sum, 32).flush();
+  s << m.result();
+  return s;
+}
+
+string SHA256Sum::toString() const {
+  const byte* d = digest();
+  if (d == 0) {
+    return "[SHA256_creation_not_finished]";
+  } else {
+    Base64String m;
+    m.write(d, 32).flush();
+    return m.result();
+  }
+}
+
+ostream& operator<<(ostream& s, const SHA256Sum& r) {
+  const byte* d = r.digest();
+  if (d == 0) {
+    s << "[SHA256_creation_not_finished]";
+  } else {
+    Base64String m;
+    m.write(d, 32).flush();
+    s << m.result();
+  }
+  return s;
+}
+
+#endif

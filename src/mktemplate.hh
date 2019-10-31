@@ -137,19 +137,19 @@ private:
   void finalizeJigdo(const string& imageLeafName,
     const string& templLeafName, const MD5Sum& templMd5Sum);
   INLINE bool scanFiles(size_t blockLength, uint32 blockMask,
-    size_t md5BlockLength);
+    size_t csumBlockLength);
   INLINE bool scanImage(byte* buf, size_t bufferLength, size_t blockLength,
-    uint32 blockMask, size_t md5BlockLength, MD5Sum&);
+    uint32 blockMask, size_t csumBlockLength, MD5Sum&);
   static INLINE void insertInTodo(PartialMatchQueue& matches,
     PartialMatch* x);
   void checkRsyncSumMatch2(const size_t blockLen, const size_t back,
-    const size_t md5BlockLength, uint64& nextEvent, FilePart* file);
+    const size_t csumBlockLength, uint64& nextEvent, FilePart* file);
   INLINE void checkRsyncSumMatch(const RsyncSum64& sum,
     const uint32& bitMask, const size_t blockLen, const size_t back,
-    const size_t md5BlockLength, uint64& nextEvent);
+    const size_t csumBlockLength, uint64& nextEvent);
   INLINE bool checkMD5Match(byte* const buf,
     const size_t bufferLength, const size_t data,
-    const size_t md5BlockLength, uint64& nextEvent,
+    const size_t csumBlockLength, uint64& nextEvent,
     const size_t stillBuffered, Desc& desc);
   INLINE bool checkMD5Match_mismatch(const size_t stillBuffered,
     PartialMatch* x, Desc& desc);
@@ -159,7 +159,7 @@ private:
   INLINE void scanImage_mainLoop_fastForward(uint64 nextEvent,
     RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
     size_t bufferLength, size_t blockLength, uint32 blockMask,
-    size_t md5BlockLength);
+    size_t csumBlockLength);
   INLINE bool matchExecCommands(PartialMatch* x);
 
   inline void debugRangeInfo(uint64 start, uint64 end, const char* msg,

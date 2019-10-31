@@ -26,6 +26,7 @@
 #include <bstream.hh>
 #include <debug.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <scan.hh>
 #include <serialize.hh>
 //______________________________________________________________________
@@ -43,9 +44,16 @@ class JigdoDesc {
 public:
   /** Types of entries in a description section */
   enum Type {
-    IMAGE_INFO = 5, UNMATCHED_DATA = 2, MATCHED_FILE = 6, WRITTEN_FILE = 7,
-    OBSOLETE_IMAGE_INFO = 1, OBSOLETE_MATCHED_FILE = 3,
-    OBSOLETE_WRITTEN_FILE = 4
+    OBSOLETE_IMAGE_INFO = 1,
+    UNMATCHED_DATA = 2,
+    OBSOLETE_MATCHED_FILE = 3,
+    OBSOLETE_WRITTEN_FILE = 4,
+    IMAGE_INFO = 5,
+    MATCHED_FILE = 6,
+    WRITTEN_FILE = 7,
+    IMAGE_INFO_SHA256 = 8,
+    MATCHED_FILE_SHA256 = 9,
+    WRITTEN_FILE_SHA256 = 10
   };
   class ProgressReporter;
   //____________________
@@ -87,9 +95,12 @@ public:
     const string& templFile, bistream* templ, ProgressReporter& reporter);
 
   class ImageInfo;
+  class ImageInfoSHA256;
   class UnmatchedData;
   class MatchedFile;
+  class MatchedFileSHA256;
   class WrittenFile;
+  class WrittenFileSHA256;
 
 private:
   static ProgressReporter noReport;
@@ -118,6 +129,30 @@ public:
 private:
   uint64 sizeVal;
   MD5 md5Val;
+  size_t blockLengthVal;
+};
+//________________________________________
+
+/** Information about the image file */
+class JigdoDesc::ImageInfoSHA256 : public JigdoDesc {
+public:
+  inline ImageInfoSHA256(uint64 s, const SHA256& m, size_t b);
+  inline ImageInfoSHA256(uint64 s, const SHA256Sum& m, size_t b);
+  inline bool operator==(const JigdoDesc& x) const;
+  Type type() const { return IMAGE_INFO_SHA256; }
+  uint64 size() const { return sizeVal; }
+  const SHA256& sha256() const { return sha256Val; }
+  size_t blockLength() const { return blockLengthVal; }
+  // Default dtor, operator==
+  virtual ostream& put(ostream& s) const;
+
+  template<class Iterator>
+  inline Iterator serialize(Iterator i) const;
+  inline size_t serialSizeOf() const;
+
+private:
+  uint64 sizeVal;
+  SHA256 sha256Val;
   size_t blockLengthVal;
 };
 //________________________________________
@@ -192,6 +227,53 @@ public:
 };
 //______________________________________________________________________
 
+/** Info about data that *was* matched by an input file */
+class JigdoDesc::MatchedFileSHA256 : public JigdoDesc {
+public:
+  inline MatchedFileSHA256(uint64 o, uint64 s, const RsyncSum64& r, const SHA256& m);
+  inline MatchedFileSHA256(uint64 o, uint64 s, const RsyncSum64& r,
+                     const SHA256Sum& m);
+  inline bool operator==(const JigdoDesc& x) const;
+  Type type() const { return MATCHED_FILE_SHA256; }
+  uint64 offset() const { return offsetVal; }
+  uint64 size() const { return sizeVal; }
+  const SHA256& sha256() const { return sha256Val; }
+  const RsyncSum64& rsync() const { return rsyncVal; }
+  // Default dtor, operator==
+  virtual ostream& put(ostream& s) const;
+
+  template<class Iterator>
+  inline Iterator serialize(Iterator i) const;
+  inline size_t serialSizeOf() const;
+
+private:
+  uint64 offsetVal; // Offset in image
+  uint64 sizeVal;
+  RsyncSum64 rsyncVal;
+  SHA256 sha256Val;
+};
+//________________________________________
+
+/** Like MatchedFileSHA256 - used only in .tmp files to express that the
+    file data was successfully written to the image. NB: Because this
+    derives from MatchedFileSHA256 and because of the implementation of
+    JigdoDesc::operator==, MatchedFileSHA256's and WrittenFileSHA256's will
+    compare equal if their data fields are identical. */
+class JigdoDesc::WrittenFileSHA256 : public MatchedFileSHA256 {
+public:
+  WrittenFileSHA256(uint64 o, uint64 s, const RsyncSum64& r, const SHA256& m)
+    : MatchedFileSHA256(o, s, r, m) { }
+  // Implicit cast to allow MatchedFileSHA256 and WrittenFileSHA256 to compare equal
+  inline bool operator==(const JigdoDesc& x) const;
+  Type type() const { return WRITTEN_FILE_SHA256; }
+  virtual ostream& put(ostream& s) const;
+
+  template<class Iterator>
+  inline Iterator serialize(Iterator i) const;
+  inline size_t serialSizeOf() const;
+};
+//______________________________________________________________________
+
 /** Class allowing JigdoDesc to convey information back to the caller.
     The default versions of the methods do nothing at all (except for
     error(), which prints the error to cerr) - you need to supply an
@@ -236,7 +318,7 @@ public:
       not be two contiguous Unmatched regions - this is not checked.
       Similarly, the length of the ImageInfo part must match the
       accumulated lengths of the other parts. */
-  bostream& put(bostream& file, MD5Sum* md = 0) const;
+  bostream& put(bostream& file, MD5Sum* md = 0, SHA256Sum* sd = 0) const;
 
   /** List contents of a JigdoDescVec to a stream in human-readable format. */
   void list(ostream& s) throw();
@@ -253,13 +335,23 @@ JigdoDesc::ImageInfo::ImageInfo(uint64 s, const MD5& m, size_t b)
   : sizeVal(s), md5Val(m), blockLengthVal(b) { }
 JigdoDesc::ImageInfo::ImageInfo(uint64 s, const MD5Sum& m, size_t b)
   : sizeVal(s), md5Val(m), blockLengthVal(b) { }
+JigdoDesc::ImageInfoSHA256::ImageInfoSHA256(uint64 s, const SHA256& m, size_t b)
+  : sizeVal(s), sha256Val(m), blockLengthVal(b) { }
+JigdoDesc::ImageInfoSHA256::ImageInfoSHA256(uint64 s, const SHA256Sum& m, size_t b)
+  : sizeVal(s), sha256Val(m), blockLengthVal(b) { }
 
 JigdoDesc::MatchedFile::MatchedFile(uint64 o, uint64 s, const RsyncSum64& r,
                                     const MD5& m)
   : offsetVal(o), sizeVal(s), rsyncVal(r), md5Val(m) { }
+JigdoDesc::MatchedFileSHA256::MatchedFileSHA256(uint64 o, uint64 s, const RsyncSum64& r,
+                                    const SHA256& m)
+  : offsetVal(o), sizeVal(s), rsyncVal(r), sha256Val(m) { }
 JigdoDesc::MatchedFile::MatchedFile(uint64 o, uint64 s, const RsyncSum64& r,
                                     const MD5Sum& m)
   : offsetVal(o), sizeVal(s), rsyncVal(r), md5Val(m) { }
+JigdoDesc::MatchedFileSHA256::MatchedFileSHA256(uint64 o, uint64 s, const RsyncSum64& r,
+                                    const SHA256Sum& m)
+  : offsetVal(o), sizeVal(s), rsyncVal(r), sha256Val(m) { }
 
 //________________________________________
 
@@ -267,6 +359,12 @@ bool JigdoDesc::ImageInfo::operator==(const JigdoDesc& x) const {
   const ImageInfo* i = dynamic_cast<const ImageInfo*>(&x);
   if (i == 0) return false;
   else return size() == i->size() && md5() == i->md5();
+}
+
+bool JigdoDesc::ImageInfoSHA256::operator==(const JigdoDesc& x) const {
+  const ImageInfoSHA256* i = dynamic_cast<const ImageInfoSHA256*>(&x);
+  if (i == 0) return false;
+  else return size() == i->size() && sha256() == i->sha256();
 }
 
 bool JigdoDesc::UnmatchedData::operator==(const JigdoDesc& x) const {
@@ -282,12 +380,27 @@ bool JigdoDesc::MatchedFile::operator==(const JigdoDesc& x) const {
               && md5() == m->md5();
 }
 
+bool JigdoDesc::MatchedFileSHA256::operator==(const JigdoDesc& x) const {
+  const MatchedFileSHA256* m = dynamic_cast<const MatchedFileSHA256*>(&x);
+  if (m == 0) return false;
+  else return offset() == m->offset() && size() == m->size()
+              && sha256() == m->sha256();
+}
+
 bool JigdoDesc::WrittenFile::operator==(const JigdoDesc& x) const {
   // NB MatchedFile and WrittenFile considered equal!
   const MatchedFile* m = dynamic_cast<const MatchedFile*>(&x);
   if (m == 0) return false;
   else return offset() == m->offset() && size() == m->size()
               && md5() == m->md5();
+}
+
+bool JigdoDesc::WrittenFileSHA256::operator==(const JigdoDesc& x) const {
+  // NB MatchedFileSHA256 and WrittenFileSHA256 considered equal!
+  const MatchedFileSHA256* m = dynamic_cast<const MatchedFileSHA256*>(&x);
+  if (m == 0) return false;
+  else return offset() == m->offset() && size() == m->size()
+              && sha256() == m->sha256();
 }
 //________________________________________
 
@@ -315,6 +428,16 @@ Iterator JigdoDesc::ImageInfo::serialize(Iterator i) const {
 size_t JigdoDesc::ImageInfo::serialSizeOf() const { return 1 + 6 + 16 + 4; }
 
 template<class Iterator>
+Iterator JigdoDesc::ImageInfoSHA256::serialize(Iterator i) const {
+  i = serialize1(IMAGE_INFO, i);
+  i = serialize6(size(), i);
+  i = ::serialize(sha256(), i);
+  i = serialize4(blockLength(), i);
+  return i;
+}
+size_t JigdoDesc::ImageInfoSHA256::serialSizeOf() const { return 1 + 6 + 32 + 4; }
+
+template<class Iterator>
 Iterator JigdoDesc::UnmatchedData::serialize(Iterator i) const {
   i = serialize1(UNMATCHED_DATA, i);
   i = serialize6(size(), i);
@@ -333,6 +456,16 @@ Iterator JigdoDesc::MatchedFile::serialize(Iterator i) const {
 size_t JigdoDesc::MatchedFile::serialSizeOf() const { return 1 + 6 + 8 + 16;}
 
 template<class Iterator>
+Iterator JigdoDesc::MatchedFileSHA256::serialize(Iterator i) const {
+  i = serialize1(MATCHED_FILE, i);
+  i = serialize6(size(), i);
+  i = ::serialize(rsync(), i);
+  i = ::serialize(sha256(), i);
+  return i;
+}
+size_t JigdoDesc::MatchedFileSHA256::serialSizeOf() const { return 1 + 6 + 8 + 32;}
+
+template<class Iterator>
 Iterator JigdoDesc::WrittenFile::serialize(Iterator i) const {
   i = serialize1(WRITTEN_FILE, i);
   i = serialize6(size(), i);
@@ -341,5 +474,16 @@ Iterator JigdoDesc::WrittenFile::serialize(Iterator i) const {
   return i;
 }
 size_t JigdoDesc::WrittenFile::serialSizeOf() const { return 1 + 6 + 8 + 16;}
+
+template<class Iterator>
+Iterator JigdoDesc::WrittenFileSHA256::serialize(Iterator i) const {
+  i = serialize1(WRITTEN_FILE_SHA256, i);
+  i = serialize6(size(), i);
+  i = ::serialize(rsync(), i);
+  i = ::serialize(sha256(), i);
+  return i;
+}
+size_t JigdoDesc::WrittenFileSHA256::serialSizeOf() const { return 1 + 6 + 8 + 32;}
+
 
 #endif

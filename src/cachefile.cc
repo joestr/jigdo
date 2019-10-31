@@ -7,7 +7,7 @@
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
-  Cache with MD5 sums of file contents - used by JigdoCache in scan.hh
+  Cache with checksums of file contents - used by JigdoCache in scan.hh
 
 */
 
@@ -40,7 +40,7 @@ CacheFile::CacheFile(const char* dbName) {
   db->set_cachesize(db, 0, 4*1024*1024, 1);
 
   // Use a btree, create database file if not yet present
-  e = compat_dbOpen(db, dbName, "jigdo filecache v0", DB_BTREE, DB_CREATE,
+  e = compat_dbOpen(db, dbName, "jigdo filecache v1", DB_BTREE, DB_CREATE,
                     0666);
   if (e != 0) {
     // Re-close, in case it is necessary
@@ -50,7 +50,7 @@ CacheFile::CacheFile(const char* dbName) {
     /* If the DB file is old or corrupted, just regenerate it from
        scratch, otherwise throw error. */
     debug("Cache file corrupt, recreating it");
-    if (compat_dbOpen(db, dbName, "jigdo filecache v0", DB_BTREE,
+    if (compat_dbOpen(db, dbName, "jigdo filecache v1", DB_BTREE,
                       DB_CREATE | DB_TRUNCATE, 0666) != 0)
       throw DbError(e);
   }

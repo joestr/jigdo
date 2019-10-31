@@ -1,4 +1,4 @@
-/* $Id: md5sum.cc,v 1.4 2004/06/20 20:35:15 atterer Exp $ -*- C++ -*-
+/* $Id: sha256sum.cc,v 1.4 2004/06/20 20:35:15 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2004  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
@@ -18,58 +18,58 @@
 #include <iostream>
 #include <vector>
 
-#include <glibc-md5.hh>
-#include <md5sum.hh>
-#include <md5sum.ih>
+#include <glibc-sha256.hh>
+#include <sha256sum.hh>
+#include <sha256sum.ih>
 //______________________________________________________________________
 
-void MD5Sum::ProgressReporter::error(const string& message) {
+void SHA256Sum::ProgressReporter::error(const string& message) {
   cerr << message << endl;
 }
-void MD5Sum::ProgressReporter::info(const string& message) {
+void SHA256Sum::ProgressReporter::info(const string& message) {
   cerr << message << endl;
 }
-void MD5Sum::ProgressReporter::readingChecksum(uint64, uint64) { }
+void SHA256Sum::ProgressReporter::readingSHA256(uint64, uint64) { }
 
-MD5Sum::ProgressReporter MD5Sum::noReport;
+SHA256Sum::ProgressReporter SHA256Sum::noReport;
 //______________________________________________________________________
 
-MD5Sum::MD5Sum(const MD5Sum& md) {
+SHA256Sum::SHA256Sum(const SHA256Sum& md) {
   if (md.p == 0) {
     p = 0;
-    for (int i = 0; i < 16; ++i) sum[i] = md.sum[i];
+    for (int i = 0; i < 32; ++i) sum[i] = md.sum[i];
   } else {
-    p = new md5_ctx();
+    p = new sha256_ctx();
     *p = *md.p;
   }
 }
 //________________________________________
 
 // NB must work with self-assign
-MD5Sum& MD5Sum::operator=(const MD5Sum& md) {
+SHA256Sum& SHA256Sum::operator=(const SHA256Sum& md) {
 # if DEBUG
   finished = md.finished;
 # endif
   if (md.p == 0) {
     delete p;
     p = 0;
-    for (int i = 0; i < 16; ++i) sum[i] = md.sum[i];
+    for (int i = 0; i < 32; ++i) sum[i] = md.sum[i];
   } else {
-    if (p == 0) p = new md5_ctx();
+    if (p == 0) p = new sha256_ctx();
     *p = *md.p;
   }
   return *this;
 }
 //______________________________________________________________________
 
-string MD5::toString() const {
+string SHA256::toString() const {
   Base64String m;
-  m.write(sum, 16).flush();
+  m.write(sum, 32).flush();
   return m.result();
 }
 //______________________________________________________________________
 
-bool MD5::operator_less2(const MD5& x) const {
+bool SHA256::operator_less2(const SHA256& x) const {
   if (sum[1] < x.sum[1]) return true;
   if (sum[1] > x.sum[1]) return false;
   if (sum[2] < x.sum[2]) return true;
@@ -99,11 +99,43 @@ bool MD5::operator_less2(const MD5& x) const {
   if (sum[14] < x.sum[14]) return true;
   if (sum[14] > x.sum[14]) return false;
   if (sum[15] < x.sum[15]) return true;
+  if (sum[15] > x.sum[15]) return false;
+  if (sum[16] < x.sum[16]) return true;
+  if (sum[16] > x.sum[16]) return false;
+  if (sum[17] < x.sum[17]) return true;
+  if (sum[17] > x.sum[17]) return false;
+  if (sum[18] < x.sum[18]) return true;
+  if (sum[18] > x.sum[18]) return false;
+  if (sum[19] < x.sum[19]) return true;
+  if (sum[19] > x.sum[19]) return false;
+  if (sum[20] < x.sum[20]) return true;
+  if (sum[20] > x.sum[20]) return false;
+  if (sum[21] < x.sum[21]) return true;
+  if (sum[21] > x.sum[21]) return false;
+  if (sum[22] < x.sum[22]) return true;
+  if (sum[22] > x.sum[22]) return false;
+  if (sum[23] < x.sum[23]) return true;
+  if (sum[23] > x.sum[23]) return false;
+  if (sum[24] < x.sum[24]) return true;
+  if (sum[24] > x.sum[24]) return false;
+  if (sum[25] < x.sum[25]) return true;
+  if (sum[25] > x.sum[25]) return false;
+  if (sum[26] < x.sum[26]) return true;
+  if (sum[26] > x.sum[26]) return false;
+  if (sum[27] < x.sum[27]) return true;
+  if (sum[27] > x.sum[27]) return false;
+  if (sum[28] < x.sum[28]) return true;
+  if (sum[28] > x.sum[28]) return false;
+  if (sum[29] < x.sum[29]) return true;
+  if (sum[29] > x.sum[29]) return false;
+  if (sum[30] < x.sum[30]) return true;
+  if (sum[30] > x.sum[30]) return false;
+  if (sum[31] < x.sum[31]) return true;
   return false;
 }
 //______________________________________________________________________
 
-uint64 MD5Sum::updateFromStream(bistream& s, uint64 size, size_t bufSize,
+uint64 SHA256Sum::updateFromStream(bistream& s, uint64 size, size_t bufSize,
                                 ProgressReporter& pr) {
   uint64 nextReport = REPORT_INTERVAL; // When next to call reporter
   uint64 toRead = size;
@@ -120,7 +152,7 @@ uint64 MD5Sum::updateFromStream(bistream& s, uint64 size, size_t bufSize,
     bytesRead += n;
     toRead -= n;
     if (bytesRead >= nextReport) {
-      pr.readingChecksum(bytesRead, size);
+      pr.readingSHA256(bytesRead, size);
       nextReport += REPORT_INTERVAL;
     }
   }
