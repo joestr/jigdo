@@ -3,3 +3,6 @@
 .gitignore
 config.log
 config.status
+Makefile
+TAGS
+config.h
