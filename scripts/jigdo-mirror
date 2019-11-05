@@ -3,6 +3,7 @@
 #  |_) /|  Copyright (C) 2002  |  richard@
 #  | \/¯|  Richard Atterer     |  atterer.org
 #  ¯ '` ¯
+# Copyright (C) 2016-2019 Steve McIntyre <93sam@debian.org>
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License, version 2. See
 #  the file COPYING for details.
@@ -151,8 +152,18 @@ makeImage() {
             rm -f "image" "template"
             return 0
         fi
+    elif test "$templateSHA256"; then
+        set -- `$jigdoFile sha256sum --report=quiet "template"`
+        if test "$1" = "$templateSHA256"; then
+            log "    Template checksum is correct"
+        else
+            log "    Error - template checksum mismatch"
+            exitCode=1
+            rm -f "image" "template"
+            return 0
+        fi
     else
-        log "    [WARNING - \`Template-MD5Sum' missing from image section]"
+        log "    [WARNING - \`Template-MD5Sum' and \`Template-SHA256Sum' missing from image section]"
     fi
 
     # Try to merge any files into the image.
@@ -346,11 +357,12 @@ find "$jigdoDir" -name "*.jigdo" \
       case "$1" in
         "["*"]")
           sectionEnd
-          unset image templateURI templateMD5 shortInfo info
+          unset image templateURI templateMD5 templateSHA256 shortInfo info
           section="$1";;
         Filename) image="$2";;
         Template) templateURI="$2";;
         Template-MD5Sum) templateMD5="$2";;
+        Template-SHA256Sum) templateSHA256="$2";;
         ShortInfo) shift; shortInfo="$*";;
         Info) shift; info="$*";;
       esac
