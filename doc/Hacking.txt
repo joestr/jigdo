@@ -1,3 +1,11 @@
+# Most of this is now *very* out of date - Steve...
+
+Adding SHA256 support
+=====================
+
+I've hacked this in alongside the MD5 support. A better long-term
+solution would be more generic checksumming support, but that would
+need major re-architecting...
 
 Hacking the jigdo source code
 =============================
@@ -28,6 +36,12 @@ Just press return at the login prompt, then execute
 Latest code: http://cvs.berlios.de/cgi-bin/viewcvs.cgi/jigdo/jigdo/jigdo.tar.gz?tarball=1
 Browse tree: http://cvs.berlios.de/cgi-bin/viewcvs.cgi/jigdo/jigdo/
 
+Steve (2019): now moved my local development to git:
+
+  https://git.einval.com/cgi-bin/gitweb.cgi?p=jigdo.git;a=summary
+
+Mail about jigdo is probably best sent to debian-cd@lists.debian.org
+for now.
 
 Bootstrapping the code
 ~~~~~~~~~~~~~~~~~~~~~~
