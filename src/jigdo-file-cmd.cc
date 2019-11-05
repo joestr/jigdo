@@ -468,7 +468,7 @@ bool JigdoFileCmd::printMissing_lookup(JigdoConfig& jc, const string& query,
 int JigdoFileCmd::printMissing(Command command) {
   if (imageFile.empty() || jigdoFile.empty() || templFile.empty()) {
     cerr << subst(_(
-      "%1 make-template: Not all of --image, --jigdo, --template specified.\n"
+      "%1 print-missing: Not all of --image, --jigdo, --template specified.\n"
       "(Attempt to deduce missing names failed.)\n"), binaryName);
     exit_tryHelp();
   }
