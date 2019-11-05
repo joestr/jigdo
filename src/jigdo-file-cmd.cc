@@ -407,7 +407,6 @@ int JigdoFileCmd::verifyImage() {
 
     for (JigdoDescVec::iterator i = contents.begin(); i != contents.end(); ++i) {
       info_md5 = dynamic_cast<JigdoDesc::ImageInfoMD5*>(*i);
-      char *this_entry = (char *)(*i);
       if (info_md5) {
         MD5Sum md; // MD5Sum of image
 	md.updateFromStream(*image, info_md5->size(), readAmount, *optReporter);
