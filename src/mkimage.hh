@@ -49,8 +49,8 @@ public:
     OBSOLETE_MATCHED_FILE = 3,
     OBSOLETE_WRITTEN_FILE = 4,
     IMAGE_INFO_MD5 = 5,
-    MATCHED_FILE = 6,
-    WRITTEN_FILE = 7,
+    MATCHED_FILE_MD5 = 6,
+    WRITTEN_FILE_MD5 = 7,
     IMAGE_INFO_SHA256 = 8,
     MATCHED_FILE_SHA256 = 9,
     WRITTEN_FILE_SHA256 = 10
@@ -193,7 +193,7 @@ public:
   inline MatchedFileMD5(uint64 o, uint64 s, const RsyncSum64& r,
                      const MD5Sum& m);
   inline bool operator==(const JigdoDesc& x) const;
-  Type type() const { return MATCHED_FILE; }
+  Type type() const { return MATCHED_FILE_MD5; }
   uint64 offset() const { return offsetVal; }
   uint64 size() const { return sizeVal; }
   const MD5& md5() const { return md5Val; }
@@ -224,7 +224,7 @@ public:
     : MatchedFileMD5(o, s, r, m) { }
   // Implicit cast to allow MatchedFileMD5 and WrittenFileMD5 to compare equal
   inline bool operator==(const JigdoDesc& x) const;
-  Type type() const { return WRITTEN_FILE; }
+  Type type() const { return WRITTEN_FILE_MD5; }
   virtual ostream& put(ostream& s) const;
 
   template<class Iterator>
@@ -453,7 +453,7 @@ size_t JigdoDesc::UnmatchedData::serialSizeOf() const { return 1 + 6; }
 
 template<class Iterator>
 Iterator JigdoDesc::MatchedFileMD5::serialize(Iterator i) const {
-  i = serialize1(MATCHED_FILE, i);
+  i = serialize1(MATCHED_FILE_MD5, i);
   i = serialize6(size(), i);
   i = ::serialize(rsync(), i);
   i = ::serialize(md5(), i);
@@ -473,7 +473,7 @@ size_t JigdoDesc::MatchedFileSHA256::serialSizeOf() const { return 1 + 6 + 8 + 3
 
 template<class Iterator>
 Iterator JigdoDesc::WrittenFileMD5::serialize(Iterator i) const {
-  i = serialize1(WRITTEN_FILE, i);
+  i = serialize1(WRITTEN_FILE_MD5, i);
   i = serialize6(size(), i);
   i = ::serialize(rsync(), i);
   i = ::serialize(md5(), i);

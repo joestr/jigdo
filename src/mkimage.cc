@@ -174,16 +174,16 @@ bistream& JigdoDescVec::get(bistream& file) {
       off += entryLen;
       break;
 
-    case JigdoDesc::MATCHED_FILE:
-    case JigdoDesc::WRITTEN_FILE:
+    case JigdoDesc::MATCHED_FILE_MD5:
+    case JigdoDesc::WRITTEN_FILE_MD5:
       unserialize6(entryLen, f);
       unserialize(rsum, f);
       unserialize(entryMd5, f);
       if (!file) break;
       debug("JigdoDesc::read: %1 %2File %3 %4",
-            off, (type == JigdoDesc::MATCHED_FILE ? "Matched" : "Written"),
+            off, (type == JigdoDesc::MATCHED_FILE_MD5 ? "Matched" : "Written"),
             entryLen, entryMd5.toString());
-      if (type == JigdoDesc::MATCHED_FILE)
+      if (type == JigdoDesc::MATCHED_FILE_MD5)
         desc.reset(new JigdoDesc::MatchedFileMD5(off, entryLen, rsum,entryMd5));
       else
         desc.reset(new JigdoDesc::WrittenFileMD5(off, entryLen, rsum,entryMd5));
@@ -300,8 +300,8 @@ bostream& JigdoDescVec::put(bostream& file, MD5Sum* md, SHA256Sum* sd, int check
     JigdoDesc::UnmatchedData* unm;
     JigdoDesc::ImageInfoMD5* infomd5;
     JigdoDesc::ImageInfoSHA256* infosha;
-    JigdoDesc::MatchedFileMD5* matched;
-    JigdoDesc::WrittenFileMD5* written;
+    JigdoDesc::MatchedFileMD5* matchedmd5;
+    JigdoDesc::WrittenFileMD5* writtenmd5;
     JigdoDesc::MatchedFileSHA256* matchedsha;
     JigdoDesc::WrittenFileSHA256* writtensha;
 
@@ -313,10 +313,10 @@ bostream& JigdoDescVec::put(bostream& file, MD5Sum* md, SHA256Sum* sd, int check
         p = infomd5->serialize(buf);
       /* NB we must first try to cast to WrittenFile*, then to
          MatchedFile*, because WrittenFileMD5 derives from MatchedFile*. */
-      else if ((written = dynamic_cast<JigdoDesc::WrittenFileMD5*>(*i)) != 0) {
-        p = written->serialize(buf);
-      } else if ((matched = dynamic_cast<JigdoDesc::MatchedFileMD5*>(*i)) != 0) {
-        p = matched->serialize(buf);
+      else if ((writtenmd5 = dynamic_cast<JigdoDesc::WrittenFileMD5*>(*i)) != 0) {
+        p = writtenmd5->serialize(buf);
+      } else if ((matchedmd5 = dynamic_cast<JigdoDesc::MatchedFileMD5*>(*i)) != 0) {
+        p = matchedmd5->serialize(buf);
       }
     } else /* CHECK_SHA256 */ {
       if ((infosha = dynamic_cast<JigdoDesc::ImageInfoSHA256*>(*i)) != 0)
@@ -541,7 +541,7 @@ namespace {
     string err; // !err.empty() => error occurred
 
     // Read from file, write to image
-    // First couple of k: Calculate RsyncSum rs and MD5Sum md
+    // First couple of k: Calculate RsyncSum rs and SHA256Sum md
     if (checkChecksum && rsyncLen > 0) {
       while (*img && f && !f.eof() && toWrite > 0) {
         size_t n = (toWrite < readAmount ? toWrite : readAmount);
@@ -561,7 +561,7 @@ namespace {
         if (rl >= rsyncLen) break;
       }
     }
-    // Rest of file: Only calculate MD5Sum md
+    // Rest of file: Only calculate SHA256Sum md
     while (*img && f && !f.eof() && toWrite > 0) {
       size_t n = (toWrite < readAmount ? toWrite : readAmount);
       readBytes(f, buf, n);
@@ -628,6 +628,8 @@ namespace {
     int result = 0;
     uint64 off = 0; // Current offset in image
     uint64 nextReport = 0; // At what value of off to call reporter
+    uint64 blockLength = 0;
+    uint64 imageSize = 0;
 
     vector<byte> bufVec(readAmount);
     byte* buf = &bufVec[0];
@@ -642,8 +644,24 @@ namespace {
     if (img == 0) img = &bcout;
 #   endif
 
-    JigdoDesc::ImageInfoMD5& imageInfoMD5 =
-        dynamic_cast<JigdoDesc::ImageInfoMD5&>(*files.back());
+    /* First, find basic information about the image */
+    JigdoDesc::ImageInfoMD5* imageInfoMD5 =
+        dynamic_cast<JigdoDesc::ImageInfoMD5*>(files.back());
+    if (imageInfoMD5 != 0) {
+      blockLength = imageInfoMD5->blockLength();
+      imageSize = imageInfoMD5->size();
+    } else {
+      JigdoDesc::ImageInfoSHA256* imageInfoSHA256 =
+        dynamic_cast<JigdoDesc::ImageInfoSHA256*>(files.back());
+      if (imageInfoSHA256) {
+        blockLength = imageInfoSHA256->blockLength();
+        imageSize = imageInfoSHA256->size();
+      }
+    }
+    if (blockLength == 0 || imageSize == 0) {
+      reporter.error(_("Unable to find a valid image info block"));
+      return 3;
+    }
 
     try {
       for (JigdoDescVec::iterator i = files.begin(), e = files.end();
@@ -678,7 +696,7 @@ namespace {
             }
             break;
           }
-          case JigdoDesc::MATCHED_FILE: {
+          case JigdoDesc::MATCHED_FILE_MD5: {
             /* If file present in cache, copy its data to image, if
                not, copy zeroes. if check==true, verify MD sum match.
                If successful, turn MatchedFileMD5 into WrittenFileMD5. */
@@ -704,7 +722,7 @@ namespace {
               /* Copy data from file to image, taking care not to
                  write beyond toWrite. */
               int status = fileToImageMD5(img, *mfile, *self, checkChecksum,
-                  imageInfoMD5.blockLength(), reporter, buf, readAmount, off,
+                  blockLength, reporter, buf, readAmount, off,
                   nextReport, totalBytes);
               toCopy.pop();
               if (result < status) result = status;
@@ -750,7 +768,7 @@ namespace {
               /* Copy data from file to image, taking care not to
                  write beyond toWrite. */
               int status = fileToImageSHA256(img, *mfile, *self, checkChecksum,
-                  imageInfoMD5.blockLength(), reporter, buf, readAmount, off,
+                  blockLength, reporter, buf, readAmount, off,
                   nextReport, totalBytes);
               toCopy.pop();
               if (result < status) result = status;
@@ -770,7 +788,7 @@ namespace {
             }
             break;
           }
-          case JigdoDesc::WRITTEN_FILE:
+          case JigdoDesc::WRITTEN_FILE_MD5:
           case JigdoDesc::WRITTEN_FILE_SHA256:
           // These are never present in memory, cannot occur:
           case JigdoDesc::OBSOLETE_IMAGE_INFO:
@@ -779,7 +797,7 @@ namespace {
             debug("mkimage writeAll(): invalid type %1", (*i)->type());
             reporter.error(
                 _("Error - template data's DESC section invalid"));
-            Assert(false); // A WrittenFileMD5 cannot occur here
+            Assert(false); // A WrittenFile* cannot occur here
             return 3;
             break;
         }
@@ -827,49 +845,107 @@ namespace {
     int result = (missing == 0 ? 0 : 1);
     uint64 bytesWritten = 0; // For 'x% done' calls to reporter
     uint64 nextReport = 0; // At what value of bytesWritten to call reporter
+    uint64 blockLength = 0;
+    uint64 imageSize = 0;
 
-    // FIXME! Needs SHA256
-    JigdoDesc::ImageInfoMD5& imageInfoMD5 =
-        dynamic_cast<JigdoDesc::ImageInfoMD5&>(*files.back());
+    /* First, find basic information about the image */
+    JigdoDesc::ImageInfoMD5* imageInfoMD5 =
+        dynamic_cast<JigdoDesc::ImageInfoMD5*>(files.back());
+    if (imageInfoMD5) {
+      blockLength = imageInfoMD5->blockLength();
+      imageSize = imageInfoMD5->size();
+    } else {
+      JigdoDesc::ImageInfoSHA256* imageInfoSHA256 =
+        dynamic_cast<JigdoDesc::ImageInfoSHA256*>(files.back());
+      if (imageInfoSHA256) {
+        blockLength = imageInfoSHA256->blockLength();
+        imageSize = imageInfoSHA256->size();
+      }
+    }
+    if (blockLength == 0 || imageSize == 0) {
+      reporter.error(_("Unable to find a valid image info block"));
+      return 3;
+    }
 
     if (toCopy.empty() && missing > 0) return 1;
     for (JigdoDescVec::iterator i = files.begin(), e = files.end();
          i != e; ++i) {
-      // Compare to 'case JigdoDesc::MATCHED_FILE:' clause in writeAll()
-      JigdoDesc::MatchedFileMD5* self =
-          dynamic_cast<JigdoDesc::MatchedFileMD5*>(*i);
-      if (self == 0) continue;
-      FilePart* mfile = 0;
-      if (!toCopy.empty()) mfile = toCopy.front();
-      debug("mkimage writeMerge(): FilePart@%1, %2 of matched file `%3', "
-            "toCopy size %4", mfile, self->size(),
-            (mfile != 0 ? mfile->leafName() : ""), toCopy.size());
-      if (mfile == 0 || self->md5() != *(mfile->getMD5Sum(cache)))
-        continue;
 
-      /* Copy data from file to image, taking care not to write beyond
-         self->size(). */
-      img->seekp(self->offset(), ios::beg);
-      if (!*img) {
-        reporter.error(_("Error - could not access temporary file"));
-        result = 2;
-        break;
-      }
-      int status = fileToImageMD5(img, *mfile, *self, checkChecksum,
-          imageInfoMD5.blockLength(), reporter, buf, readAmount, bytesWritten,
-          nextReport, totalBytes);
-      toCopy.pop();
-      if (result < status) result = status;
-      if (status == 0) { // Mark file as written to image
-        *i = new JigdoDesc::WrittenFileMD5(self->offset(), self->size(),
-                                        self->rsync(), self->md5());
-        delete self;
-      } else if (status > 2) {
-        break;
-      }
+      JigdoDesc::MatchedFileMD5* matchMD5 =
+        dynamic_cast<JigdoDesc::MatchedFileMD5*>(*i);
+      JigdoDesc::MatchedFileSHA256* matchSHA256 =
+        dynamic_cast<JigdoDesc::MatchedFileSHA256*>(*i);
+
+      // Compare to 'case JigdoDesc::MATCHED_FILE_MD5:' clause in writeAll()
+      if (matchMD5 != 0) {
+        FilePart* mfile = 0;
+	if (!toCopy.empty()) mfile = toCopy.front();
+	debug("mkimage writeMerge(): FilePart@%1, %2 of matched file `%3', "
+	      "toCopy size %4", mfile, matchMD5->size(),
+	      (mfile != 0 ? mfile->leafName() : ""), toCopy.size());
+	if (mfile == 0 || matchMD5->md5() != *(mfile->getMD5Sum(cache)))
+          continue;
+
+        /* Copy data from file to image, taking care not to write
+           beyond matchMD5->size(). */
+	img->seekp(matchMD5->offset(), ios::beg);
+	if (!*img) {
+          reporter.error(_("Error - could not access temporary file"));
+	  result = 2;
+	  break;
+	}
+	int status = fileToImageMD5(img, *mfile, *matchMD5, checkChecksum,
+            blockLength, reporter, buf, readAmount, bytesWritten,
+            nextReport, totalBytes);
+	toCopy.pop();
+	if (result < status)
+          result = status;
+	if (status == 0) { // Mark file as written to image
+          *i = new JigdoDesc::WrittenFileMD5(matchMD5->offset(),
+					     matchMD5->size(),
+					     matchMD5->rsync(),
+					     matchMD5->md5());
+	  delete matchMD5;
+	} else if (status > 2) {
+          break;
+	}
+      } else if (matchSHA256 != 0) {
+        FilePart* mfile = 0;
+	if (!toCopy.empty()) mfile = toCopy.front();
+	debug("mkimage writeMerge(): FilePart@%1, %2 of matched file `%3', "
+	      "toCopy size %4", mfile, matchSHA256->size(),
+	      (mfile != 0 ? mfile->leafName() : ""), toCopy.size());
+	if (mfile == 0 || matchSHA256->sha256() != *(mfile->getSHA256Sum(cache)))
+          continue;
+
+        /* Copy data from file to image, taking care not to write
+           beyond matchSHA256->size(). */
+	img->seekp(matchSHA256->offset(), ios::beg);
+	if (!*img) {
+          reporter.error(_("Error - could not access temporary file"));
+	  result = 2;
+	  break;
+	}
+	int status = fileToImageSHA256(img, *mfile, *matchSHA256, checkChecksum,
+            blockLength, reporter, buf, readAmount, bytesWritten,
+            nextReport, totalBytes);
+	toCopy.pop();
+	if (result < status)
+          result = status;
+	if (status == 0) { // Mark file as written to image
+          *i = new JigdoDesc::WrittenFileSHA256(matchSHA256->offset(),
+						matchSHA256->size(),
+						matchSHA256->rsync(),
+						matchSHA256->sha256());
+	  delete matchSHA256;
+	} else if (status > 2) {
+          break;
+	}
+      } else
+        /* no match for either matchMD5 or matchSHA256 */
+        continue;
     } // end iterating over 'files'
 
-    uint64 imageSize = imageInfoMD5.size();
     if (missing == 0 && result == 0) {
       img->close(); // Necessary on Windows before truncating is possible
       // Truncate to final image size
@@ -932,7 +1008,7 @@ namespace {
       filesTmp. Next, compare it to template data in "files". If tmp
       file is OK for re-using return NULL - this means that the DESC
       entries match *exactly* - the only difference allowed is
-      MatchedFileMD5 turning into WrittenFileMD5. Otherwise, return a
+      MatchedFile* turning into WrittenFile*. Otherwise, return a
       pointer to an error message describing the reason why the
       tmpfile data does not match the template data. */
   const char* readTmpFile(bistream& imageTmp, JigdoDescVec& filesTmp,
@@ -1022,7 +1098,7 @@ int JigdoDesc::makeImage(JigdoCache* cache, const string& imageFile,
      enum task:
              Mode of operation (CREATE_TMP/MERGE_TMP/SINGLE_PASS)
      JigdoDescVec files:
-             Contents of image, maybe with some WrittenFileMD5s if MERGEing
+             Contents of image, maybe with some WrittenFile*s if MERGEing
      istream* templ: Template data (stream pointer at end of file)
      fstream* img: Temporary file if MERGE_TMP, else null
   */
@@ -1038,29 +1114,66 @@ int JigdoDesc::makeImage(JigdoCache* cache, const string& imageFile,
 
   for (vector<JigdoDesc*>::iterator i = files.begin(), e = files.end();
        i != e; ++i) {
-    // Need this extra test because we do *not* want the WrittenFileMD5s
-    if ((*i)->type() != MATCHED_FILE) continue;
-    MatchedFileMD5* m = dynamic_cast<MatchedFileMD5*>(*i);
-    Paranoid(m != 0);
-    //totalBytes += m->size();
+    // Need this extra test because we do *not* want the WrittenFile*s
+    switch ((*i)->type()) {
 
-    // Search for file with matching MD5 sum
-    ci = cache->begin();
-    bool found = false;
-    while (ci != ce) {
-      // The call to getMD5Sum() may cause the whole file to be read!
-      const MD5Sum* md = ci->getMD5Sum(cache);
-      if (md != 0 && *md == m->md5()) {
-        toCopy.push(&*ci); // Found matching file
-        totalBytes += m->size();
-        debug("%1 found, pushed %2", m->md5().toString(), &*ci);
-        found = true;
-        break;
+      case MATCHED_FILE_MD5:
+      {
+        MatchedFileMD5* m = dynamic_cast<MatchedFileMD5*>(*i);
+        Paranoid(m != 0);
+        //totalBytes += m->size();
+
+        // Search for file with matching MD5 sum
+	ci = cache->begin();
+	bool found = false;
+	while (ci != ce) {
+          // The call to getMD5Sum() may cause the whole file to be read!
+          const MD5Sum* md = ci->getMD5Sum(cache);
+	  if (md != 0 && *md == m->md5()) {
+            toCopy.push(&*ci); // Found matching file
+	    totalBytes += m->size();
+	    debug("%1 found, pushed %2", m->md5().toString(), &*ci);
+	    found = true;
+	    break;
+	  }
+	  ++ci;
+	}
+	if (!found)
+          ++missing;
       }
-      ++ci;
-    }
-    if (!found) ++missing;
+      break;
 
+      case MATCHED_FILE_SHA256:
+      {
+        MatchedFileSHA256* m = dynamic_cast<MatchedFileSHA256*>(*i);
+        Paranoid(m != 0);
+        //totalBytes += m->size();
+
+        // Search for file with matching SHA256 sum
+	ci = cache->begin();
+	bool found = false;
+	while (ci != ce) {
+          // The call to getSHA256Sum() may cause the whole file to be read!
+          const SHA256Sum* md = ci->getSHA256Sum(cache);
+	  if (md != 0 && *md == m->sha256()) {
+            toCopy.push(&*ci); // Found matching file
+	    totalBytes += m->size();
+	    debug("%1 found, pushed %2", m->sha256().toString(), &*ci);
+	    found = true;
+	    break;
+	  }
+	  ++ci;
+	}
+	if (!found)
+          ++missing;
+      }
+      break;
+
+      default:
+        continue;
+	break;
+
+    }
   }
   //____________________
 
@@ -1086,7 +1199,7 @@ int JigdoDesc::makeImage(JigdoCache* cache, const string& imageFile,
 
   /* Do nothing at all if a) no tmp file created yet, and b) *none* of
      the supplied files matched one of the missing parts, and c) the
-     template actually contains at least one MatchedFileMD5 (i.e. *do*
+     template actually contains at least one MatchedFile* (i.e. *do*
      write if template consists entirely of UnmatchedData). */
 # ifndef MKIMAGE_ALWAYS_CREATE_TMPFILE
   if (task == CREATE_TMP && toCopy.size() == 0 && missing != 0) {
@@ -1149,7 +1262,8 @@ int JigdoDesc::makeImage(JigdoCache* cache, const string& imageFile,
 
   /* Above, totalBytes was calculated for the case of a MERGE_TMP. If
      we're not merging, we need to write everything. */
-  Assert(files.back()->type() == IMAGE_INFO_MD5);
+  Assert(files.back()->type() == IMAGE_INFO_MD5 ||
+	 files.back()->type() == IMAGE_INFO_SHA256);
   uint64 imageSize = files.back()->size();
   totalBytes = imageSize;
 # if 0 /* # if WINDOWS */
@@ -1178,11 +1292,9 @@ int JigdoDesc::makeImage(JigdoCache* cache, const string& imageFile,
 }
 //______________________________________________________________________
 
-int JigdoDesc::listMissing(set<MD5>& result, const string& imageTmpFile,
+int JigdoDesc::listMissingMD5(set<MD5>& result, const string& imageTmpFile,
     const string& templFile, bistream* templ, ProgressReporter& reporter) {
   result.clear();
-
-  // FIXME! Needs SHA256
 
   // Read info from template
   JigdoDescVec contents;
@@ -1208,8 +1320,43 @@ int JigdoDesc::listMissing(set<MD5>& result, const string& imageTmpFile,
   // Output MD5 sums of MatchedFileMD5 (but not WrittenFileMD5) entries
   for (size_t i = 0; i < contents.size() - 1; ++i) {
     MatchedFileMD5* mf = dynamic_cast<MatchedFileMD5*>(contents[i]);
-    if (mf != 0 && mf->type() == MATCHED_FILE)
+    if (mf != 0 && mf->type() == MATCHED_FILE_MD5)
       result.insert(mf->md5());
+  }
+  return 0;
+}
+//______________________________________________________________________
+
+int JigdoDesc::listMissingSHA256(set<SHA256>& result, const string& imageTmpFile,
+    const string& templFile, bistream* templ, ProgressReporter& reporter) {
+  result.clear();
+
+  // Read info from template
+  JigdoDescVec contents;
+  readTemplate(contents, templFile, templ);
+
+  // Read info from temporary file, if any
+  if (!imageTmpFile.empty()) {
+    bifstream imageTmp(imageTmpFile.c_str(), ios::binary);
+    if (imageTmp) {
+      JigdoDescVec contentsTmp;
+      const char* wontReuse = readTmpFile(imageTmp, contentsTmp, contents);
+      if (wontReuse != 0) {
+        string msg = subst(_("Ignoring existing temporary file `%1' - %2"),
+                           imageTmpFile, wontReuse);
+        reporter.info(msg);
+      } else {
+        // tmp file present & valid - use *it* below to output missing parts
+        swap(contents, contentsTmp);
+      }
+    }
+  }
+
+  // Output SHA256 sums of MatchedFileSHA256 (but not WrittenFileSHA256) entries
+  for (size_t i = 0; i < contents.size() - 1; ++i) {
+    MatchedFileSHA256* mf = dynamic_cast<MatchedFileSHA256*>(contents[i]);
+    if (mf != 0 && mf->type() == MATCHED_FILE_SHA256)
+      result.insert(mf->sha256());
   }
   return 0;
 }
