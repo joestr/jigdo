@@ -20,7 +20,6 @@
 #include <new>
 
 #include <log.hh>
-#include <md5sum.hh>
 #include <serialize.hh>
 #include <string.hh>
 #include <zstream-bz.hh>
