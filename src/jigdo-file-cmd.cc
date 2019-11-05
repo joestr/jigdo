@@ -370,8 +370,8 @@ int JigdoFileCmd::verifyImage() {
   auto_ptr<bistream> imageDel(openForInput(image, imageFile));
 
   JigdoDescVec contents;
-  JigdoDesc::ImageInfoMD5* info_md5;
-  JigdoDesc::ImageInfoSHA256* info_sha256;
+  JigdoDesc::ImageInfoMD5* info_md5 = 0;
+  JigdoDesc::ImageInfoSHA256* info_sha256 = 0;
   try {
     bistream* templ;
     auto_ptr<bistream> templDel(openForInput(templ, templFile));
