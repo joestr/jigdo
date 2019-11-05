@@ -35,7 +35,7 @@ public:
   inline ZobstreamGz(bostream& s, unsigned chunkLimit,
                      int level = Z_DEFAULT_COMPRESSION, int windowBits = 15,
                      int memLevel = 8, unsigned todoBufSz = 256U,
-                     MD5Sum* md = 0);
+                     MD5Sum* md = 0, SHA256Sum* sd = 0);
   ~ZobstreamGz() { Assert(memReleased); }
 
   /** @param s Output stream
@@ -128,7 +128,8 @@ private:
 
 ZobstreamGz::ZobstreamGz(bostream& s, unsigned chunkLimit, int level,
                          int windowBits, int memLevel, unsigned todoBufSz,
-                         MD5Sum* md) : Zobstream(md), memReleased(true) {
+                         MD5Sum* md, SHA256Sum* sd)
+	: Zobstream(md, sd), memReleased(true) {
   z.zalloc = (alloc_func)0;
   z.zfree = (free_func)0;
   z.opaque = 0;

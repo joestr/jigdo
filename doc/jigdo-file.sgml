@@ -274,6 +274,20 @@
       </varlistentry>
 
       <varlistentry>
+        <term><option>-C</option> <option>--checksum-algorithm=<replaceable>ALGO</replaceable></option></term>
+        <listitem>
+          <para>Choice of checksum algorithm to use in describing the
+          image and matched diles. Valid options are md5 and
+          sha256. sha256 is a more secure algorithm, but will make the
+          template file and jigdo file slightly larger. It will also
+          create template and jigdo files that are <emphasis>not
+          compatible</emphasis> with older versions of jigdo, before
+          0.8.0. Default is currently md5, but this may change in
+          future.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><option>--checksum-block-size</option>
           <option>--md5-block-size=<replaceable>BYTES</replaceable></option></term>
         <listitem>

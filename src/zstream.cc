@@ -23,6 +23,7 @@
 
 #include <log.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <serialize.hh>
 #include <string.hh>
 #include <zstream.hh>
@@ -84,6 +85,7 @@ void Zobstream::writeZipped(unsigned partId) {
   if (!stream->good())
     throw Zerror(0, string(_("Could not write template data")));
   if (md5sum != 0) md5sum->update(buf, 16);
+  if (sha256sum != 0) sha256sum->update(buf, 16);
 
   ZipData* zd = zipBuf;
   unsigned len;
@@ -92,6 +94,7 @@ void Zobstream::writeZipped(unsigned partId) {
     len = (totalOut() < ZIPDATA_SIZE ? totalOut() : ZIPDATA_SIZE);
     writeBytes(*stream, zd->data, len);
     if (md5sum != 0) md5sum->update(zd->data, len);
+    if (sha256sum != 0) sha256sum->update(zd->data, len);
     if (!stream->good())
       throw Zerror(0, string(_("Could not write template data")));
     zd = zd->next;

@@ -253,7 +253,7 @@ int JigdoFileCmd::makeTemplate() {
   auto_ptr<MkTemplate>
     op(new MkTemplate(&cache, image, &jc, templ, *optReporter,
                       optZipQuality, readAmount, optAddImage, optAddServers,
-                      optBzip2));
+                      optBzip2, optChecksumChoice));
   op->setMatchExec(optMatchExec);
   op->setGreedyMatching(optGreedyMatching);
   size_t lastDirSep = imageFile.rfind(DIRSEP);
@@ -370,7 +370,7 @@ int JigdoFileCmd::verifyImage() {
   auto_ptr<bistream> imageDel(openForInput(image, imageFile));
 
   JigdoDescVec contents;
-  JigdoDesc::ImageInfo* info_md5;
+  JigdoDesc::ImageInfoMD5* info_md5;
   JigdoDesc::ImageInfoSHA256* info_sha256;
   try {
     bistream* templ;
@@ -406,7 +406,7 @@ int JigdoFileCmd::verifyImage() {
     }
 
     for (JigdoDescVec::iterator i = contents.begin(); i != contents.end(); ++i) {
-      info_md5 = dynamic_cast<JigdoDesc::ImageInfo*>(*i);
+      info_md5 = dynamic_cast<JigdoDesc::ImageInfoMD5*>(*i);
       char *this_entry = (char *)(*i);
       if (info_md5) {
         MD5Sum md; // MD5Sum of image

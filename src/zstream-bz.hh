@@ -33,7 +33,9 @@ struct ZerrorBz : public Zerror {
 class ZobstreamBz : public Zobstream {
 public:
   inline ZobstreamBz(bostream& s, int level /*= 6*/,
-                     unsigned todoBufSz /*= 256U*/, MD5Sum* md /*= 0*/);
+                     unsigned todoBufSz /*= 256U*/,
+		     MD5Sum* md /*= 0*/,
+		     SHA256Sum* sd /*= 0*/);
   ~ZobstreamBz() { Assert(memReleased); }
 
   /** @param s Output stream
@@ -131,8 +133,8 @@ private:
 //======================================================================
 
 ZobstreamBz::ZobstreamBz(bostream& s, int level, unsigned todoBufSz,
-                         MD5Sum* md)
-    : Zobstream(md), memReleased(true) {
+                         MD5Sum* md, SHA256Sum* sd)
+    : Zobstream(md, sd), memReleased(true) {
   z.bzalloc = 0;
   z.bzfree = 0;
   z.opaque = 0;

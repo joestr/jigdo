@@ -53,6 +53,7 @@ size_t JigdoFileCmd::csumBlockLength = 128*1024U - 55;
 size_t JigdoFileCmd::readAmount     = 128*1024U;
 int JigdoFileCmd::optZipQuality = Z_BEST_COMPRESSION;
 bool JigdoFileCmd::optBzip2 = false;
+int JigdoFileCmd::optChecksumChoice = MkTemplate::CHECK_MD5;
 bool JigdoFileCmd::optForce = false;
 bool JigdoFileCmd::optMkImageCheck = true;
 bool JigdoFileCmd::optCheckFiles = true;
@@ -363,6 +364,10 @@ inline void printUsage(bool detailed, size_t blockLength,
     "  --min-length=BYTES [default %1]\n"
     "                   [make-template] Minimum length of files to search\n"
     "                   for in image data\n"
+    "  -C --checksum-algorithm=ALGO [default md5]\n"
+    "                   [make_template] Choice of checksum algorithm to use\n"
+    "                   in describing the image and matched files. Valid\n"
+    "                   options are md5 and sha256\n"
     "  --checksum-block-size=BYTES [default %2]\n"
     "                   Uninteresting internal parameter -\n"
     "                   jigdo-file enforces: min-length < checksum-block-size\n"
@@ -516,6 +521,7 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
       { "cache",              required_argument, 0, 'c' },
       { "cache-expiry",       required_argument, 0, LONGOPT_CACHEEXPIRY },
       { "check-files",        no_argument,       0, LONGOPT_MKIMAGECHECK },
+      { "checksum-algorithm", required_argument, 0, 'C' },
       { "debug",              optional_argument, 0, LONGOPT_DEBUG },
       { "files-from",         required_argument, 0, 'T' }, // "-T" like tar's
       { "force",              no_argument,       0, 'f' },
@@ -552,7 +558,7 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
       { 0, 0, 0, 0 }
     };
 
-    int c = getopt_long(argc, argv, "0123456789hHvT:i:j:t:c:fr:",
+    int c = getopt_long(argc, argv, "0123456789hHvT:i:j:t:c:C:fr:",
                         longopts, 0);
     if (c == -1) break;
 
@@ -571,6 +577,18 @@ JigdoFileCmd::Command JigdoFileCmd::cmdOptions(int argc, char* argv[]) {
     case 't': templFile = optarg; break;
     case LONGOPT_MERGE: jigdoMergeFile = optarg; break;
     case 'c': cacheFile = optarg; break;
+    case 'C':
+      if (strcmp(optarg, "md5") == 0) {
+        optChecksumChoice = MkTemplate::CHECK_MD5;
+      } else if (strcmp(optarg, "sha256") == 0) {
+        optChecksumChoice = MkTemplate::CHECK_SHA256;
+      } else {
+        cerr << subst(_("%1: Invalid argument to --checksum (allowed: "
+                        "md5 sha256)"), binName())
+             << '\n';
+        error = true;
+      }
+      break;
     case LONGOPT_NOCACHE: cacheFile.erase(); break;
     case LONGOPT_CACHEEXPIRY: optCacheExpiry = scanTimespan(optarg); break;
     case 'f': optForce = true; break;

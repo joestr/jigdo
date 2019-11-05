@@ -21,6 +21,7 @@
 
 #include <log.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <serialize.hh>
 #include <string.hh>
 #include <zstream-gz.hh>

@@ -226,8 +226,8 @@ namespace {
   const bool FAILURE = true;
 
   /** Version of file format */
-  const unsigned FILEFORMAT_MAJOR = 1;
-  const unsigned FILEFORMAT_MINOR = 2;
+  const unsigned FILEFORMAT_MAJOR = 2;
+  const unsigned FILEFORMAT_MINOR = 0;
   /** String at start of .template files */
   const char TEMPLATE_HDR[] = "JigsawDownload template ";
 

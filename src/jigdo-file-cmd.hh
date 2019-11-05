@@ -85,6 +85,7 @@ class JigdoFileCmd {
   static size_t readAmount;
   static int optZipQuality;
   static bool optBzip2;
+  static int optChecksumChoice;
   static bool optForce; // true => Silently delete existent output
   static bool optMkImageCheck; // true => check checksums
   static bool optCheckFiles; // true => check if files exist

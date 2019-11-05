@@ -235,7 +235,7 @@ public:
       for a changed csumBlockLength. */
   void setParams(size_t blockLen,size_t csumBlockLen);
   size_t getBlockLen() const { return blockLength; }
-  size_t getMD5BlockLen() const { return csumBlockLength; }
+  size_t getChecksumBlockLen() const { return csumBlockLength; }
 
   /** Amount of data that JigdoCache will attempt to read per call to
       ifstream::read(), and size of buffer allocated. Minimum: 64k */
