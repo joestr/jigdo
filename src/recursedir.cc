@@ -225,7 +225,7 @@ bool RecurseDir::getName(string& result, struct stat* fileInfo,
 
     /* FIXME: "make-template --no-check-files" should 1) scan any files given
        on the cmd line, 2) later, while scanning through the image, only
-       operate on the cache contents; if a matching md5sum block is found, it
+       operate on the cache contents; if a matching checksum block is found, it
        could be from an old cache entry (which is not verified if
        checkFiles==true) or a new entry that was set up/updated during step
        1). Advantage: Unlike the way it is now, *all* files in the cache will
