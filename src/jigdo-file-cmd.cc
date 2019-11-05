@@ -500,10 +500,13 @@ int JigdoFileCmd::printMissing(Command command) {
     jc.rescan();
   }
 
-  set<MD5> sums;
+  set<MD5> MD5sums;
+  set<SHA256> SHA256sums;
   try {
-    JigdoDesc::listMissing(sums, imageTmpFile, templFile, templ,
-                           *optReporter);
+    JigdoDesc::listMissingMD5(MD5sums, imageTmpFile, templFile, templ,
+                              *optReporter);
+    JigdoDesc::listMissingSHA256(SHA256sums, imageTmpFile, templFile, templ,
+                                 *optReporter);
   } catch (Error e) {
     string err = subst(_("%1 print-missing: %2"), binaryName, e.message);
     optReporter->error(err);
@@ -516,7 +519,7 @@ int JigdoFileCmd::printMissing(Command command) {
 
   case PRINT_MISSING: {
     // To list just the first URI
-    for (set<MD5>::iterator i = sums.begin(), e = sums.end(); i != e; ++i) {
+    for (set<MD5>::iterator i = MD5sums.begin(), e = MD5sums.end(); i != e; ++i) {
       Base64String m;
       m.write(i->sum, 16).flush();
       string& s(m.result());
@@ -541,12 +544,39 @@ int JigdoFileCmd::printMissing(Command command) {
         printMissing_lookup(jc, s, false);
       }
     }
+
+    // To list just the first URI
+    for (set<SHA256>::iterator i = SHA256sums.begin(), e = SHA256sums.end(); i != e; ++i) {
+      Base64String m;
+      m.write(i->sum, 32).flush();
+      string& s(m.result());
+
+      vector<string> words;
+      size_t off;
+      bool found = false;
+      for (ConfigFile::Find f(cf, partsSection, s, &off);
+           !f.finished(); off = f.next()) {
+        // f.section() points to "[section]" line, or end() if 0th section
+        // f.label()   points to "label=..." line, or end() if f.finished()
+        // off is offset of part after "label=", or 0
+        words.clear();
+        ConfigFile::split(words, *f.label(), off);
+        // Ignore everything but the first word
+        if (printMissing_lookup(jc, words[0], false)) { found = true; break;}
+      }
+      if (!found) {
+        /* No mapping found in [Parts] (this shouldn't happen) - create
+           fake "SHA256sum:<sha256sum>" label line */
+        s.insert(0, "SHA256Sum:");
+        printMissing_lookup(jc, s, false);
+      }
+    }
     break;
   }
 
   case PRINT_MISSING_ALL: {
     // To list all URIs for each missing file, separated by empty lines:
-    for (set<MD5>::iterator i = sums.begin(), e = sums.end(); i != e; ++i){
+    for (set<MD5>::iterator i = MD5sums.begin(), e = MD5sums.end(); i != e; ++i){
       Base64String m;
       m.write(i->sum, 16).flush();
       string& s(m.result());
@@ -565,6 +595,28 @@ int JigdoFileCmd::printMissing(Command command) {
       }
       // Last resort: "MD5sum:<md5sum>" label line
       s.insert(0, "MD5Sum:");
+      printMissing_lookup(jc, s, true);
+      cout << endl;
+    }
+    for (set<SHA256>::iterator i = SHA256sums.begin(), e = SHA256sums.end(); i != e; ++i){
+      Base64String m;
+      m.write(i->sum, 32).flush();
+      string& s(m.result());
+
+      vector<string> words;
+      size_t off;
+      for (ConfigFile::Find f(cf, partsSection, s, &off);
+           !f.finished(); off = f.next()) {
+        // f.section() points to "[section]" line, or end() if 0th section
+        // f.label()   points to "label=..." line, or end() if f.finished()
+        // off is offset of part after "label=", or 0
+        words.clear();
+        ConfigFile::split(words, *f.label(), off);
+        // Ignore everything but the first word
+        printMissing_lookup(jc, words[0], true);
+      }
+      // Last resort: "SHA256sum:<sha256sum>" label line
+      s.insert(0, "SHA256Sum:");
       printMissing_lookup(jc, s, true);
       cout << endl;
     }
@@ -599,10 +651,18 @@ int JigdoFileCmd::scanFiles() {
   JigdoCache::iterator ci = cache.begin(), ce = cache.end();
   if (optScanWholeFile) {
     // Cause entire file to be read
-    while (ci != ce) { ci->getMD5Sum(&cache); ++ci; }
+    while (ci != ce) {
+      ci->getMD5Sum(&cache);
+      ci->getSHA256Sum(&cache);
+      ++ci;
+    }
   } else {
-    // Only cause first md5 block to be read; not scanning the whole file
-    while (ci != ce) { ci->getMD5Sums(&cache, 0); ++ci; }
+    // Only cause first checksum block to be read; not scanning the whole file
+    while (ci != ce) {
+      ci->getMD5Sums(&cache, 0);
+      ci->getSHA256Sums(&cache, 0);
+      ++ci;
+    }
   }
   return 0;
   // Cache data is written out when the JigdoCache is destroyed

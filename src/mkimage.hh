@@ -91,7 +91,13 @@ public:
       the image to complete it. Reads info from tmp file or (if
       imageTmpFile.empty() or error opening tmp file) outputs complete
       list from template. */
-  static int listMissing(set<MD5>& result, const string& imageTmpFile,
+  static int listMissingMD5(set<MD5>& result, const string& imageTmpFile,
+    const string& templFile, bistream* templ, ProgressReporter& reporter);
+  /** Return list of SHA256sums of files that still need to be copied to
+      the image to complete it. Reads info from tmp file or (if
+      imageTmpFile.empty() or error opening tmp file) outputs complete
+      list from template. */
+  static int listMissingSHA256(set<SHA256>& result, const string& imageTmpFile,
     const string& templFile, bistream* templ, ProgressReporter& reporter);
 
   class ImageInfoMD5;
