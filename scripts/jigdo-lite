@@ -1,6 +1,7 @@
 #! /bin/sh
 # Poor man's jigdo - download and assemble Jigsaw Download files
-# Copyright 2001-2005 Richard Atterer
+# Copyright 2001-2009 Richard Atterer
+# Copyright 2016-2019 Steve McIntyre
 # Portability improvements by J.A. Bezemer, Jan 2002
 # License: GPL version 2
 
@@ -124,7 +125,7 @@ imageMenu() {
     case "$l" in
       "[Image]"*)
         # Read image section contents
-        unset image templateURI templateMD5 shortInfo info
+        unset image templateURI templateMD5 templateSHA256 shortInfo info
         while $readLine l <&3; do
           case "$l" in
             "["*"]"*) break;;
@@ -132,6 +133,8 @@ imageMenu() {
             Template=*) templateURI="`echo $l | sed -e 's/^Template= *//; s%[['\\''\"$\\\`|&]%%g'`";;
             Template-MD5Sum=*) templateMD5="`echo $l | sed -e 's/^Template-MD5Sum= *//; s%[['\\''\"$\\\`|&/]%%g'`";;
             Template-MD5Sum=*) templateMD5="`echo $l | sed -e 's/^Template-MD5Sum= *//; s%[^a-zA-Z0-9_-]%%g'`";;
+            Template-SHA256Sum=*) templateSHA256="`echo $l | sed -e 's/^Template-SHA256Sum= *//; s%[['\\''\"$\\\`|&/]%%g'`";;
+            Template-SHA256Sum=*) templateSHA256="`echo $l | sed -e 's/^Template-SHA256Sum= *//; s%[^a-zA-Z0-9_-]%%g'`";;
             ShortInfo=*) shortInfo="`echo $l | sed -e 's/^ShortInfo= *//; s%[[$\\\`|]%%g'`";;
             Info=*) info="`echo $l | sed -e 's/^Info= *//; s%[['\\''\"$\\\`|]%%g'`";;
           esac
@@ -183,13 +186,20 @@ fetchTemplate() {
 
   template=`basename "$templateURI"`
 
-  if strEmpty "$templateMD5"; then
-    echo "[WARNING - \`Template-MD5Sum' missing from image section]"
+  if strEmpty "$templateMD5" && strEmpty "$templateSHA256" ; then
+    echo "[WARNING - \`Template-MD5Sum' and \`Template-SHA256Sum' missing from image section]"
     echo
   fi
   if test -r "$template" && strNotEmpty "$templateMD5"; then
     set -- `$jigdoFile md5sum --report=quiet "$template"`
     if test "$1" = "$templateMD5"; then
+      echo "Not downloading .template file - \`$template' already present"
+      fetchedTemplate=true
+      return 0
+    fi
+  if test -r "$template" && strNotEmpty "$templateSHA256"; then
+    set -- `$jigdoFile sha256sum --report=quiet "$template"`
+    if test "$1" = "$templateSHA256"; then
       echo "Not downloading .template file - \`$template' already present"
       fetchedTemplate=true
       return 0
@@ -224,9 +234,15 @@ fetchTemplate() {
     echo "File \`$template' does not exist!"
     $error 1
   fi
-  if strEmpty "$templateMD5"; then return 0; fi
-  set -- `$jigdoFile md5sum --report=quiet "$template"`
-  if strEqual "$1" "$templateMD5"; then return 0; fi
+  if strEmpty "$templateMD5" && strEmpty "$templateSHA256" ; then return 0; fi
+  if strNotEmpty "$templateMD5"; then
+    set -- `$jigdoFile md5sum --report=quiet "$template"`
+    if strEqual "$1" "$templateMD5"; then return 0; fi
+  fi
+  if strNotEmpty "$templateSHA256"; then
+    set -- `$jigdoFile sha256sum --report=quiet "$template"`
+    if strEqual "$1" "$templateSHA256"; then return 0; fi
+  fi
   echo "Error - template checksum mismatch!"
   echo "The .template file does not belong to the .jigdo file - the"
   echo "chances are high that the image generation process will break."
@@ -596,7 +612,7 @@ imageDownload() {
     for pass in x xx xxx xxxx xxxxx xxxxxx xxxxxxx xxxxxxxx; do
       $jigdoFile print-missing-all --image="$image" --jigdo="$jigdoF" \
         --template="$template" $jigdoOpts $uriOpts \
-      | egrep -i '^(http:|ftp:|$)' >"$list"
+      | egrep -i '^(http:|https:|ftp:|$)' >"$list"
       missingCount=`egrep '^$' <"$list" | wc -l | sed -e 's/ *//g'`
       # Accumulate URLs in $@, pass them to fetchAndMerge in batches
       shift "$#" # Solaris /bin/sh doesn't understand "set --"
@@ -660,8 +676,10 @@ imageDownload() {
 
 echo
 echo 'Jigsaw Download "lite"'
-echo "Copyright (C) 2001-2005  |  jigdo@"
+echo "Copyright (C) 2001-2009  |  jigdo@"
 echo "Richard Atterer          |  atterer.org"
+echo "Copyright (C) 2016-2019"
+echo "Steve McIntyre <93sam@debian.org>"
 
 jigdoFile="jigdo-file"
 jigdo-file --version >/dev/null 2>/dev/null
