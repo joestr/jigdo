@@ -397,9 +397,13 @@ int JigdoFileCmd::verifyImage() {
 	md.finish();
 	if (*image) {
           image->get();
-	  if (image->eof() && md == info_sha256->sha256()) {
-            optReporter->info(_("OK: SHA256 Checksums match, image is good!"));
+	  if (image->eof()) {
+            optReporter->info(subst("SHA256 from template: %1", info_sha256->sha256().toString()));
+            optReporter->info(subst("SHA256 from image:    %1", md.toString()));
+	    if (md == info_sha256->sha256()) {
+              optReporter->info(_("OK: SHA256 Checksums match, image is good!"));
 	    return 0;
+	    }
 	  }
 	}
       }
@@ -413,11 +417,15 @@ int JigdoFileCmd::verifyImage() {
 	md.finish();
 	if (*image) {
           image->get();
-	  if (image->eof() && md == info_md5->md5()) {
-            optReporter->info(_("OK: MD5 Checksums match, image is good!"));
-	    optReporter->info(_("WARNING: MD5 is not considered a secure hash!"));
-	    optReporter->info(_("WARNING: It is recommended to verify your image in other ways too!"));
-	    return 0;
+	  if (image->eof()) {
+            optReporter->info(subst("MD5 from template: %1", info_md5->md5().toString()));
+            optReporter->info(subst("MD5 from image:    %1", md.toString()));
+            if (md == info_md5->md5()) {
+              optReporter->info(_("OK: MD5 Checksums match, image is good!"));
+	      optReporter->info(_("WARNING: MD5 is not considered a secure hash!"));
+	      optReporter->info(_("WARNING: It is recommended to verify your image in other ways too!"));
+	      return 0;
+	    }
 	  }
 	}
       }
