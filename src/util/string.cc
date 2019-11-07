@@ -14,6 +14,13 @@
 
 #include <debug.hh>
 #include <string.hh>
+
+#if WINDOWS
+# define PC64u "%I64u"
+#else
+# define PC64u "%llu"
+#endif
+
 //______________________________________________________________________
 
 namespace {
@@ -62,15 +69,16 @@ string& append(string& s, unsigned long x, int width) {
   buf[BUF_LEN - 1] = '\0';
   return s += buf;
 }
+
 #if HAVE_UNSIGNED_LONG_LONG
 string& append(string& s, unsigned long long x) {
-  snprintf(buf, BUF_LEN, "%llu", x);
+  snprintf(buf, BUF_LEN, PC64u, x);
   buf[BUF_LEN - 1] = '\0';
   return s += buf;
 }
 string& append(string& s, unsigned long long x, int width) {
   Assert(*PAD_END == '\0' && width < PAD_END - PAD);
-  int written = snprintf(buf, BUF_LEN, "%llu", x);
+  int written = snprintf(buf, BUF_LEN, PC64u, x);
   if (written < width) s += PAD_END - width + written;
   buf[BUF_LEN - 1] = '\0';
   return s += buf;
@@ -108,7 +116,7 @@ string Subst::subst(const char* format, int args, const Subst arg[]) {
           buf[BUF_LEN - 1] = '\0'; result += buf; break;
 #       if HAVE_UNSIGNED_LONG_LONG
         case ULONGLONG:
-          snprintf(buf, BUF_LEN, "%llu", arg[n].val.ulonglongVal);
+          snprintf(buf, BUF_LEN, PC64u, arg[n].val.ulonglongVal);
           buf[BUF_LEN - 1] = '\0'; result += buf; break;
 #       endif
         case DOUBLE:
