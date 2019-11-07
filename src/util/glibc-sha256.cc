@@ -25,7 +25,6 @@
 # include <config.h>
 #endif
 
-#include <endian.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -35,7 +34,7 @@
 #include <sha256sum.hh>
 #include <glibc-sha256.hh>
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#ifndef  WORDS_BIGENDIAN
 # ifdef _LIBC
 #  include <byteswap.h>
 #  define SWAP(n) bswap_32 (n)
