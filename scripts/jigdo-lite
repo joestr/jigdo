@@ -204,6 +204,7 @@ fetchTemplate() {
       fetchedTemplate=true
       return 0
     fi
+  fi
 #  elif test -r "$template"; then
 #    echo "Not downloading .template file - \`$template' already present"
 #    fetchedTemplate=true
