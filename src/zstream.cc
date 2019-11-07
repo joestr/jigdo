@@ -266,7 +266,7 @@ Zibstream& Zibstream::read(byte* dest, unsigned n) {
     //____________________
 
     // Read data from file into buffer?
-    unsigned long toRead = (dataLen < bufSize ? dataLen : bufSize);
+    unsigned long toRead = (unsigned long)(dataLen < bufSize ? dataLen : bufSize);
     byte* b = &buf[0];
     z->setNextIn(b);
     z->setAvailIn((unsigned int)toRead);

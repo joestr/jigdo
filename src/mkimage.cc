@@ -466,7 +466,7 @@ namespace {
     // First couple of k: Calculate RsyncSum rs and MD5Sum md
     if (checkChecksum && rsyncLen > 0) {
       while (*img && f && !f.eof() && toWrite > 0) {
-        size_t n = (toWrite < readAmount ? toWrite : readAmount);
+        size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
         readBytes(f, buf, n);
         n = f.gcount();
         writeBytes(*img, buf, n);
@@ -485,7 +485,7 @@ namespace {
     }
     // Rest of file: Only calculate MD5Sum md
     while (*img && f && !f.eof() && toWrite > 0) {
-      size_t n = (toWrite < readAmount ? toWrite : readAmount);
+      size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
       readBytes(f, buf, n);
       n = f.gcount();
       writeBytes(*img, buf, n);
@@ -502,7 +502,7 @@ namespace {
       // Even if there was an error - always try to write right amount
       memClear(buf, readAmount);
       while (*img && toWrite > 0) {
-        size_t n = (toWrite < readAmount ? toWrite : readAmount);
+        size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
         writeBytes(*img, buf, n);
         reportBytesWritten(n, off, nextReport, totalBytes, reporter);
         toWrite -= n;
@@ -544,7 +544,7 @@ namespace {
     // First couple of k: Calculate RsyncSum rs and SHA256Sum md
     if (checkChecksum && rsyncLen > 0) {
       while (*img && f && !f.eof() && toWrite > 0) {
-        size_t n = (toWrite < readAmount ? toWrite : readAmount);
+        size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
         readBytes(f, buf, n);
         n = f.gcount();
         writeBytes(*img, buf, n);
@@ -563,7 +563,7 @@ namespace {
     }
     // Rest of file: Only calculate SHA256Sum md
     while (*img && f && !f.eof() && toWrite > 0) {
-      size_t n = (toWrite < readAmount ? toWrite : readAmount);
+      size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
       readBytes(f, buf, n);
       n = f.gcount();
       writeBytes(*img, buf, n);
@@ -580,7 +580,7 @@ namespace {
       // Even if there was an error - always try to write right amount
       memClear(buf, readAmount);
       while (*img && toWrite > 0) {
-        size_t n = (toWrite < readAmount ? toWrite : readAmount);
+        size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
         writeBytes(*img, buf, n);
         reportBytesWritten(n, off, nextReport, totalBytes, reporter);
         toWrite -= n;
@@ -689,7 +689,7 @@ namespace {
                 return 3;
               }
               data->read(buf, (unsigned int)(toWrite < readAmount ? toWrite : readAmount));
-              size_t n = data->gcount();
+              size_t n = (size_t)data->gcount();
               writeBytes(*img, buf, n);
               reportBytesWritten(n, off, nextReport, totalBytes, reporter);
               toWrite -= n;
@@ -712,7 +712,7 @@ namespace {
               // Write right amount of zeroes
               memClear(buf, readAmount);
               while (*img && toWrite > 0) {
-                size_t n = (toWrite < readAmount ? toWrite : readAmount);
+                size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
                 writeBytes(*img, buf, n);
                 reportBytesWritten(n, off, nextReport, totalBytes, reporter);
                 toWrite -= n;
@@ -722,7 +722,7 @@ namespace {
               /* Copy data from file to image, taking care not to
                  write beyond toWrite. */
               int status = fileToImageMD5(img, *mfile, *self, checkChecksum,
-                  blockLength, reporter, buf, readAmount, off,
+                  (size_t)blockLength, reporter, buf, readAmount, off,
                   nextReport, totalBytes);
               toCopy.pop();
               if (result < status) result = status;
@@ -758,7 +758,7 @@ namespace {
               // Write right amount of zeroes
               memClear(buf, readAmount);
               while (*img && toWrite > 0) {
-                size_t n = (toWrite < readAmount ? toWrite : readAmount);
+                size_t n = (size_t)(toWrite < readAmount ? toWrite : readAmount);
                 writeBytes(*img, buf, n);
                 reportBytesWritten(n, off, nextReport, totalBytes, reporter);
                 toWrite -= n;
@@ -768,7 +768,7 @@ namespace {
               /* Copy data from file to image, taking care not to
                  write beyond toWrite. */
               int status = fileToImageSHA256(img, *mfile, *self, checkChecksum,
-                  blockLength, reporter, buf, readAmount, off,
+                  (size_t)blockLength, reporter, buf, readAmount, off,
                   nextReport, totalBytes);
               toCopy.pop();
               if (result < status) result = status;
@@ -895,7 +895,7 @@ namespace {
 	  break;
 	}
 	int status = fileToImageMD5(img, *mfile, *matchMD5, checkChecksum,
-            blockLength, reporter, buf, readAmount, bytesWritten,
+            (size_t)blockLength, reporter, buf, readAmount, bytesWritten,
             nextReport, totalBytes);
 	toCopy.pop();
 	if (result < status)
@@ -927,7 +927,7 @@ namespace {
 	  break;
 	}
 	int status = fileToImageSHA256(img, *mfile, *matchSHA256, checkChecksum,
-            blockLength, reporter, buf, readAmount, bytesWritten,
+            (size_t)blockLength, reporter, buf, readAmount, bytesWritten,
             nextReport, totalBytes);
 	toCopy.pop();
 	if (result < status)

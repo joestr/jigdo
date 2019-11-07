@@ -277,7 +277,7 @@ void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
   /* Rolling rsum matched - schedule an MD5Sum/SHA256Sum match. NB: In
      extreme cases, nextEvent may be equal to off */
   x->setStartOffset(off - blockLen);
-  size_t eventLen = (file->size() < csumBlockLength ?
+  size_t eventLen = (size_t)(file->size() < csumBlockLength ?
                      file->size() : csumBlockLength);
   x->setNextEvent(matches, x->startOffset() + eventLen);
   debug(" %1: Head of %2 match at offset %3, my next event %4",
@@ -323,7 +323,7 @@ bool MkTemplate::rereadUnmatched(FilePart* file, uint64 count) {
   while (inputFile->good() && count > 0) {
     // read data
     readBytes(*inputFile, tmpBuf.get(),
-              (readAmount < count ? readAmount : count));
+              (size_t)(readAmount < count ? readAmount : count));
     size_t n = inputFile->gcount();
     zip->write(tmpBuf.get(), (unsigned int)n); // will catch Zerror "upstream"
     Paranoid(n <= count);
@@ -557,7 +557,7 @@ bool MkTemplate::checkChecksumMatch(byte* const buf,
     unmatchedStart = min(off - stillBuffered, x->startOffset());
     debugRangeInfo(oldestMatch->startOffset(), unmatchedStart,
                    "UNMATCHED, re-reading partial match from", oldestMatch);
-    size_t toReread = unmatchedStart - oldestMatch->startOffset();
+    size_t toReread = (size_t)(unmatchedStart - oldestMatch->startOffset());
     desc.unmatchedData(toReread);
     if (rereadUnmatched(oldestMatch->file(), toReread))
       return FAILURE;
@@ -568,9 +568,9 @@ bool MkTemplate::checkChecksumMatch(byte* const buf,
   if (unmatchedStart < x->startOffset()) {
     debugRangeInfo(unmatchedStart, x->startOffset(),
                    "UNMATCHED, buffer flush before match");
-    size_t toWrite = x->startOffset() - unmatchedStart;
+    size_t toWrite = (size_t)(x->startOffset() - unmatchedStart);
     Paranoid(off - unmatchedStart <= bufferLength);
-    size_t writeStart = modSub(data, off - unmatchedStart, bufferLength);
+    size_t writeStart = modSub(data, (size_t)(off - unmatchedStart), bufferLength);
     writeBuf(buf, writeStart, modAdd(writeStart, toWrite, bufferLength),
              bufferLength, zip);
     desc.unmatchedData(toWrite);
@@ -622,7 +622,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
     unmatchedStart = off - bufferLength;
     debugRangeInfo(y->startOffset(), unmatchedStart,
                    "UNMATCHED at end, re-reading partial match from", y);
-    size_t toReread = unmatchedStart - y->startOffset();
+    size_t toReread = (size_t)(unmatchedStart - y->startOffset());
     desc.unmatchedData(toReread);
     if (rereadUnmatched(y->file(), toReread))
       return FAILURE;
@@ -630,7 +630,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
   // Write out data that is still buffered
   if (unmatchedStart < off) {
     debugRangeInfo(unmatchedStart, off, "UNMATCHED at end");
-    size_t toWrite = off - unmatchedStart;
+    size_t toWrite = (size_t)(off - unmatchedStart);
     Assert(toWrite <= bufferLength);
     size_t writeStart = modSub(data, toWrite, bufferLength);
     writeBuf(buf, writeStart, data, bufferLength, zip);
@@ -698,8 +698,8 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     nextAlignedOff += blockLength;
     Assert(nextAlignedOff > off);
 
-    unsigned long len = nextAlignedOff - off;
-    if (len > nextEvent - off) len = nextEvent - off;
+    size_t len = (size_t)(nextAlignedOff - off);
+    if (len > nextEvent - off) len = (size_t)(nextEvent - off);
     // Advance rsum by len bytes in one go
 #   if DEBUG
     RsyncSum64 rsum2 = *rsum; size_t rsumBack2 = *rsumBack;
@@ -837,11 +837,11 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
                                 matches->lowestStartOffset()->startOffset());
       }
       if (unmatchedStart < newUnmatchedStart) {
-        size_t toWrite = newUnmatchedStart - unmatchedStart;
+        size_t toWrite = (size_t)(newUnmatchedStart - unmatchedStart);
         Paranoid(off - unmatchedStart <= bufferLength);
         //debug("off=%1 unmatchedStart=%2 buflen=%3",
         //      off, unmatchedStart, bufferLength);
-        size_t writeStart = modSub(data, off - unmatchedStart,
+        size_t writeStart = modSub(data, (size_t)(off - unmatchedStart),
                                    bufferLength);
         debugRangeInfo(unmatchedStart, unmatchedStart + toWrite,
                        "UNMATCHED");
@@ -946,7 +946,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
            write the i*ChunkLength bytes directly to templ. */
         while (!matches->empty() && matches->nextEvent() == off) {
           size_t stillBuffered = bufferLength - n;
-          if (stillBuffered > off) stillBuffered = off;
+          if (stillBuffered > off) stillBuffered = (size_t)off;
           if (checkChecksumMatch(buf, bufferLength, data, csumBlockLength,
 				 nextEvent, stillBuffered, desc))
             return FAILURE; // no recovery possible, exit immediately

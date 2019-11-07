@@ -257,8 +257,8 @@ bool FilePart::getChecksumsRead(JigdoCache* c, size_t blockNr) {
   Assert(c->csumBlockLength != 0);
   const size_t thisBlockLength = c->blockLength;
 
-  MD5sums.resize((size() + c->csumBlockLength - 1) / c->csumBlockLength);
-  SHA256sums.resize((size() + c->csumBlockLength - 1) / c->csumBlockLength);
+  MD5sums.resize((size_t)(size() + c->csumBlockLength - 1) / c->csumBlockLength);
+  SHA256sums.resize((size_t)(size() + c->csumBlockLength - 1) / c->csumBlockLength);
   //____________________
 
 # if HAVE_LIBDB
@@ -469,7 +469,7 @@ bool FilePart::getChecksumsRead(JigdoCache* c, size_t blockNr) {
 //______________________________________________________________________
 
 const MD5Sum* FilePart::getMD5SumRead(JigdoCache* c) {
-  if (!getChecksumsRead(c, (fileSize + c->csumBlockLength - 1) / c->csumBlockLength - 1))
+  if (!getChecksumsRead(c, (size_t)((fileSize + c->csumBlockLength - 1) / c->csumBlockLength - 1)))
       return 0;
   Paranoid(mdValid());
   return &md5Sum;
@@ -477,7 +477,7 @@ const MD5Sum* FilePart::getMD5SumRead(JigdoCache* c) {
 //______________________________________________________________________
 
 const SHA256Sum* FilePart::getSHA256SumRead(JigdoCache* c) {
-  if (!getChecksumsRead(c, (fileSize + c->csumBlockLength - 1) / c->csumBlockLength - 1))
+  if (!getChecksumsRead(c, (size_t)(fileSize + c->csumBlockLength - 1) / c->csumBlockLength - 1))
       return 0;
   Paranoid(mdValid());
   return &sha256Sum;

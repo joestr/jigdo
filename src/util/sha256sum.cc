@@ -145,7 +145,7 @@ uint64 SHA256Sum::updateFromStream(bistream& s, uint64 size, size_t bufSize,
   byte* buf = &buffer[0];
   // Read from stream and update *this
   while (s && !s.eof() && toRead > 0) {
-    size_t n = (toRead < bufSize ? toRead : bufSize);
+    size_t n = (size_t)(toRead < bufSize ? toRead : bufSize);
     readBytes(s, buf, n);
     n = s.gcount();
     update(buf, n);
