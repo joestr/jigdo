@@ -333,7 +333,7 @@ dnl ________________________________________
 AC_MSG_CHECKING(for value of --with-gui)
 AC_ARG_WITH(gui,
     [  --with-gui              Build the jigdo GTK+ GUI application [auto]],
-    jigdo_gui="$withval", jigdo_gui="auto")
+    jigdo_gui="$withval", jigdo_gui="no")
 AC_MSG_RESULT(\"$jigdo_gui\")
 dnl ____________________
 

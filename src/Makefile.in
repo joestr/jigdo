@@ -9,9 +9,11 @@ VPATH =		@srcdir@
 prefix =	@prefix@
 datadir =	@datadir@
 
-SUBDIRS =	glibcurl gtk job net util
-SUBINCLUDE =	-I"$(srcdir)/glibcurl" -I"$(srcdir)/gtk" -I"$(srcdir)/job" \
-		-I"$(srcdir)/net" -I"$(srcdir)/util"
+SUBDIRS =	util # glibcurl gtk job net 
+SUBINCLUDE =	-I"$(srcdir)/util"
+
+# -I"$(srcdir)/glibcurl" -I"$(srcdir)/gtk" -I"$(srcdir)/job" \
+		-I"$(srcdir)/net" 
 
 # Prevent these variables from being taken from the environment
 X =
