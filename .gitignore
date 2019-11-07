@@ -7,3 +7,4 @@ TAGS
 config.h
 Makedeps
 configure
+*.exe
