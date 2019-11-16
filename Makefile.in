@@ -189,6 +189,29 @@ bindist:	Makefile
 		    bzip2 -f -9 "$$jdir.tar"; \
 		    rm -rf "$$jdir" src/jigdo-file
 
+# Compile and create a zip file containing the tools and documentation for Windows
+# Assumes that things are already set up and configured for the Windows build
+windist:	Makefile all
+		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
+		if test -d "jigdo-win-$$VERSION"; then \
+		 echo "\`jigdo-win-$$VERSION' exists - delete it first";\
+		 exit 1; \
+		fi
+		jdir=jigdo-win-`read a b v <"$(srcdir)/jigdo.spec" && echo $$v`; \
+		    mkdir "$$jdir"; \
+		    mkdir "$$jdir/jigdo-bin"; \
+		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-lite "$$jdir/jigdo-bin";\
+		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-mirror \
+		        "$$jdir/jigdo-bin"; \
+		    $(INSTALL_EXE) src/jigdo-file.exe "$$jdir/jigdo-bin"; \
+		    grep -v "^##" $(srcdir)/doc/README-windist.txt \
+		        >"$$jdir/README.txt"; \
+		    $(INSTALL_DATA) $(srcdir)/doc/*.html "$$jdir"; \
+		    $(INSTALL_DATA) $(srcdir)/scripts/debian-mirrors.jigdo \
+			"$$jdir/jigdo-bin/mirrors.jigdo"; \
+		    $(INSTALL_EXE) $(srcdir)/win-binaries/* "$$jdir/jigdo-bin"; \
+		    zip -9 -v -r "$$jdir.zip" "$$jdir"
+
 debian-mirrors.jigdo: Mirrors.masterlist
 		$(AWK) -f $(srcdir)/scripts/convert-cvsmirrors.awk "$<" >"$@"
 
