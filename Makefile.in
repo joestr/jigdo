@@ -205,11 +205,12 @@ windist:	Makefile all
 		        "$$jdir/jigdo-bin"; \
 		    $(INSTALL_EXE) src/jigdo-file.exe "$$jdir/jigdo-bin"; \
 		    grep -v "^##" $(srcdir)/doc/README-windist.txt \
-		        >"$$jdir/README.txt"; \
+		        | todos  >"$$jdir/README.txt"; \
 		    $(INSTALL_DATA) $(srcdir)/doc/*.html "$$jdir"; \
 		    $(INSTALL_DATA) $(srcdir)/scripts/debian-mirrors.jigdo \
 			"$$jdir/jigdo-bin/mirrors.jigdo"; \
 		    $(INSTALL_EXE) $(srcdir)/win-binaries/* "$$jdir/jigdo-bin"; \
+		    cat $(srcdir)/scripts/jigdo-lite.bat | todos > "$$jdir/jigdo-lite.bat"; \
 		    zip -9 -v -r "$$jdir.zip" "$$jdir"
 
 debian-mirrors.jigdo: Mirrors.masterlist
