@@ -32,7 +32,7 @@ DOCBOOK2HTML =	docbook2html
 .PHONY:		all clean distclean mostlyclean maintainer-clean \
 		dep depend doc check
 all:		jigdo-file.1 jigdo-file.html jigdo-lite.1 jigdo-lite.html \
-		jigdo-mirror.1 jigdo-mirror.html jigdo.1 jigdo.html \
+		jigdo-mirror.1 jigdo-mirror.html \
 		debian-jigdo-mini-howto.html
 doc mostlyclean dep depend check: ;
 
