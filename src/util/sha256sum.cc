@@ -1,15 +1,12 @@
-/* $Id: sha256sum.cc,v 1.4 2004/06/20 20:35:15 atterer Exp $ -*- C++ -*-
-  __   _
-  |_) /|  Copyright (C) 2000-2004  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.org
-  ¯ '` ¯
-  "Ported" to C++ by RA. Uses glibc code for the actual algorithm.
+/*
+
+  "Ported" to C++ by steve. Uses glibc code for the actual algorithm.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
-  Quite secure 128-bit checksum
+  Quite secure 256-bit checksum
 
 */
 
