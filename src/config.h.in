@@ -232,7 +232,7 @@ namespace {
   const char TEMPLATE_HDR[] = "JigsawDownload template ";
 
   /** Info URL written in .template/.jigdo file header */
-  const char* const URL = "http://atterer.org/jigdo/";
+  const char* const URL = "https://www.einval.com/~steve/software/jigdo/";
 
   /** Approximate size of chunks into which unmatched data is chopped up when
       included in template file. Measured in bytes of *uncompressed*
