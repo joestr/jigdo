@@ -4,10 +4,12 @@
 
 Jigsaw Download (jigdo)
 ~~~~~~~~~~~~~~~~~~~~~~~
-Jigsaw Download homepage:   <http://atterer.org/jigdo/>
-Debian CD images via jigdo: <http://www.debian.org/CD/jigdo-cd/>
-                            <richard@
-Written by Richard Atterer:  atterer.org>
+Debian CD images via jigdo:            <http://www.debian.org/CD/jigdo-cd/>
+Current Jigdo homepage:                <https://www.einval.com/~steve/software/jigdo/>
+Current maintainer:    Steve McIntyre  <steve@einval.com>
+
+Original Jigsaw Download homepage:     <http://atterer.org/jigdo/>
+Originally written by Richard Atterer: <richard@atterer.org>
 
 jigdo-lite
 ~~~~~~~~~~
@@ -64,8 +66,9 @@ updated/added/deleted jigdo files are detected. See
 
 ----------------------------------------------------------------------
 
-Copyright (C) 2001-2005  |  richard@
+Copyright (C) 2001-2010  |  richard@
 Richard Atterer          |  atterer.org
+Copyright (C) 2016-2019 Steve McIntyre <steve@einval.com>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as
