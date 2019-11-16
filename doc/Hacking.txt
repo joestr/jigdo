@@ -18,36 +18,21 @@ assertions are always enabled), #defines GTK_DISABLE_DEPRECATED, calls
 abort() on failed assertions instead of just printing the assertion,
 etc.
 
-
-Mailing list, CVS
-~~~~~~~~~~~~~~~~~
-The jigdo-user mailing list is currently used both for end-user support
-and development.
-
-Subscribe: https://lists.berlios.de/mailman/listinfo/jigdo-user
-Archive:   https://lists.berlios.de/pipermail/jigdo-user
-Address:   jigdo-user at lists.berlios.de
-
-Anonymous CVS access to the latest source code is available. Execute
-    cvs -d:pserver:anonymous@cvs.jigdo.berlios.de:/cvsroot/jigdo login
-Just press return at the login prompt, then execute
-    cvs -z3 -d:pserver:anonymous@cvs.jigdo.berlios.de:/cvsroot/jigdo co jigdo
-
-Latest code: http://cvs.berlios.de/cgi-bin/viewcvs.cgi/jigdo/jigdo/jigdo.tar.gz?tarball=1
-Browse tree: http://cvs.berlios.de/cgi-bin/viewcvs.cgi/jigdo/jigdo/
-
-Steve (2019): now moved my local development to git:
+Jigdo is maintained in git at:
 
   https://git.einval.com/cgi-bin/gitweb.cgi?p=jigdo.git;a=summary
+
+Check the "upstream" branch.
 
 Mail about jigdo is probably best sent to debian-cd@lists.debian.org
 for now.
 
 Bootstrapping the code
 ~~~~~~~~~~~~~~~~~~~~~~
-If you checkout the code from CVS or download the CVS snapshot, some
-additional files have to be generated - in the jigdo release tarballs,
-these files are already present.
+
+If you checkout the code from git, some additional files have to be
+generated - in the jigdo release tarballs, these files are already
+present.
 
 The Makefiles automatically handle regeneration of those files if they
 are not present; the only thing that you need to do manually is to
