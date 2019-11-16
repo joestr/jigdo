@@ -5,10 +5,12 @@ Jigsaw Download (jigdo)
 See the doc/ directory for documentation - start with the HOWTO
 for an introduction to jigdo.
 
-Jigsaw Download homepage:   <http://atterer.org/jigdo/>
-Debian CD images via jigdo: <http://www.debian.org/CD/jigdo-cd/>
-                            <richard@
-Written by Richard Atterer:  atterer.org>
+Debian CD images via jigdo:            <http://www.debian.org/CD/jigdo-cd/>
+Current Jigdo homepage:                <https://www.einval.com/~steve/software/jigdo/>
+Current maintainer:    Steve McIntyre  <steve@einval.com>
+
+Original Jigsaw Download homepage:     <http://atterer.org/jigdo/>
+Originally written by Richard Atterer: <richard@atterer.org>
 
 ----------------------------------------------------------------------
 
@@ -16,7 +18,7 @@ To build the programs, execute:
     ./configure && make
 
 (If no file named "configure" is present in this directory, you have
-downloaded a jigdo CVS snapshot. Have a look at the "bootstrapping"
+downloaded a jigdo git snapshot. Have a look at the "bootstrapping"
 section in doc/Hacking.txt.)
 
 After a successful build, you can install the program (by default into
@@ -48,7 +50,7 @@ script also recognizes the following options:
 
 Authors:
 
-Richard Atterer is the main jigdo author.
+Richard Atterer was the main jigdo author.
 Other contributors:
 
 - Paul Bolle made the jigdo.spec (based on an earlier version by Alexander
@@ -57,6 +59,9 @@ Other contributors:
 - Jochen Hepp <jochen.hepp gmx.de>: jigdo-file patches
 - Anne Bezemer <J.A.Bezemer opensourcepartners.nl>:
   Some code snippets in the jigdo-lite script
+- Steve McIntyre took over maintenance after Richard, and added:
+  New v2 format using SHA256
+  Various bugfixes
 
 jigdo uses some code written by other people:
 
@@ -70,8 +75,10 @@ jigdo uses some code written by other people:
 
 ----------------------------------------------------------------------
 
-Copyright (C) 2001-2006  |  richard@
+Copyright (C) 2001-2010  |  richard@
 Richard Atterer          |  atterer.org
+Copyright (C) 2016-2019 Steve McIntyre <steve@einval.com>
+
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as
