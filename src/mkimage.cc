@@ -308,27 +308,22 @@ bostream& JigdoDescVec::put(bostream& file, MD5Sum* md, SHA256Sum* sd, int check
     if ((unm = dynamic_cast<JigdoDesc::UnmatchedData*>(*i)) != 0)
       p = unm->serialize(buf);
 
-    if (checksumChoice == MkTemplate::CHECK_MD5) {
-      if ((infomd5 = dynamic_cast<JigdoDesc::ImageInfoMD5*>(*i)) != 0)
-        p = infomd5->serialize(buf);
+    if ((infomd5 = dynamic_cast<JigdoDesc::ImageInfoMD5*>(*i)) != 0) {
+      p = infomd5->serialize(buf);
       /* NB we must first try to cast to WrittenFile*, then to
          MatchedFile*, because WrittenFileMD5 derives from MatchedFile*. */
-      else if ((writtenmd5 = dynamic_cast<JigdoDesc::WrittenFileMD5*>(*i)) != 0) {
-        p = writtenmd5->serialize(buf);
-      } else if ((matchedmd5 = dynamic_cast<JigdoDesc::MatchedFileMD5*>(*i)) != 0) {
-        p = matchedmd5->serialize(buf);
-      }
-    } else /* CHECK_SHA256 */ {
-      if ((infosha = dynamic_cast<JigdoDesc::ImageInfoSHA256*>(*i)) != 0)
-        p = infosha->serialize(buf);
+    } else if ((writtenmd5 = dynamic_cast<JigdoDesc::WrittenFileMD5*>(*i)) != 0) {
+      p = writtenmd5->serialize(buf);
+    } else if ((matchedmd5 = dynamic_cast<JigdoDesc::MatchedFileMD5*>(*i)) != 0) {
+      p = matchedmd5->serialize(buf);
+    } else if ((infosha = dynamic_cast<JigdoDesc::ImageInfoSHA256*>(*i)) != 0) {
+      p = infosha->serialize(buf);
       /* NB we must first try to cast to WrittenFile*, then to
          MatchedFile*, because WrittenFileMD5 derives from MatchedFile*. */
-      else if ((writtensha = dynamic_cast<JigdoDesc::WrittenFileSHA256*>(*i)) != 0) {
-        p = writtensha->serialize(buf);
-      }
-      else if ((matchedsha = dynamic_cast<JigdoDesc::MatchedFileSHA256*>(*i)) != 0) {
-        p = matchedsha->serialize(buf);
-      }
+    } else if ((writtensha = dynamic_cast<JigdoDesc::WrittenFileSHA256*>(*i)) != 0) {
+      p = writtensha->serialize(buf);
+    } else if ((matchedsha = dynamic_cast<JigdoDesc::MatchedFileSHA256*>(*i)) != 0) {
+      p = matchedsha->serialize(buf);
     }
 
     writeBytes(file, buf, p - buf);
