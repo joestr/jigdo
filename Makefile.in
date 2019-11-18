@@ -216,42 +216,25 @@ windist:	Makefile all
 debian-mirrors.jigdo: Mirrors.masterlist
 		$(AWK) -f $(srcdir)/scripts/convert-cvsmirrors.awk "$<" >"$@"
 
-# Create source tarballs from CVS
-cvsdist:	Makefile
-		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
-		if test -d "jigdo-bin-$$VERSION"; then \
-		 echo "\`jigdo-bin-$$VERSION' exists - delete it first";\
+# Create source tarball from git. Complicated some - do autoconf dance
+# in there too
+gitdist:	Makefile
+		@VERSION=$$(git describe | awk '{gsub("^.*/","");print $$0}'); \
+		echo "VERSION is $$VERSION"; \
+		OUTPUT="jigdo-$$VERSION"; \
+		WD=$$(pwd); \
+		if [ -e "../$$OUTPUT.tar.xz" ]; then \
+		 echo "../$$OUTPUT.tar.xz exists - delete it first"; \
 		 exit 1; \
-		fi
-		cvs -Q checkout jigdo
-		cd jigdo && autoconf
-		@f=`find jigdo -name '*.cc' -o -name '*.[hif]h'` \
-		    && printf '%d files, %d lines of code\n' \
-		       `echo $$f|wc -w` `cat $$f|wc -l`
-		@echo "To update gettext: make -C po update-pot update-po"
-		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
-		cvstag="rel-`echo $$VERSION | sed -e 's/[^0-9a-zA-Z_-]\+/-/g'`"; \
-		    printf "Tag this as \`$$cvstag' in CVS? [y/N/force] "; \
-		    read; \
-		    if test "$$REPLY" = y; then \
-		        echo "cd jigdo && cvs tag $$cvstag ."; \
-		        cd jigdo && cvs tag $$cvstag .; \
-		    elif test "$$REPLY" = force; then \
-		        echo "cd jigdo && cvs tag -F $$cvstag ."; \
-		        cd jigdo && cvs tag -F $$cvstag .; \
-		    fi
-		cd jigdo/doc && $(MAKE) -f ../../doc/Makefile
-		rm -f jigdo/doc/*~
-		cd src && $(MAKE) depend gtk/interface.cc
-		cp src/Makedeps jigdo/src
-		cp src/gtk/interface.cc src/gtk/interface.hh jigdo/src/gtk
-		cd jigdo/po && $(MAKE) -f ../../po/Makefile update-gmo
-		v=`read a b v <"$(srcdir)/jigdo.spec" && echo $$v`; \
-		    mv jigdo "jigdo-$$v"; \
-		    find "jigdo-$$v" -type f | sort \
-		    | tar --exclude=CVS --exclude=autom4te.cache -T - -cf \
-                          "jigdo-$$v.tar"; \
-		    test -d ~/deb/my && gzip -9 -c \
-		        <"jigdo-$$v.tar" >~/deb/my/"jigdo_$$v.orig.tar.gz"; \
-		    bzip2 -f -9 "jigdo-$$v.tar"; \
-		    rm -rf "jigdo-$$v"
+		fi ; \
+		if [ -d "../$$OUTPUT" ]; then \
+		 echo "../$$OUTPUT exists - delete it first"; \
+		 exit 1; \
+		fi ; \
+		echo "Creating working dir in ../$$OUTPUT"; \
+		git archive --format=tar --prefix="$$OUTPUT/" HEAD | tar -C .. -xf - ; \
+		echo "Running autoconf then cleanup in ../$$OUTPUT"; \
+		cd ../$$OUTPUT/ && autoconf && rm -rf autom4te.cache && cd $$WD; \
+		echo "Creating dist tarball in ../$$OUTPUT.tar.xz"; \
+		tar -C .. -c --xz -f ../$$OUTPUT.tar.xz $$OUTPUT; rm -rf ../$$OUTPUT
+
