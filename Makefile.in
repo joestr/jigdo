@@ -192,26 +192,27 @@ bindist:	Makefile
 # Compile and create a zip file containing the tools and documentation for Windows
 # Assumes that things are already set up and configured for the Windows build
 windist:	Makefile all
-		@read tmpa tmpb VERSION <"$(srcdir)/jigdo.spec"; \
-		if test -d "jigdo-win-$$VERSION"; then \
-		 echo "\`jigdo-win-$$VERSION' exists - delete it first";\
+		@VERSION=$$(git describe | awk '{gsub("^.*/","");print $$0}'); \
+		WD=$$(pwd); \
+		if test -d "../jigdo-win-$$VERSION"; then \
+		 echo "\`../jigdo-win-$$VERSION' exists - delete it first";\
 		 exit 1; \
-		fi
-		jdir=jigdo-win-`read a b v <"$(srcdir)/jigdo.spec" && echo $$v`; \
-		    mkdir "$$jdir"; \
-		    mkdir "$$jdir/jigdo-bin"; \
-		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-lite "$$jdir/jigdo-bin";\
+		fi ; \
+		jdir=jigdo-win-$$VERSION; \
+		    mkdir "../$$jdir"; \
+		    mkdir "../$$jdir/jigdo-bin"; \
+		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-lite "../$$jdir/jigdo-bin";\
 		    $(INSTALL_SCRIPT) $(srcdir)/scripts/jigdo-mirror \
-		        "$$jdir/jigdo-bin"; \
-		    $(INSTALL_EXE) src/jigdo-file.exe "$$jdir/jigdo-bin"; \
+		        "../$$jdir/jigdo-bin"; \
+		    $(INSTALL_EXE) src/jigdo-file.exe "../$$jdir/jigdo-bin"; \
 		    grep -v "^##" $(srcdir)/doc/README-windist.txt \
-		        | todos  >"$$jdir/README.txt"; \
-		    $(INSTALL_DATA) $(srcdir)/doc/*.html "$$jdir"; \
+		        | todos  >"../$$jdir/README.txt"; \
+		    $(INSTALL_DATA) $(srcdir)/doc/*.html "../$$jdir"; \
 		    $(INSTALL_DATA) $(srcdir)/scripts/debian-mirrors.jigdo \
-			"$$jdir/jigdo-bin/mirrors.jigdo"; \
-		    $(INSTALL_EXE) $(srcdir)/win-binaries/* "$$jdir/jigdo-bin"; \
-		    cat $(srcdir)/scripts/jigdo-lite.bat | todos > "$$jdir/jigdo-lite.bat"; \
-		    zip -9 -v -r "$$jdir.zip" "$$jdir"
+			"../$$jdir/jigdo-bin/mirrors.jigdo"; \
+		    $(INSTALL_EXE) $(srcdir)/win-binaries/* "../$$jdir/jigdo-bin"; \
+		    cat $(srcdir)/scripts/jigdo-lite.bat | todos > "../$$jdir/jigdo-lite.bat"; \
+		    cd .. && zip -9 -v -r "$$jdir.zip" "$$jdir" && rm -rf "$$jdir" && cd $$WD
 
 debian-mirrors.jigdo: Mirrors.masterlist
 		$(AWK) -f $(srcdir)/scripts/convert-cvsmirrors.awk "$<" >"$@"
