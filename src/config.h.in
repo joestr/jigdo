@@ -241,7 +241,7 @@ namespace {
 
   /** Number of bytes to write at a time before outputting a progress
       report */
-  const size_t REPORT_INTERVAL = 256U*1024;
+  const size_t REPORT_INTERVAL = 4*1024U*1024;
 }
 
 /** unsigned int with at least 64, but possibly more bits */

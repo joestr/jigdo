@@ -93,7 +93,7 @@ public:
   MyProgressReporter(bool prog) : printProgress(prog) { }
 
   // Length of "100% 9999k/9999k " part before "scanning ..." etc message
-  static const unsigned PROGRESS_WIDTH = 23;
+  static const unsigned PROGRESS_WIDTH = 29;
 
   virtual void error(const string& message) { print(message); }
   virtual void info(const string& message) { print(message); }
@@ -103,12 +103,12 @@ public:
     string m;
     append(m, 100 * offInFile / file->size(), 3); // 3
     m += '%'; // 1 char
-    append(m, offInFile / 1024, 8); // >= 8 chars
+    append(m, offInFile / 1024, 10); // >= 10 chars
     m += "k/"; // 2 chars
-    append(m, file->size() / 1024); // want >= 8 chars
-    m += 'k'; // 1 char
-    if (m.size() < 3+1+8+2+8+1)
-      m += "          " + 10 - (3+1+8+2+8+1 - m.size());
+    append(m, file->size() / 1024, 10); // want >= 10 chars
+    m += "k  "; // 3 char
+    if (m.size() < 3+1+10+2+10+1)
+      m += "          " + 10 - (3+1+10+2+10+3 - m.size());
     Paranoid(m.length() == PROGRESS_WIDTH);
     m += _("scanning");
     m += " `";
