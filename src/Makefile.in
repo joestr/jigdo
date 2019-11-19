@@ -102,16 +102,11 @@ objects-random = util/glibc-md5.o util/glibc-sha256.o util/log.o util/md5sum.o \
 		$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 #______________________________________________________________________
 
-.PHONY:         all all-msg clean distclean mostlyclean maintainer-clean \
+.PHONY:         all clean distclean mostlyclean maintainer-clean \
                 dep depend doc strip test test-v test-c
-all:		all-msg Makefile $(programs) @IF_DEBUG@ $(debug-programs) \
+all:		Makefile $(programs) @IF_DEBUG@ $(debug-programs) \
 		@IFNOT_GXX2@ test-c @IFNOT_CROSSCOMPILING@ test
-all-msg:
-		-@if test "$$EMACS" != t; then \
-		    echo "export cpp='$(CPPFLAGS)'"; \
-		    echo 'export cxx="$$cpp $(CXXFLAGS)"'; \
-		    echo 'export c="$$cpp $(CFLAGS)"'; \
-		fi
+
 check:		$(programs) torture@exe@
 		@echo 
 		@echo '*** Warning - this will take a few minutes and ~100MB'
