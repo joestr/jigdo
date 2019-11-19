@@ -257,8 +257,10 @@ bool FilePart::getChecksumsRead(JigdoCache* c, size_t blockNr) {
   Assert(c->csumBlockLength != 0);
   const size_t thisBlockLength = c->blockLength;
 
-  MD5sums.resize((size_t)(size() + c->csumBlockLength - 1) / c->csumBlockLength);
-  SHA256sums.resize((size_t)(size() + c->csumBlockLength - 1) / c->csumBlockLength);
+  int64_t num_csum_blocks = (size() + c->csumBlockLength - 1) / c->csumBlockLength;
+
+  MD5sums.resize((size_t)num_csum_blocks);
+  SHA256sums.resize((size_t)num_csum_blocks);
   //____________________
 
 # if HAVE_LIBDB
