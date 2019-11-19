@@ -97,11 +97,9 @@ objects-random = util/glibc-md5.o util/glibc-sha256.o util/log.o util/md5sum.o \
 .SUFFIXES:
 .SUFFIXES: .c .cc .h .o
 .cc.o:
-		-@echo $(CXX) '$$cxx' -c $< -o $@
-		@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$<" -o "$@"
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$<" -o "$@"
 .c.o:
-		-@echo $(CC) '$$c  ' -c $< -o $@
-		@$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+		$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 #______________________________________________________________________
 
 .PHONY:         all all-msg clean distclean mostlyclean maintainer-clean \
