@@ -1,7 +1,7 @@
 Changelog for Jigsaw Download                               -*- Text -*-
 ------------------------------------------------------------------------
 
-jigdo 0.8.0 -- Steve McIntyre, XXXXX
+jigdo 0.8.0 -- Steve McIntyre, 19 Nov 2019
 
   - Roll up lots of older fixes from Debian packaging
   - Fixed lots of warnings thrown by newer compilers
