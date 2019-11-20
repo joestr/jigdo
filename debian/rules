@@ -14,6 +14,7 @@ PKG_CONFIG ?= $(DEB_HOST_GNU_TYPE)-pkg-config
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
+	autoconf
 	dh_auto_configure -- --without-gui --enable-nls
 	touch configure-stamp
 
