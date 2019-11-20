@@ -1,9 +1,13 @@
-
 This package was originally debianized by Richard Atterer. It was
 downloaded from <http://atterer.org/jigdo/>
 
+Copyright (C) 2001-2010 Richard Atterer <richard at atterer.org>
 
-Copyright (C) 2001-2005 Richard Atterer <richard at atterer.org>
+Things have since moved - the new upstream home for jigdo is
+
+https://www.einval.com/~steve/software/jigdo/
+
+Copyright (C) 2016-2019 Steve McIntyre <steve@einval.com>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as

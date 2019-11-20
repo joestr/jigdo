@@ -1,3 +1,13 @@
+jigdo (0.8.0-1) unstable; urgency=medium
+
+  * New upstream release, with me as new upstream
+    - Roll up lots of older fixes from Debian packaging
+    - Fixed lots of warnings thrown by newer compilers
+    - Extensive changes throughout to add support for using SHA256 as
+      well as / instead of MD5 checksums
+
+ -- Steve McIntyre <93sam@debian.org>  Wed, 20 Nov 2019 01:51:01 +0000
+
 jigdo (0.7.3-5) unstable; urgency=medium
 
   * Switch addresses from atterer.org to atterer.org in various places
