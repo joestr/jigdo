@@ -1,13 +1,13 @@
 /* $Id: cachefile.cc,v 1.8 2005/07/21 11:31:43 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
-  Cache with MD5 sums of file contents - used by JigdoCache in scan.hh
+  Cache with checksums of file contents - used by JigdoCache in scan.hh
 
 */
 
@@ -40,7 +40,7 @@ CacheFile::CacheFile(const char* dbName) {
   db->set_cachesize(db, 0, 4*1024*1024, 1);
 
   // Use a btree, create database file if not yet present
-  e = compat_dbOpen(db, dbName, "jigdo filecache v0", DB_BTREE, DB_CREATE,
+  e = compat_dbOpen(db, dbName, "jigdo filecache v1", DB_BTREE, DB_CREATE,
                     0666);
   if (e != 0) {
     // Re-close, in case it is necessary
@@ -50,7 +50,7 @@ CacheFile::CacheFile(const char* dbName) {
     /* If the DB file is old or corrupted, just regenerate it from
        scratch, otherwise throw error. */
     debug("Cache file corrupt, recreating it");
-    if (compat_dbOpen(db, dbName, "jigdo filecache v0", DB_BTREE,
+    if (compat_dbOpen(db, dbName, "jigdo filecache v1", DB_BTREE,
                       DB_CREATE | DB_TRUNCATE, 0666) != 0)
       throw DbError(e);
   }
@@ -91,7 +91,8 @@ Status CacheFile::find(const byte*& resultData, size_t& resultSize,
                        const string& fileName, uint64 fileSize, time_t mtime) {
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
-  key.size = fileName.size();
+  key.size = (u_int32_t)fileName.size(); // filename size is safely
+					 // less than 32 bits!
 
   AutoCursor cursor;
   // Cursor with no transaction id, no flags
@@ -135,7 +136,8 @@ Status CacheFile::findName(const byte*& resultData, size_t& resultSize,
     time_t& resultMtime) {
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
-  key.size = fileName.size();
+  key.size = (u_int32_t)fileName.size(); // filename size is safely
+					 // less than 32 bits!
 
   AutoCursor cursor;
   // Cursor with no transaction id, no flags
@@ -206,7 +208,7 @@ byte* CacheFile::insert_prepare(size_t inSize) {
   void* tmp = realloc(data.data, USER_DATA + inSize);
   if (tmp == 0) throw bad_alloc();
   data.data = tmp;
-  data.size = USER_DATA + inSize;
+  data.size = (u_int32_t)(USER_DATA + inSize);
   return static_cast<byte*>(tmp) + USER_DATA;
 }
 
@@ -226,7 +228,8 @@ void CacheFile::insert_perform(const string& fileName, time_t mtime,
   // Insert in database
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
-  key.size = fileName.size();
+  key.size = (u_int32_t)fileName.size(); // filename size is safely
+					 // less than 32 bits!
   db->put(db, 0, &key, &data, 0); // No transaction, overwrite
 
 //   cerr << "CacheFile write `"<<fileName<<'\'';

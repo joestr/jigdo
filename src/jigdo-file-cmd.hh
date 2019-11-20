@@ -1,7 +1,7 @@
 /* $Id: jigdo-file-cmd.hh,v 1.13 2005/07/05 12:26:20 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -25,6 +25,7 @@
 #include <jigdoconfig.hh>
 #include <scan.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <mkimage.hh>
 #include <mktemplate.hh>
 //______________________________________________________________________
@@ -35,6 +36,7 @@ struct AnyReporter : public MkTemplate::ProgressReporter,
                      public JigdoCache::ProgressReporter,
                      public JigdoDesc::ProgressReporter,
                      public MD5Sum::ProgressReporter,
+                     public SHA256Sum::ProgressReporter,
                      public JigdoConfig::ProgressReporter {
   virtual void error(const string& message) {
     MD5Sum::ProgressReporter::error(message);
@@ -56,7 +58,7 @@ class JigdoFileCmd {
   enum Command {
     MAKE_TEMPLATE, MAKE_IMAGE,
     PRINT_MISSING, PRINT_MISSING_ALL,
-    SCAN, VERIFY, LIST_TEMPLATE, MD5SUM
+    SCAN, VERIFY, LIST_TEMPLATE, MD5SUM, SHA256SUM
   };
   //________________________________________
 
@@ -79,19 +81,20 @@ class JigdoFileCmd {
   static vector<string> optLabels; // Strings of the form "Label=/some/path"
   static vector<string> optUris;   // "Label=http://some.server/"
   static size_t blockLength; // of rsync algorithm, is also minimum file size
-  static size_t md5BlockLength;
+  static size_t csumBlockLength;
   static size_t readAmount;
   static int optZipQuality;
   static bool optBzip2;
+  static int optChecksumChoice;
   static bool optForce; // true => Silently delete existent output
-  static bool optMkImageCheck; // true => check MD5sums
+  static bool optMkImageCheck; // true => check checksums
   static bool optCheckFiles; // true => check if files exist
   static bool optScanWholeFile; // false => read only first block
   // true => skip smaller matches if a larger match could be possible
   static bool optGreedyMatching;
   static bool optAddImage; // true => Add [Image] section to output .jigdo
   static bool optAddServers; // true => Add [Servers] to output .jigdo
-  static bool optHex; // true => Use hex not base64 output for md5/ls cmds
+  static bool optHex; // true => Use hex not base64 output for checksum/ls cmds
   static string optDebug; // list of debug msg to turn on, or all/help
   // Reporter is defined in config.h and is the base of all other *Reporter's
   static AnyReporter* optReporter;
@@ -116,6 +119,7 @@ class JigdoFileCmd {
   static int verifyImage();
   static int listTemplate();
   static int md5sumFiles();
+  static int sha256sumFiles();
   //@}
 
   /** @name

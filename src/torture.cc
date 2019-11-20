@@ -1,7 +1,7 @@
 /* $Id: torture.cc,v 1.9 2005/07/02 17:21:35 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -334,13 +334,13 @@ namespace {
       if (zeroes) {
         cerr << "Will fill with zero bytes\n";
         for (size_t i = 0; i < BUF_SIZE; ++i) buf[i] = 0;
-        zeroFile = files.size();
+        zeroFile = (int)files.size();
       }
       size_t sizeLeft = size;
       while (sizeLeft > 0 && o) {
         size_t n = (sizeLeft < BUF_SIZE ? sizeLeft : BUF_SIZE);
         if (!zeroes)
-          for (size_t i = 0; i < n; ++i) buf[i] = rand.get(8);
+          for (size_t i = 0; i < n; ++i) buf[i] = (byte)rand.get(8);
         writeBytes(o, buf, n);
         if (!o) cerr << "Argh - write() failed! (" << strerror(errno)
                      << ')' << endl;
@@ -465,12 +465,12 @@ int main(int argc, char* argv[]) {
       // Run MkTemplate operation over it
       // Try default parameters plus 2 other random cases
       size_t blockLen = 4096;
-      size_t md5BlockLen = 128*1024U - 55;
+      size_t csumBlockLen = 128*1024U - 55;
       size_t readAmount = 128U*1024;
       for (int i = 0; i < 2; ++i) {
         cerr << "     case=" << tc << static_cast<char>('a' + i)
              << " blockLen=" << blockLen
-             << " md5BlockLen=" << md5BlockLen
+             << " csumBlockLen=" << csumBlockLen
              << " readAmount=" << readAmount << endl;
         cheatMrNice();
         TortureReport reporter;
@@ -488,7 +488,7 @@ int main(int argc, char* argv[]) {
           fileNames.addFile(f);
         }
         JigdoCache cache(cacheFile, 60*60*24, readAmount);
-        cache.setParams(blockLen, md5BlockLen);
+        cache.setParams(blockLen, csumBlockLen);
         while (true) {
           try { cache.readFilenames(fileNames); }
           catch (RecurseError e) { cerr << e.message << endl; continue; }
@@ -614,12 +614,12 @@ int main(int argc, char* argv[]) {
 
         report << (allChecksOK ? "OK" : "FAIL") << " case=" << tc
                << ", blockLen=" << blockLen
-               << ", md5BlockLen=" << md5BlockLen
+               << ", csumBlockLen=" << csumBlockLen
                << ", readAmount=" << readAmount << endl;
 
         blockLen = 1024 + rand.get(16);
-        md5BlockLen = 1024 + rand.get(18);
-        if (md5BlockLen <= blockLen) md5BlockLen = blockLen + 1;
+        csumBlockLen = 1024 + rand.get(18);
+        if (csumBlockLen <= blockLen) csumBlockLen = blockLen + 1;
         readAmount = 16384 + rand.get(19);
       }
     }

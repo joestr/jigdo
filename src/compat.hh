@@ -1,7 +1,7 @@
 /* $Id: compat.hh,v 1.6 2005/07/02 17:21:35 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -20,6 +20,7 @@
 
 #include <string>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd-jigdo.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -44,7 +45,7 @@ inline ostream& operator<<(ostream& s, const uint64 x) {
     length is bigger than current file size */
 #if HAVE_TRUNCATE
 inline int compat_truncate(const char* path, uint64 length) {
-  return truncate(path, length);
+  return truncate64(path, length);
 }
 #else
 int compat_truncate(const char* path, uint64 length);

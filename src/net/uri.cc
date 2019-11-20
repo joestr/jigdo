@@ -1,7 +1,7 @@
 /* $Id: uri.cc,v 1.6 2004/09/08 16:47:25 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2004  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.net
+  | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See

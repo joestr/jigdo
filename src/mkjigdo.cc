@@ -1,7 +1,7 @@
 /* $Id: mkjigdo.cc,v 1.2 2004/09/09 23:50:21 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -55,7 +55,7 @@ struct MkTemplate::PartIndex {
    either empty or contains a jigdo file passed to the program with
    --merge. Is called before the MkTemplate operation does its main
    work. */
-void MkTemplate::prepareJigdo() {
+void MkTemplate::prepareJigdo(const int major, const int minor) {
   ConfigFile& j = jigdo->configFile();
   typedef ConfigFile::iterator iterator;
 
@@ -117,8 +117,11 @@ void MkTemplate::prepareJigdo() {
     skipPrevComments(i);
     j.insert(i, "[Jigdo]");
     j.insert(i, "Version=");
-    iterator x = i; --x;
-    append(*x, FILEFORMAT_MAJOR); *x += '.'; append(*x, FILEFORMAT_MINOR);
+    iterator x = i;
+    --x;
+    append(*x, major);
+    *x += '.';
+    append(*x, minor);
     j.insert(i, "Generator=jigdo-file/" JIGDO_VERSION);
     j.insert(i);
   }
@@ -130,42 +133,74 @@ void MkTemplate::prepareJigdo() {
    sections to the jigdo. */
 void MkTemplate::finalizeJigdo(const string& imageLeafName,
                                const string& templLeafName,
-                               const MD5Sum& templMd5Sum) {
+                               const MD5Sum& templMd5Sum,
+                               const SHA256Sum& templSHA256Sum,
+			       const int checksumChoice) {
   ConfigFile& j = jigdo->configFile();
   typedef ConfigFile::iterator iterator;
 
   // Add new [Image] section or add Template-MD5Sum value to existing section
   if (addImageSection) {
-    Base64String md5Sum;
-    md5Sum.write(templMd5Sum.digest(), 16).flush();
 
     // Search for first empty "Template-MD5Sum=" line in file
     size_t off = 0;
     string sect = "Image";
-    string label = "Template-MD5Sum";
-    for (ConfigFile::Find f(&j, sect, label, &off);
-         !f.finished(); off = f.next()) {
-      // Is the value empty, i.e. end of line after the '='?
-      string::iterator x = f.label()->begin() + off;
-      if (ConfigFile::advanceWhitespace(x, f.label()->end())) {
-        /* Append md5sum to existing Template-MD5Sum line - more
-           accurately, insert md5sum before any # comment. */
-        f.label()->insert(off, md5Sum.result());
-        break;
+    if (checksumChoice == CHECK_MD5) {
+      string label = "Template-MD5Sum";
+      Base64String md5Sum;
+      md5Sum.write(templMd5Sum.digest(), 16).flush();
+      for (ConfigFile::Find f(&j, sect, label, &off);
+        !f.finished(); off = f.next()) {
+        // Is the value empty, i.e. end of line after the '='?
+        string::iterator x = f.label()->begin() + off;
+	if (ConfigFile::advanceWhitespace(x, f.label()->end())) {
+          /* Append md5sum to existing Template-MD5Sum line - more
+             accurately, insert md5sum before any # comment. */
+          f.label()->insert(off, md5Sum.result());
+          break;
+        }
       }
-    }
-    if (off == 0) {
-      // Append a new [Image] section
-      if (!j.back().empty()) j.push_back();
-      j.push_back("[Image]");
-      //j.rescan();
-      j.push_back("Filename=");
-      j.back() += imageLeafName;
-      j.push_back("Template=");
-      j.back() += templLeafName;
-      j.push_back("Template-MD5Sum=");
-      j.back() += md5Sum.result();
-      j.rescan();
+      if (off == 0) {
+        // Append a new [Image] section
+        if (!j.back().empty()) j.push_back();
+	j.push_back("[Image]");
+        //j.rescan();
+	j.push_back("Filename=");
+	j.back() += imageLeafName;
+	j.push_back("Template=");
+	j.back() += templLeafName;
+	j.push_back("Template-MD5Sum=");
+	j.back() += md5Sum.result();
+	j.rescan();
+      }
+    } else {
+      string label = "Template-SHA256Sum";
+      Base64String sha256Sum;
+      sha256Sum.write(templSHA256Sum.digest(), 32).flush();
+      for (ConfigFile::Find f(&j, sect, label, &off);
+           !f.finished(); off = f.next()) {
+        // Is the value empty, i.e. end of line after the '='?
+        string::iterator x = f.label()->begin() + off;
+        if (ConfigFile::advanceWhitespace(x, f.label()->end())) {
+          /* Append sha256sum to existing Template-SHA256Sum line - more
+             accurately, insert checksum before any # comment. */
+          f.label()->insert(off, sha256Sum.result());
+          break;
+	}
+      }
+      if (off == 0) {
+        // Append a new [Image] section
+        if (!j.back().empty()) j.push_back();
+	j.push_back("[Image]");
+	//j.rescan();
+	j.push_back("Filename=");
+	j.back() += imageLeafName;
+	j.push_back("Template=");
+	j.back() += templLeafName;
+	j.push_back("Template-SHA256Sum=");
+	j.back() += sha256Sum.result();
+	j.rescan();
+      }
     }
   }
   //____________________
@@ -193,10 +228,10 @@ void MkTemplate::finalizeJigdo(const string& imageLeafName,
   }
   //____________________
 
-  /* Add new lines to [Parts] section, but only if the part's md5sum
+  /* Add new lines to [Parts] section, but only if the part's checksum
      isn't listed in the section yet. */
   {
-    // Build index over JigdoParts by md5sum string in partIndex
+    // Build index over JigdoParts by checksum string in partIndex
     set<const PartLine*,PartIndex> partIndex;
     for (set<PartLine>::iterator i = jigdoParts.begin(),
            e = jigdoParts.end(); i != e; ++i)
@@ -212,13 +247,17 @@ void MkTemplate::finalizeJigdo(const string& imageLeafName,
     Base64String m;
     for (vector<FilePart*>::iterator i = matchedParts.begin(),
            e = matchedParts.end(); i != e; ++i) {
-      m.write((*i)->getMD5Sum(cache)->digest(), 16).flush();
+      if (checksumChoice == CHECK_MD5)
+        m.write((*i)->getMD5Sum(cache)->digest(), 16).flush();
+      else
+        m.write((*i)->getSHA256Sum(cache)->digest(), 32).flush();
       PartLine x;
       x.text.swap(m.result());
       x.split = 0;
       Paranoid(m.result().empty());
       // Skip if md5sum already in partIndex
-      if (partIndex.find(&x) != partIndex.end()) continue;
+      if (partIndex.find(&x) != partIndex.end())
+        continue;
       // Otherwise, add a new entry
       LocationPathSet::iterator location = (*i)->getLocation();
       string s = location->getLabel();

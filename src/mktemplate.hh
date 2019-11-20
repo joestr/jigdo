@@ -1,7 +1,7 @@
 /* $Id: mktemplate.hh,v 1.10 2006/05/14 18:23:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -39,6 +39,7 @@
 #include <jigdoconfig.fh>
 #include <log.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <rsyncsum.hh>
 #include <scan.fh>
 #include <zstream.fh>
@@ -52,6 +53,13 @@
     checksums. */
 class MkTemplate {
 public:
+  /* Choice of checksum algorithm to use, i.e. choice of ImageInfo*
+   * and MatchedFile* Desc entries */
+  enum ChecksumType {
+    CHECK_MD5 = 1,
+    CHECK_SHA256 = 2,
+  };
+
   class ProgressReporter;
 
   /** A create operation with no files known to it yet.
@@ -75,7 +83,8 @@ public:
              JigdoConfig* jigdoInfo, bostream* templateStream,
              ProgressReporter& pr = noReport, int zipQuality = 9,
              size_t readAmnt = 128U*1024, bool addImage = true,
-             bool addServers = true, bool useBzip2 = false);
+             bool addServers = true, bool useBzip2 = false,
+	     int checksumChoice = CHECK_MD5);
   inline ~MkTemplate();
 
   /** Set command(s) to be executed when a file matches. */
@@ -133,25 +142,26 @@ private:
   class PartialMatch;
   class PartialMatchQueue;
   friend class PartialMatchQueue;
-  void prepareJigdo();
+  void prepareJigdo(const int major, const int minor);
   void finalizeJigdo(const string& imageLeafName,
-    const string& templLeafName, const MD5Sum& templMd5Sum);
+    const string& templLeafName, const MD5Sum& templMd5Sum,
+    const SHA256Sum& templSHA256Sum, int checksumChoice);
   INLINE bool scanFiles(size_t blockLength, uint32 blockMask,
-    size_t md5BlockLength);
+    size_t csumBlockLength);
   INLINE bool scanImage(byte* buf, size_t bufferLength, size_t blockLength,
-    uint32 blockMask, size_t md5BlockLength, MD5Sum&);
+    uint32 blockMask, size_t csumBlockLength, MD5Sum&, SHA256Sum&);
   static INLINE void insertInTodo(PartialMatchQueue& matches,
     PartialMatch* x);
   void checkRsyncSumMatch2(const size_t blockLen, const size_t back,
-    const size_t md5BlockLength, uint64& nextEvent, FilePart* file);
+    const size_t csumBlockLength, uint64& nextEvent, FilePart* file);
   INLINE void checkRsyncSumMatch(const RsyncSum64& sum,
     const uint32& bitMask, const size_t blockLen, const size_t back,
-    const size_t md5BlockLength, uint64& nextEvent);
-  INLINE bool checkMD5Match(byte* const buf,
+    const size_t csumBlockLength, uint64& nextEvent);
+  INLINE bool checkChecksumMatch(byte* const buf,
     const size_t bufferLength, const size_t data,
-    const size_t md5BlockLength, uint64& nextEvent,
+    const size_t csumBlockLength, uint64& nextEvent,
     const size_t stillBuffered, Desc& desc);
-  INLINE bool checkMD5Match_mismatch(const size_t stillBuffered,
+  INLINE bool checkMatch_mismatch(const size_t stillBuffered,
     PartialMatch* x, Desc& desc);
   INLINE bool unmatchedAtEnd(byte* const buf, const size_t bufferLength,
     const size_t data, Desc& desc);
@@ -159,7 +169,7 @@ private:
   INLINE void scanImage_mainLoop_fastForward(uint64 nextEvent,
     RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
     size_t bufferLength, size_t blockLength, uint32 blockMask,
-    size_t md5BlockLength);
+    size_t csumBlockLength);
   INLINE bool matchExecCommands(PartialMatch* x);
 
   inline void debugRangeInfo(uint64 start, uint64 end, const char* msg,
@@ -208,6 +218,7 @@ private:
   bool addImageSection;
   bool addServersSection;
   bool useBzLib;
+  int useChecksum;
   string matchExec;
   //____________________
 

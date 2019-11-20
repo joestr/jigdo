@@ -209,6 +209,11 @@ else
     jigdo_pkg_config_prefix="--define-variable=prefix=$jigdo_pkg_config_prefix"
 fi
 
+if test "$is_windows" = yes; then
+    CXXFLAGS="$CXXFLAGS -static"
+    LDFLAGS="$LDFLAGS -static"
+fi
+
 dnl dnl cppunit
 dnl CPPUNITCFLAGS='# `cppunit-config --cflags`'
 dnl CPPUNITLIBS='# `cppunit-config --libs`'
@@ -272,7 +277,6 @@ AC_CHECK_LIB(bz2, BZ2_bzCompressInit, have_bzlib="-lbz2", have_bzlib="no")
 if test "$is_windows" = yes; then
     dnl For some reason, can't check for BZ2_bzCompressInit without #include <bzlib.h>
     AC_CHECK_LIB(bz2, main, have_bzlib="-lbz2", )
-    AC_CHECK_LIB(bz2.dll, main, have_bzlib="-lbz2.dll", )
 fi
 AC_CHECK_HEADER(bzlib.h, have_bzlib_h="yes", have_bzlib_h="no")
 if test "$have_bzlib" = "no" -o "$have_bzlib_h" = "no"; then
@@ -333,7 +337,7 @@ dnl ________________________________________
 AC_MSG_CHECKING(for value of --with-gui)
 AC_ARG_WITH(gui,
     [  --with-gui              Build the jigdo GTK+ GUI application [auto]],
-    jigdo_gui="$withval", jigdo_gui="auto")
+    jigdo_gui="$withval", jigdo_gui="no")
 AC_MSG_RESULT(\"$jigdo_gui\")
 dnl ____________________
 

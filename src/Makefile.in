@@ -1,7 +1,7 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
 #  |_) /|  Copyright (C) 2001-2004  |  richard@
-#  | \/¯|  Richard Atterer          |  atterer.net
+#  | \/¯|  Richard Atterer          |  atterer.org
 #  ¯ '` ¯
 srcdir =	@srcdir@
 VPATH =		@srcdir@
@@ -9,9 +9,11 @@ VPATH =		@srcdir@
 prefix =	@prefix@
 datadir =	@datadir@
 
-SUBDIRS =	glibcurl gtk job net util
-SUBINCLUDE =	-I"$(srcdir)/glibcurl" -I"$(srcdir)/gtk" -I"$(srcdir)/job" \
-		-I"$(srcdir)/net" -I"$(srcdir)/util"
+SUBDIRS =	util # glibcurl gtk job net 
+SUBINCLUDE =	-I"$(srcdir)/util"
+
+# -I"$(srcdir)/glibcurl" -I"$(srcdir)/gtk" -I"$(srcdir)/job" \
+		-I"$(srcdir)/net" 
 
 # Prevent these variables from being taken from the environment
 X =
@@ -24,12 +26,12 @@ CPPFLAGS =	@CPPFLAGS@ -I. -I"$(srcdir)" $(SUBINCLUDE) \
 		-DPACKAGE_LOCALE_DIR="\"$(datadir)/locale\"" \
 		$(GTKCFLAGS) $(CURLCFLAGS) # $(LIBWWWCFLAGS)
 CC =		@CC@
-CFLAGS =	@CFLAGS@ $(X)
+CFLAGS =	@CFLAGS@ $(X) $(EXTRA_CFLAGS)
 CXX =		@CXX@
-CXXFLAGS =	@CXXFLAGS@ $(X)
+CXXFLAGS =	@CXXFLAGS@ $(X) $(EXTRA_CXXFLAGS)
 LD =		@CXX@
 LD_C =		@CC@
-LDFLAGS =	@LIBS@ @LDFLAGS@ $(Y)
+LDFLAGS =	@LIBS@ @LDFLAGS@ $(Y) $(EXTRA_LDFLAGS)
 LIBS =		@LIBS@
 AWK =		@AWK@
 GLADECODE =	glade-2 -w # Create code from .glade file
@@ -50,11 +52,12 @@ debug-programs = torture@exe@ util/random@exe@ \
 windows-res =	@IF_WINDOWS@ jigdo.res
 test-programs =	job/jigdo-io-test@exe@ \
 		job/makeimagedl-info-test@exe@ job/url-mapping-test@exe@ \
-		net/proxyguess-test@exe@ net/uri-test@exe@ \
+		net/proxyguess-test@exe@ \
 		util/autonullptr-test@exe@ util/rsyncsum-test@exe@ \
 		util/gunzip-test@exe@ util/log-test@exe@ \
-		util/md5sum-test@exe@ util/mimestream-test@exe@ \
+		util/md5sum-test@exe@ util/sha256sum-test@exe@ util/mimestream-test@exe@ \
 		util/string-utf-test@exe@
+# net/uri-test@exe@ needs curl
 
 # fmt -s -w1|sed 's%[^a-zA-Z0-9./-]\+%%g'|sort|fmt -w60|sed 's%$% \\%'
 objects-jigdo =	compat.o glibcurl/glibcurl.o gtk/gtk-makeimage.o \
@@ -66,8 +69,8 @@ objects-jigdo =	compat.o glibcurl/glibcurl.o gtk/gtk-makeimage.o \
 		job/makeimagedl.o job/single-url.o \
 		job/url-mapping.o net/download.o net/uri.o net/proxyguess.o \
 		util/bstream.o util/configfile.o util/glibc-getopt.o \
-		util/glibc-getopt1.o util/glibc-md5.o util/gunzip.o \
-		util/log.o util/md5sum.o util/progress.o util/string-utf.o \
+		util/glibc-getopt1.o util/glibc-md5.o util/glibc-sha256.o util/gunzip.o \
+		util/log.o util/md5sum.o util/sha256sum.o util/progress.o util/string-utf.o \
 		$(windows-res) \
 		util/debug.o # this must come last!
 #^ net/glibwww-callbacks.o net/glibwww-init.o
@@ -75,16 +78,18 @@ objects-jigdo-file = cachefile.o compat.o jigdo-file-cmd.o jigdo-file.o \
 		jigdoconfig.o mkimage.o mkjigdo.o mktemplate.o \
 		partialmatch.o recursedir.o scan.o util/bstream.o \
 		util/configfile.o util/glibc-getopt.o util/glibc-getopt1.o \
-		util/glibc-md5.o util/log.o util/md5sum.o util/rsyncsum.o \
+		util/glibc-md5.o util/glibc-sha256.o util/log.o util/md5sum.o \
+		util/sha256sum.o util/rsyncsum.o \
 		util/string.o zstream.o zstream-bz.o zstream-gz.o \
 		util/debug.o # this must come last!
 objects-torture = cachefile.o compat.o jigdoconfig.o mkimage.o mkjigdo.o \
 		mktemplate.o partialmatch.o recursedir.o scan.o torture.o \
-		util/bstream.o util/configfile.o util/glibc-md5.o \
-		util/log.o util/md5sum.o util/rsyncsum.o util/string.o \
+		util/bstream.o util/configfile.o util/glibc-md5.o util/glibc-sha256.o \
+		util/log.o util/md5sum.o util/sha256sum.o util/rsyncsum.o util/string.o \
 		zstream.o zstream-bz.o zstream-gz.o \
 		util/debug.o # this must come last!
-objects-random = util/glibc-md5.o util/log.o util/md5sum.o util/random.o \
+objects-random = util/glibc-md5.o util/glibc-sha256.o util/log.o util/md5sum.o \
+		util/sha256sum.o util/random.o \
 		util/string.o \
 		util/debug.o # this must come last!
 #______________________________
@@ -92,23 +97,16 @@ objects-random = util/glibc-md5.o util/log.o util/md5sum.o util/random.o \
 .SUFFIXES:
 .SUFFIXES: .c .cc .h .o
 .cc.o:
-		-@echo $(CXX) '$$cxx' -c $< -o $@
-		@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$<" -o "$@"
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$<" -o "$@"
 .c.o:
-		-@echo $(CC) '$$c  ' -c $< -o $@
-		@$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+		$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 #______________________________________________________________________
 
-.PHONY:         all all-msg clean distclean mostlyclean maintainer-clean \
+.PHONY:         all clean distclean mostlyclean maintainer-clean \
                 dep depend doc strip test test-v test-c
-all:		all-msg Makefile $(programs) @IF_DEBUG@ $(debug-programs) \
+all:		Makefile $(programs) @IF_DEBUG@ $(debug-programs) \
 		@IFNOT_GXX2@ test-c @IFNOT_CROSSCOMPILING@ test
-all-msg:
-		-@if test "$$EMACS" != t; then \
-		    echo "export cpp='$(CPPFLAGS)'"; \
-		    echo 'export cxx="$$cpp $(CXXFLAGS)"'; \
-		    echo 'export c="$$cpp $(CFLAGS)"'; \
-		fi
+
 check:		$(programs) torture@exe@
 		@echo 
 		@echo '*** Warning - this will take a few minutes and ~100MB'

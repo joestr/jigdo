@@ -2,7 +2,7 @@
 
 <refentry lang="en">
   <refentryinfo>
-    <address>jigdo atterer.net</address>
+    <address>jigdo atterer.org</address>
     <author>
       <firstname>Richard</firstname><surname>Atterer</surname>
     </author>
@@ -64,9 +64,9 @@
   <refsect1 id="author">
     <title>AUTHOR</title>
 
-    <para><ulink url="http://atterer.net/jigdo/">Jigsaw
+    <para><ulink url="http://atterer.org/jigdo/">Jigsaw
     Download</ulink> was written by Richard Atterer
-    <email>jigdo atterer.net</email>, to make downloading of CD ROM
+    <email>jigdo atterer.org</email>, to make downloading of CD ROM
     images for the Debian Linux distribution more convenient.</para>
 
   </refsect1>

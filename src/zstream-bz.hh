@@ -1,7 +1,7 @@
 /* $Id: zstream-bz.hh,v 1.3 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2004-2005  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -33,7 +33,9 @@ struct ZerrorBz : public Zerror {
 class ZobstreamBz : public Zobstream {
 public:
   inline ZobstreamBz(bostream& s, int level /*= 6*/,
-                     unsigned todoBufSz /*= 256U*/, MD5Sum* md /*= 0*/);
+                     unsigned todoBufSz /*= 256U*/,
+		     MD5Sum* md /*= 0*/,
+		     SHA256Sum* sd /*= 0*/);
   ~ZobstreamBz() { Assert(memReleased); }
 
   /** @param s Output stream
@@ -131,8 +133,8 @@ private:
 //======================================================================
 
 ZobstreamBz::ZobstreamBz(bostream& s, int level, unsigned todoBufSz,
-                         MD5Sum* md)
-    : Zobstream(md), memReleased(true) {
+                         MD5Sum* md, SHA256Sum* sd)
+    : Zobstream(md, sd), memReleased(true) {
   z.bzalloc = 0;
   z.bzfree = 0;
   z.opaque = 0;

@@ -1,7 +1,7 @@
 /* $Id: zstream-gz.cc,v 1.3 2005/04/04 21:58:17 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2004-2005  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -21,6 +21,7 @@
 
 #include <log.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <serialize.hh>
 #include <string.hh>
 #include <zstream-gz.hh>
@@ -49,12 +50,16 @@ namespace {
       // NB: fallthrough:
     case Z_STREAM_ERROR:
       if (m.empty()) m = "zlib Z_STREAM_ERROR";
+      // fallthrough
     case Z_DATA_ERROR:
       if (m.empty()) m = "zlib Z_DATA_ERROR";
+      // fallthrough
     case Z_BUF_ERROR:
       if (m.empty()) m = "zlib Z_BUF_ERROR";
+      // fallthrough
     case Z_VERSION_ERROR:
       if (m.empty()) m = "zlib Z_VERSION_ERROR";
+      // fallthrough
     default:
       throw Zerror(status, m);
     }

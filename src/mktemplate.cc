@@ -1,7 +1,7 @@
 /* $Id: mktemplate.cc,v 1.16 2005/07/06 15:29:59 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
@@ -60,7 +60,7 @@ MkTemplate::ProgressReporter MkTemplate::noReport;
 MkTemplate::MkTemplate(JigdoCache* jcache, bistream* imageStream,
     JigdoConfig* jigdoInfo, bostream* templateStream, ProgressReporter& pr,
     int zipQuality, size_t readAmnt, bool addImage, bool addServers,
-    bool useBzip2)
+    bool useBzip2, int checksumChoice)
   : fileSizeTotal(0U), fileCount(0U), block(), readAmount(readAmnt),
     off(), unmatchedStart(), greedyMatching(true),
     cache(jcache),
@@ -69,7 +69,7 @@ MkTemplate::MkTemplate(JigdoCache* jcache, bistream* imageStream,
     sectorLength(),
     jigdo(jigdoInfo), addImageSection(addImage),
     addServersSection(addServers), useBzLib(useBzip2),
-    matchExec() { }
+    useChecksum(checksumChoice), matchExec() { }
 //______________________________________________________________________
 
 /* Because make-template should be debuggable even in non-debug builds,
@@ -129,10 +129,10 @@ namespace {
                        const size_t bufferLength, Zobstream* zip) {
     Paranoid(begin <= bufferLength && end <= bufferLength);
     if (begin < end) {
-      zip->write(buf + begin, end - begin);
+      zip->write(buf + begin, (unsigned int)(end - begin));
     } else {
-      zip->write(buf + begin, bufferLength - begin);
-      zip->write(buf, end);
+      zip->write(buf + begin, (unsigned int)(bufferLength - begin));
+      zip->write(buf, (unsigned int)end);
     }
   }
   //____________________
@@ -168,9 +168,14 @@ public:
   Desc() : files(), offset(0) { }
 
   // Insert in DESC section: information about whole image
-  inline void imageInfo(uint64 len, const MD5Sum& md5, size_t blockLength) {
+  inline void imageInfoMD5(uint64 len, const MD5Sum& md5, size_t blockLength) {
     files.reserve((files.size() + 16) % 16);
-    files.push_back(new JigdoDesc::ImageInfo(len, md5, blockLength));
+    files.push_back(new JigdoDesc::ImageInfoMD5(len, md5, blockLength));
+  }
+  // Alternative: insert in DESC section: information about whole image
+  inline void imageInfoSha256(uint64 len, const SHA256Sum& sha256, size_t blockLength) {
+    files.reserve((files.size() + 32) % 32);
+    files.push_back(new JigdoDesc::ImageInfoSHA256(len, sha256, blockLength));
   }
   // Insert in DESC section: info about some data that was not matched
   inline void unmatchedData(uint64 len) {
@@ -187,14 +192,21 @@ public:
     offset += len;
   }
   // Insert in DESC section: information about a file that matched
-  inline void matchedFile(uint64 len, const RsyncSum64& r,
-                          const MD5Sum& md5) {
+  inline void matchedFileMD5(uint64 len, const RsyncSum64& r,
+			     const MD5Sum& md5) {
     files.reserve((files.size() + 16) % 16);
-    files.push_back(new JigdoDesc::MatchedFile(offset, len, r, md5));
+    files.push_back(new JigdoDesc::MatchedFileMD5(offset, len, r, md5));
     offset += len;
   }
-  inline bostream& put(bostream& s, MD5Sum* md) {
-    files.put(s, md);
+  // Alternative: Insert in DESC section: information about a file that matched
+  inline void matchedFileSHA256(uint64 len, const RsyncSum64& r,
+                          const SHA256Sum& sha256) {
+    files.reserve((files.size() + 32) % 32);
+    files.push_back(new JigdoDesc::MatchedFileSHA256(offset, len, r, sha256));
+    offset += len;
+  }
+  inline bostream& put(bostream& s, MD5Sum* md, SHA256Sum* sd, int useChecksum) {
+    files.put(s, md, sd, useChecksum);
     return s;
   }
 private:
@@ -208,10 +220,10 @@ private:
    them, anyway. */
 
 inline bool MkTemplate::scanFiles(size_t blockLength, uint32 blockMask,
-                                  size_t md5BlockLength) {
+                                  size_t csumBlockLength) {
   bool result = SUCCESS;
 
-  cache->setParams(blockLength, md5BlockLength);
+  cache->setParams(blockLength, csumBlockLength);
   FileVec::iterator hashPos;
 
   for (JigdoCache::iterator file = cache->begin();
@@ -227,7 +239,7 @@ inline bool MkTemplate::scanFiles(size_t blockLength, uint32 blockMask,
 //________________________________________
 
 void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
-    const size_t back, const size_t md5BlockLength, uint64& nextEvent,
+    const size_t back, const size_t csumBlockLength, uint64& nextEvent,
     FilePart* file) {
 
   /* Don't schedule match if its startOff (== off - blockLen) is impossible.
@@ -262,11 +274,11 @@ void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
     x = matches->addFront();
   }
 
-  /* Rolling rsum matched - schedule an MD5Sum match. NB: In extreme cases,
-     nextEvent may be equal to off */
+  /* Rolling rsum matched - schedule an MD5Sum/SHA256Sum match. NB: In
+     extreme cases, nextEvent may be equal to off */
   x->setStartOffset(off - blockLen);
-  size_t eventLen = (file->size() < md5BlockLength ?
-                     file->size() : md5BlockLength);
+  size_t eventLen = (size_t)(file->size() < csumBlockLength ?
+                     file->size() : csumBlockLength);
   x->setNextEvent(matches, x->startOffset() + eventLen);
   debug(" %1: Head of %2 match at offset %3, my next event %4",
         off, file->leafName(), x->startOffset(), x->nextEvent());
@@ -280,7 +292,7 @@ void MkTemplate::checkRsyncSumMatch2(const size_t blockLen,
    appropriate entry in "matches". */
 void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
     const uint32& bitMask, const size_t blockLen, const size_t back,
-    const size_t md5BlockLength, uint64& nextEvent) {
+    const size_t csumBlockLength, uint64& nextEvent) {
 
   typedef const vector<FilePart*> FVec;
   FVec& hashEntry = block[sum.getHi() & bitMask];
@@ -292,7 +304,7 @@ void MkTemplate::checkRsyncSumMatch(const RsyncSum64& sum,
     const RsyncSum64* fileSum = file->getRsyncSum(cache);
     if (fileSum != 0 && *fileSum == sum)
       // Insert new partial file match in "matches" queue
-      checkRsyncSumMatch2(blockLen, back, md5BlockLength, nextEvent, file);
+      checkRsyncSumMatch2(blockLen, back, csumBlockLength, nextEvent, file);
     ++i;
   } while (i != e);
   return;
@@ -311,9 +323,9 @@ bool MkTemplate::rereadUnmatched(FilePart* file, uint64 count) {
   while (inputFile->good() && count > 0) {
     // read data
     readBytes(*inputFile, tmpBuf.get(),
-              (readAmount < count ? readAmount : count));
+              (size_t)(readAmount < count ? readAmount : count));
     size_t n = inputFile->gcount();
-    zip->write(tmpBuf.get(), n); // will catch Zerror "upstream"
+    zip->write(tmpBuf.get(), (unsigned int)n); // will catch Zerror "upstream"
     Paranoid(n <= count);
     count -= n;
   }
@@ -345,7 +357,7 @@ void MkTemplate::debugRangeFailed() {
       "very likely broken! To help me find the bug, please rerun the\n"
       "command as follows:\n"
       "  [previous-command] --report=noprogress --debug=make-template >log 2>&1\n"
-      "and send the _compressed_ `log' file to <jigdo" << "@atterer.net>."
+      "and send the _compressed_ `log' file to <jigdo" << "@atterer.org>."
          << endl;
     printed = true;
   }
@@ -355,8 +367,8 @@ void MkTemplate::debugRangeFailed() {
 /* The block didn't match, so the whole file x doesn't match - re-read from
    file any data that is no longer buffered (and not covered by another
    match), and write it to the Zobstream. */
-bool MkTemplate::checkMD5Match_mismatch(const size_t stillBuffered,
-                                        PartialMatch* x, Desc& desc) {
+bool MkTemplate::checkMatch_mismatch(const size_t stillBuffered,
+				     PartialMatch* x, Desc& desc) {
   const PartialMatch* oldestMatch = matches->findLowestStartOffset();
   uint64 rereadEnd = off - stillBuffered;
   uint64 xStartOffset = x->startOffset();
@@ -413,6 +425,8 @@ bool MkTemplate::matchExecCommands(PartialMatch* x) {
   }
   Base64String md5Sum;
   md5Sum.write(x->file()->getMD5Sum(cache)->digest(), 16).flush();
+  Base64String sha256Sum;
+  sha256Sum.write(x->file()->getSHA256Sum(cache)->digest(), 32).flush();
   string file = x->file()->getLocation()->getPath();
   file += leafName;
 
@@ -423,6 +437,7 @@ bool MkTemplate::matchExecCommands(PartialMatch* x) {
       || compat_setenv("MATCHPATH", matchPath.c_str())
       || compat_setenv("LEAF", leaf.c_str())
       || compat_setenv("MD5SUM", md5Sum.result().c_str())
+      || compat_setenv("SHA256SUM", sha256Sum.result().c_str())
       || compat_setenv("FILE", file.c_str())) {
     reporter.error(_("Could not set up environment for --match-exec "
                      "command"));
@@ -437,57 +452,82 @@ bool MkTemplate::matchExecCommands(PartialMatch* x) {
 }
 //________________________________________
 
-/* Calculate MD5 for the previous md5ChunkLength (or less if at end of match)
-   bytes. If the calculated checksum matches and it is the last MD5 block in
-   the file, record a file match. If the i-th MD5Sum does not match, write
-   the i*md5ChunkLength bytes directly to templ.
+/* Calculate checksum for the previous ChunkLength (or less if at end of match)
+   bytes. If the calculated checksum matches and it is the last checksum block in
+   the file, record a file match. If the i-th checksum does not match, write
+   the i*ChunkLength bytes directly to templ.
    @param stillBuffered bytes of image data "before current position" that
    are still in the buffer; they are at buf[data] to
    buf[(data+stillBuffered-1)%bufferLength] */
-bool MkTemplate::checkMD5Match(byte* const buf,
+bool MkTemplate::checkChecksumMatch(byte* const buf,
     const size_t bufferLength, const size_t data,
-    const size_t md5BlockLength, uint64& nextEvent,
+    const size_t csumBlockLength, uint64& nextEvent,
     const size_t stillBuffered, Desc& desc) {
   PartialMatch* x = matches->front();
   Paranoid(x != 0 && matches->nextEvent() == off);
 
-  /* Calculate MD5Sum from buf[x->blockOff] to buf[data-1], deal with
+  /* Calculate checksum from buf[x->blockOff] to buf[data-1], deal with
      wraparound. NB 0 <= x->blockOff < bufferLength, but 1 <= data <
      bufferLength+1 */
-  static MD5Sum md;
-  md.reset();
-  if (x->blockOffset() < data) {
-    md.update(buf + x->blockOffset(), data - x->blockOffset());
+  if (useChecksum == CHECK_MD5) {
+    static MD5Sum md;
+    md.reset();
+    if (x->blockOffset() < data) {
+      md.update(buf + x->blockOffset(), data - x->blockOffset());
+    } else {
+      md.update(buf + x->blockOffset(), bufferLength - x->blockOffset());
+      md.update(buf, data);
+    }
+    md.finishForReuse();
+
+    const MD5* xfileSum = x->file()->getMD5Sums(cache, x->blockNumber());
+    if (debug)
+      debug("checkChecksumMatch?: image %1, file %2 block #%3 MD5 %4",
+	    md.toString(), x->file()->leafName(), x->blockNumber(),
+	    (xfileSum ? xfileSum->toString() : "[error]") );
+
+    if (xfileSum == 0 || md != *xfileSum) {
+      /* The block didn't match, so the whole file doesn't match -
+         re-read from file any data that is no longer buffered (and
+         not covered by another match), and write it to the
+         Zobstream. */
+      return checkMatch_mismatch(stillBuffered, x, desc);
+    }
   } else {
-    md.update(buf + x->blockOffset(), bufferLength - x->blockOffset());
-    md.update(buf, data);
-  }
-  md.finishForReuse();
-  //____________________
+    static SHA256Sum sd;
+    sd.reset();
+    if (x->blockOffset() < data) {
+      sd.update(buf + x->blockOffset(), data - x->blockOffset());
+    } else {
+      sd.update(buf + x->blockOffset(), bufferLength - x->blockOffset());
+      sd.update(buf, data);
+    }
+    sd.finishForReuse();
 
-  const MD5* xfileSum = x->file()->getSums(cache, x->blockNumber());
-  if (debug)
-    debug("checkMD5Match?: image %1, file %2 block #%3 %4",
-          md.toString(), x->file()->leafName(), x->blockNumber(),
-          (xfileSum ? xfileSum->toString() : "[error]") );
+    const SHA256* xfileSum = x->file()->getSHA256Sums(cache, x->blockNumber());
+    if (debug)
+      debug("checkChecksumMatch?: image %1, file %2 block #%3 SHA256 %4",
+	    sd.toString(), x->file()->leafName(), x->blockNumber(),
+	    (xfileSum ? xfileSum->toString() : "[error]") );
 
-  if (xfileSum == 0 || md != *xfileSum) {
-    /* The block didn't match, so the whole file doesn't match - re-read from
-       file any data that is no longer buffered (and not covered by another
-       match), and write it to the Zobstream. */
-    return checkMD5Match_mismatch(stillBuffered, x, desc);
+    if (xfileSum == 0 || sd != *xfileSum) {
+      /* The block didn't match, so the whole file doesn't match -
+         re-read from file any data that is no longer buffered (and
+         not covered by another match), and write it to the
+         Zobstream. */
+      return checkMatch_mismatch(stillBuffered, x, desc);
+    }
   }
-  //____________________
 
   // Another block of file matched - was it the last one?
   if (off < x->startOffset() + x->file()->size()) {
     // Still some more to go - update x and its position in queue
     x->setBlockOffset(data);
     x->setBlockNumber(x->blockNumber() + 1);
-    x->setNextEvent(matches, min(x->nextEvent() + md5BlockLength,
+    x->setNextEvent(matches, min(x->nextEvent() + csumBlockLength,
                                  x->startOffset() + x->file()->size()));
     nextEvent = min(nextEvent, x->nextEvent());
-    debug("checkMD5Match: match and more to go, next at off %1",
+    debug("checkChecksumMatch: match and more to go, next at off %1",
           x->nextEvent());
     return SUCCESS;
   }
@@ -517,7 +557,7 @@ bool MkTemplate::checkMD5Match(byte* const buf,
     unmatchedStart = min(off - stillBuffered, x->startOffset());
     debugRangeInfo(oldestMatch->startOffset(), unmatchedStart,
                    "UNMATCHED, re-reading partial match from", oldestMatch);
-    size_t toReread = unmatchedStart - oldestMatch->startOffset();
+    size_t toReread = (size_t)(unmatchedStart - oldestMatch->startOffset());
     desc.unmatchedData(toReread);
     if (rereadUnmatched(oldestMatch->file(), toReread))
       return FAILURE;
@@ -528,17 +568,22 @@ bool MkTemplate::checkMD5Match(byte* const buf,
   if (unmatchedStart < x->startOffset()) {
     debugRangeInfo(unmatchedStart, x->startOffset(),
                    "UNMATCHED, buffer flush before match");
-    size_t toWrite = x->startOffset() - unmatchedStart;
+    size_t toWrite = (size_t)(x->startOffset() - unmatchedStart);
     Paranoid(off - unmatchedStart <= bufferLength);
-    size_t writeStart = modSub(data, off - unmatchedStart, bufferLength);
+    size_t writeStart = modSub(data, (size_t)(off - unmatchedStart), bufferLength);
     writeBuf(buf, writeStart, modAdd(writeStart, toWrite, bufferLength),
              bufferLength, zip);
     desc.unmatchedData(toWrite);
   }
 
   // Assert(x->file->mdValid);
-  desc.matchedFile(x->file()->size(), *(x->file()->getRsyncSum(cache)),
-                   *(x->file()->getMD5Sum(cache)));
+  if (useChecksum == CHECK_MD5) {
+    desc.matchedFileMD5(x->file()->size(), *(x->file()->getRsyncSum(cache)),
+			*(x->file()->getMD5Sum(cache)));
+  } else {
+    desc.matchedFileSHA256(x->file()->size(), *(x->file()->getRsyncSum(cache)),
+			   *(x->file()->getSHA256Sum(cache)));
+  }
   unmatchedStart = off;
   debugRangeInfo(x->startOffset(), off, "MATCH:", x);
 
@@ -558,11 +603,12 @@ bool MkTemplate::checkMD5Match(byte* const buf,
 }
 //________________________________________
 
+
 /* This is called in case the end of the image has been reached, but
    unmatchedStart < off, i.e. there was a partial match at the end of the
    image. Just discards that match and writes the data to the template,
    either by re-reading from the partially matched file, or from the buffer.
-   Compare to similar code in checkMD5Match.
+   Compare to similar code in checkChecksumMatch.
 
    Since we are at the end of the image, the full last bufferLength bytes of
    the image are in the buffer. */
@@ -576,7 +622,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
     unmatchedStart = off - bufferLength;
     debugRangeInfo(y->startOffset(), unmatchedStart,
                    "UNMATCHED at end, re-reading partial match from", y);
-    size_t toReread = unmatchedStart - y->startOffset();
+    size_t toReread = (size_t)(unmatchedStart - y->startOffset());
     desc.unmatchedData(toReread);
     if (rereadUnmatched(y->file(), toReread))
       return FAILURE;
@@ -584,7 +630,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
   // Write out data that is still buffered
   if (unmatchedStart < off) {
     debugRangeInfo(unmatchedStart, off, "UNMATCHED at end");
-    size_t toWrite = off - unmatchedStart;
+    size_t toWrite = (size_t)(off - unmatchedStart);
     Assert(toWrite <= bufferLength);
     size_t writeStart = modSub(data, toWrite, bufferLength);
     writeBuf(buf, writeStart, data, bufferLength, zip);
@@ -608,7 +654,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
 void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
     size_t bufferLength, size_t blockLength, uint32 blockMask,
-    size_t md5BlockLength) {
+    size_t csumBlockLength) {
 
 # if 0
   // Simple version
@@ -622,7 +668,7 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     *rsumBack = modAdd(*rsumBack, 1, bufferLength);
     if (((off - blockLength) & sectorMask) == 0) {
       checkRsyncSumMatch(*rsum, blockMask, blockLength, *rsumBack,
-                         md5BlockLength, nextEvent);
+                         csumBlockLength, nextEvent);
       sectorMask = sectorLength - 1;
       Paranoid(matches->empty()
                || matches->front()->startOffset() >= unmatchedStart);
@@ -652,8 +698,8 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     nextAlignedOff += blockLength;
     Assert(nextAlignedOff > off);
 
-    unsigned len = nextAlignedOff - off;
-    if (len > nextEvent - off) len = nextEvent - off;
+    size_t len = (size_t)(nextAlignedOff - off);
+    if (len > nextEvent - off) len = (size_t)(nextEvent - off);
     // Advance rsum by len bytes in one go
 #   if DEBUG
     RsyncSum64 rsum2 = *rsum; size_t rsumBack2 = *rsumBack;
@@ -690,7 +736,7 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
     if (off == nextAlignedOff) {
       Paranoid(((off - blockLength) & sectorMask) == 0);
       checkRsyncSumMatch(*rsum, blockMask, blockLength, *rsumBack,
-                         md5BlockLength, nextEvent);
+                         csumBlockLength, nextEvent);
       Paranoid(matches->empty()
                || matches->front()->startOffset() >= unmatchedStart);
       sectorMask = sectorLength - 1;
@@ -705,23 +751,23 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
 
    Treat buf as a circular buffer. Read new data into at most half the
    buffer. Calculate a rolling checksum covering blockLength bytes. When it
-   matches an entry in block, start calculating MD5Sums of blocks of length
-   md5BlockLength.
+   matches an entry in block, start calculating checksums of blocks of length
+   csumBlockLength.
 
    Since both image and templ can be non-seekable, we run into a problem in
    the following case: After the initial RsyncSum match, a few of the
-   md5BlockLength-sized chunks of one input file were matched, but not all,
+   csumBlockLength-sized chunks of one input file were matched, but not all,
    so in the end, there is no match. Consequently, we would now need to
    re-read that part of the image and pump it through zlib to templ - but we
-   can't if the image is stdin! Solution: Since we know that the MD5Sum of a
+   can't if the image is stdin! Solution: Since we know that the checksum of a
    block matched part of an input file, we can re-read from there. */
 inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
-    size_t blockLength, uint32 blockMask, size_t md5BlockLength,
-    MD5Sum& templMd5Sum) {
+    size_t blockLength, uint32 blockMask, size_t csumBlockLength,
+    MD5Sum& templMd5Sum, SHA256Sum& templSHA256Sum) {
   bool result = SUCCESS;
 
   /* Cause input files to be analysed */
-  if (scanFiles(blockLength, blockMask, md5BlockLength))
+  if (scanFiles(blockLength, blockMask, csumBlockLength))
     result = FAILURE;
 
   /* Initialise rolling sums with blockSize bytes 0x7f, and do the same with
@@ -739,11 +785,11 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
   auto_ptr<Zobstream> zipDel;
   if (useBzLib)
     zipDel.reset(implicit_cast<Zobstream*>(
-      new ZobstreamBz(*templ, zipQual, 256U, &templMd5Sum) ));
+      new ZobstreamBz(*templ, zipQual, 256U, &templMd5Sum, &templSHA256Sum) ));
   else
     zipDel.reset(implicit_cast<Zobstream*>(
       new ZobstreamGz(*templ, ZIPCHUNK_SIZE, zipQual, 15, 8, 256U,
-                      &templMd5Sum) ));
+                      &templMd5Sum, &templSHA256Sum) ));
   zip = zipDel.get();
   Desc desc; // Buffer for DESC data, will be appended to templ at end
   size_t data = 0; // Offset into buf of byte currently being processed
@@ -752,13 +798,15 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
 
   /* The area delimited by unmatchedStart (incl) and off (excl) has "not been
      dealt with", either by writing it to zip, or by a match with the first
-     MD5 block of an input file. Once a partial match of a file has been
+     checksum block of an input file. Once a partial match of a file has been
      detected, unmatchedStart "gets stuck" at the start offset of this file
      within the image. */
   unmatchedStart = 0;
 
   MD5Sum imageMd5Sum; // MD5 of whole image
   MD5Sum md; // Re-used for each 2nd-level check of any rsum match
+  SHA256Sum imageSha256Sum; // SHA256 of whole image
+  SHA256Sum sd; // Re-used for each 2nd-level check of any rsum match
   matches->erase();
   sectorLength = INITIAL_SECTOR_LENGTH;
 
@@ -767,7 +815,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
 
   try {
     /* Catch Zerrors, which can occur in zip->write(), writeBuf(),
-       checkMD5Match(), zip->close() */
+       checkChecksumMatch(), zip->close() */
     while (image->good()) {
 
       debug("---------- main loop. off=%1 data=%2 unmatchedStart=%3",
@@ -789,11 +837,11 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
                                 matches->lowestStartOffset()->startOffset());
       }
       if (unmatchedStart < newUnmatchedStart) {
-        size_t toWrite = newUnmatchedStart - unmatchedStart;
+        size_t toWrite = (size_t)(newUnmatchedStart - unmatchedStart);
         Paranoid(off - unmatchedStart <= bufferLength);
         //debug("off=%1 unmatchedStart=%2 buflen=%3",
         //      off, unmatchedStart, bufferLength);
-        size_t writeStart = modSub(data, off - unmatchedStart,
+        size_t writeStart = modSub(data, (size_t)(off - unmatchedStart),
                                    bufferLength);
         debugRangeInfo(unmatchedStart, unmatchedStart + toWrite,
                        "UNMATCHED");
@@ -818,6 +866,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
       readBytes(*image, buf + data, thisReadAmount);
       size_t n = image->gcount();
       imageMd5Sum.update(buf + data, n);
+      imageSha256Sum.update(buf + data, n);
 
       while (n > 0) { // Still unprocessed bytes left
         uint64 nextEvent = off + n; // Special event: end of buffer
@@ -853,7 +902,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
             } else {
               dataOld = data - dataOld; off += dataOld; n -= dataOld;
               checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
-                                 md5BlockLength, nextEvent);
+                                 csumBlockLength, nextEvent);
             }
             if (matches->full()) break;
           }
@@ -871,7 +920,7 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
             /* Look for matches of rsum. If found, insert appropriate
                entry in matches list and maybe modify nextEvent. */
             checkRsyncSumMatch(rsum, blockMask, blockLength, rsumBack,
-                               md5BlockLength, nextEvent);
+                               csumBlockLength, nextEvent);
 
             /* We mustn't by accident schedule an event for a part of
                the image that has already been flushed out of the
@@ -883,23 +932,23 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
           // Innermost loop - MATCHES IS FULL
           scanImage_mainLoop_fastForward(nextEvent, &rsum, buf, &data, &n,
               &rsumBack, bufferLength, blockLength, blockMask,
-              md5BlockLength);
+              csumBlockLength);
         } // endif (matches->full())
         if (matches->empty())
           debug(" %1: Event, matches empty", off);
         else
           debug(" %1: Event, matchesOff=%2", off, matches->nextEvent());
 
-        /* Calculate MD5 for the previous md5ChunkLength (or less if
+        /* Calculate checksums for the previous ChunkLength (or less if
            at end of match) bytes, if necessary. If the calculated
-           checksum matches and it is the last MD5 block in the file,
-           record a file match. If the i-th MD5Sum does not match,
-           write the i*md5ChunkLength bytes directly to templ. */
+           checksum matches and it is the last checksum block in the file,
+           record a file match. If the i-th checksum does not match,
+           write the i*ChunkLength bytes directly to templ. */
         while (!matches->empty() && matches->nextEvent() == off) {
           size_t stillBuffered = bufferLength - n;
-          if (stillBuffered > off) stillBuffered = off;
-          if (checkMD5Match(buf, bufferLength, data, md5BlockLength,
-                            nextEvent, stillBuffered, desc))
+          if (stillBuffered > off) stillBuffered = (size_t)off;
+          if (checkChecksumMatch(buf, bufferLength, data, csumBlockLength,
+				 nextEvent, stillBuffered, desc))
             return FAILURE; // no recovery possible, exit immediately
         }
 
@@ -928,8 +977,13 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
   }
 
   imageMd5Sum.finish();
-  desc.imageInfo(off, imageMd5Sum, cache->getBlockLen());
-  desc.put(*templ, &templMd5Sum);
+  imageSha256Sum.finish();
+  if (useChecksum == CHECK_MD5) {
+    desc.imageInfoMD5(off, imageMd5Sum, cache->getBlockLen());
+  } else {
+    desc.imageInfoSha256(off, imageSha256Sum, cache->getBlockLen());
+  }
+  desc.put(*templ, &templMd5Sum, &templSHA256Sum, useChecksum);
   if (!*templ) {
     string err = _("Could not write template data");
     reporter.error(err);
@@ -947,6 +1001,16 @@ bool MkTemplate::run(const string& imageLeafName,
   bool result = SUCCESS;
   oldAreaEnd = 0;
 
+  int major = FILEFORMAT_MAJOR;
+  int minor = FILEFORMAT_MINOR;
+
+  // If we're only using older checksums, then we can safely claim to
+  // be an older version - let older clients use our output
+  if (useChecksum == CHECK_MD5) {
+    major = 1;
+    minor = 2;
+  }
+
   // Kick out files that are too small
   for (JigdoCache::iterator f = cache->begin(), e = cache->end();
        f != e; ++f) {
@@ -959,63 +1023,77 @@ bool MkTemplate::run(const string& imageLeafName,
   }
 
   // Hash table performance drops when linked lists become long => "+1"
-  int    blockBits = bitWidth(fileCount) + 1;
+  int    blockBits = bitWidth((uint32)fileCount) + 1;
   uint32 blockMask = (1 << blockBits) - 1;
   block.resize(blockMask + 1);
 
-  size_t max_MD5Len_blockLen =
+  size_t max_checksumLen_blockLen =
       cache->getBlockLen() + 64; // +64 for Assert below
-  if (max_MD5Len_blockLen < cache->getMD5BlockLen())
-    max_MD5Len_blockLen = cache->getMD5BlockLen();
+  if (max_checksumLen_blockLen < cache->getChecksumBlockLen())
+    max_checksumLen_blockLen = cache->getChecksumBlockLen();
   /* Pass 1 imposes no minimum buffer length, only pass 2: Must always
      be able to read readAmount bytes into one buffer half in one go;
-     must be able to start calculating an MD5Sum at a position that is
+     must be able to start calculating an checksum at a position that is
      blockLength bytes back in input; must be able to write out at
-     least previous md5BlockLength bytes in case there is no match. */
+     least previous csumBlockLength bytes in case there is no match. */
   size_t bufferLength = 2 *
-    (max_MD5Len_blockLen > readAmount ? max_MD5Len_blockLen : readAmount);
+    (max_checksumLen_blockLen > readAmount ? max_checksumLen_blockLen : readAmount);
   // Avoid reading less bytes than readAmount at any time
   bufferLength = (bufferLength + readAmount - 1) / readAmount * readAmount;
 
   Paranoid(bufferLength % readAmount == 0); // for efficiency only
   // Asserting this makes things easier in pass 2. Yes it is ">" not ">="
-  Assert(cache->getMD5BlockLen() > cache->getBlockLen());
+  Assert(cache->getChecksumBlockLen() > cache->getBlockLen());
 
   if (debug) {
     debug("Nr of files: %1 (%2 bits)", fileCount, blockBits);
     debug("Total bytes: %1", fileSizeTotal);
     debug("blockLength: %1", cache->getBlockLen());
-    debug("md5BlockLen: %1", cache->getMD5BlockLen());
+    debug("csumBlockLen: %1", cache->getChecksumBlockLen());
     debug("bufLen (kB): %1", bufferLength/1024);
     debug("zipQual:     %1", zipQual);
   }
 
   MD5Sum templMd5Sum;
+  SHA256Sum templSha256Sum;
   ArrayAutoPtr<byte> bufDel(new byte[bufferLength]);
   byte* buf = bufDel.get();
 
-  prepareJigdo(); // Add [Jigdo]
+  prepareJigdo(major, minor); // Add [Jigdo]
 
-  { // Write header to template file
-    string s = TEMPLATE_HDR; append(s, FILEFORMAT_MAJOR); s += '.';
-    append(s, FILEFORMAT_MINOR); s += " jigdo-file/" JIGDO_VERSION;
-    s += "\r\nSee "; s += URL; s += " for details about jigdo.\r\n\r\n";
+  // Write header to template file
+  {
+    string s = TEMPLATE_HDR;
+    append(s, major);
+    s += '.';
+    append(s, minor);
+    s += " jigdo-file/" JIGDO_VERSION;
+    s += "\r\nSee ";
+    s += URL;
+    s += " for details about jigdo.\r\n\r\n";
     const byte* t = reinterpret_cast<const byte*>(s.data());
     writeBytes(*templ, t, s.size());
-    templMd5Sum.update(t, s.size());
-    if (!*templ) result = FAILURE;
+    if (useChecksum == CHECK_MD5)
+      templMd5Sum.update(t, s.size());
+    else
+      templSha256Sum.update(t, s.size());
+    if (!*templ)
+      result = FAILURE;
   }
 
   // Read input image and output parts that do not match
   if (scanImage(buf, bufferLength, cache->getBlockLen(), blockMask,
-                cache->getMD5BlockLen(), templMd5Sum)) {
+                cache->getChecksumBlockLen(), templMd5Sum, templSha256Sum)) {
     result = FAILURE;
   }
   cache->deallocBuffer();
-  templMd5Sum.finish();
+  if (useChecksum == CHECK_MD5)
+    templMd5Sum.finish();
+  else
+    templSha256Sum.finish();
 
   // Add [Image], (re-)add [Parts]
-  finalizeJigdo(imageLeafName, templLeafName, templMd5Sum);
+  finalizeJigdo(imageLeafName, templLeafName, templMd5Sum, templSha256Sum, useChecksum);
 
   debug("MkTemplate::run() finished");
   return result;

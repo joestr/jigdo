@@ -1,7 +1,7 @@
 /* $Id: jigdo-file-cmd.cc,v 1.16 2005/07/10 11:12:18 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -53,7 +53,7 @@ bistream* openForInput(bistream*& dest, const string& name) throw(Cleanup) {
 /* Open named file or stdin if name is "-". Store pointer to stream obj in
    dest and return it (except when it points to an object which should not be
    deleted by the caller; in this case return null). */
-istream* openForInput(istream*& dest, const string& name) throw(Cleanup) {
+istream* openForInput(istream*& dest, const string& name) {
   if (name == "-") {
     /* EEEEK! There's no standard way to switch mode of cin to binary. (There
        might be an implementation-dependent way? close()ing and re-open()ing
@@ -103,7 +103,7 @@ bostream* openForOutput(bostream*& dest, const string& name) throw(Cleanup) {
 }
 #endif
 
-ostream* openForOutput(ostream*& dest, const string& name) throw(Cleanup) {
+ostream* openForOutput(ostream*& dest, const string& name) {
   if (name == "-") {
     dest = reinterpret_cast<ostream*>(&cout); // EEEEK!
     return 0;
@@ -241,7 +241,7 @@ int JigdoFileCmd::makeTemplate() {
   //____________________
 
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
-  cache.setParams(blockLength, md5BlockLength);
+  cache.setParams(blockLength, csumBlockLength);
   cache.setCheckFiles(optCheckFiles);
   if (addLabels(cache)) return 3;
   while (true) {
@@ -253,7 +253,7 @@ int JigdoFileCmd::makeTemplate() {
   auto_ptr<MkTemplate>
     op(new MkTemplate(&cache, image, &jc, templ, *optReporter,
                       optZipQuality, readAmount, optAddImage, optAddServers,
-                      optBzip2));
+                      optBzip2, optChecksumChoice));
   op->setMatchExec(optMatchExec);
   op->setGreedyMatching(optGreedyMatching);
   size_t lastDirSep = imageFile.rfind(DIRSEP);
@@ -289,7 +289,7 @@ int JigdoFileCmd::makeImage() {
 
   if (imageFile != "-" && willOutputTo(imageFile, optForce) > 0) return 3;
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
-  cache.setParams(blockLength, md5BlockLength);
+  cache.setParams(blockLength, csumBlockLength);
   while (true) {
     try { cache.readFilenames(fileNames); } // Recurse through directories
     catch (RecurseError e) { optReporter->error(e.message); continue; }
@@ -370,7 +370,8 @@ int JigdoFileCmd::verifyImage() {
   auto_ptr<bistream> imageDel(openForInput(image, imageFile));
 
   JigdoDescVec contents;
-  JigdoDesc::ImageInfo* info;
+  JigdoDesc::ImageInfoMD5* info_md5 = 0;
+  JigdoDesc::ImageInfoSHA256* info_sha256 = 0;
   try {
     bistream* templ;
     auto_ptr<bistream> templDel(openForInput(templ, templFile));
@@ -386,10 +387,52 @@ int JigdoFileCmd::verifyImage() {
       optReporter->error(err);
       return 3;
     }
-    info = dynamic_cast<JigdoDesc::ImageInfo*>(contents.back());
-    if (info == 0) {
+
+    // Attempt verification via SHA256 first if that's possible
+    for (JigdoDescVec::iterator i = contents.begin(); i != contents.end(); ++i) {
+      info_sha256 = dynamic_cast<JigdoDesc::ImageInfoSHA256*>(*i);
+      if (info_sha256) {
+        SHA256Sum md; // SHA256Sum of image
+        md.updateFromStream(*image, info_sha256->size(), readAmount, *optReporter);
+	md.finish();
+	if (*image) {
+          image->get();
+	  if (image->eof()) {
+            optReporter->info(subst("SHA256 from template: %1", info_sha256->sha256().toString()));
+            optReporter->info(subst("SHA256 from image:    %1", md.toString()));
+	    if (md == info_sha256->sha256()) {
+              optReporter->info(_("OK: SHA256 Checksums match, image is good!"));
+	    return 0;
+	    }
+	  }
+	}
+      }
+    }
+
+    for (JigdoDescVec::iterator i = contents.begin(); i != contents.end(); ++i) {
+      info_md5 = dynamic_cast<JigdoDesc::ImageInfoMD5*>(*i);
+      if (info_md5) {
+        MD5Sum md; // MD5Sum of image
+	md.updateFromStream(*image, info_md5->size(), readAmount, *optReporter);
+	md.finish();
+	if (*image) {
+          image->get();
+	  if (image->eof()) {
+            optReporter->info(subst("MD5 from template: %1", info_md5->md5().toString()));
+            optReporter->info(subst("MD5 from image:    %1", md.toString()));
+            if (md == info_md5->md5()) {
+              optReporter->info(_("OK: MD5 Checksums match, image is good!"));
+	      optReporter->info(_("WARNING: MD5 is not considered a secure hash!"));
+	      optReporter->info(_("WARNING: It is recommended to verify your image in other ways too!"));
+	      return 0;
+	    }
+	  }
+	}
+      }
+    }
+    if (info_sha256 == 0 && info_md5 == 0) {
       string err = subst(_("%1 verify: Invalid template data - "
-                           "corrupted file?"), binaryName);
+			   "corrupted file?"), binaryName);
       optReporter->error(err);
       return 3;
     }
@@ -399,16 +442,7 @@ int JigdoFileCmd::verifyImage() {
     return 3;
   }
 
-  MD5Sum md; // MD5Sum of image
-  md.updateFromStream(*image, info->size(), readAmount, *optReporter);
-  md.finish();
-  if (*image) {
-    image->get();
-    if (image->eof() && md == info->md5()) {
-      optReporter->info(_("OK: Checksums match, image is good!"));
-      return 0;
-    }
-  }
+  // If we've checked and no match, we fall through to here
   optReporter->error(_(
       "ERROR: Checksums do not match, image might be corrupted!"));
   return 2;
@@ -441,7 +475,7 @@ bool JigdoFileCmd::printMissing_lookup(JigdoConfig& jc, const string& query,
 int JigdoFileCmd::printMissing(Command command) {
   if (imageFile.empty() || jigdoFile.empty() || templFile.empty()) {
     cerr << subst(_(
-      "%1 make-template: Not all of --image, --jigdo, --template specified.\n"
+      "%1 print-missing: Not all of --image, --jigdo, --template specified.\n"
       "(Attempt to deduce missing names failed.)\n"), binaryName);
     exit_tryHelp();
   }
@@ -473,10 +507,13 @@ int JigdoFileCmd::printMissing(Command command) {
     jc.rescan();
   }
 
-  set<MD5> sums;
+  set<MD5> MD5sums;
+  set<SHA256> SHA256sums;
   try {
-    JigdoDesc::listMissing(sums, imageTmpFile, templFile, templ,
-                           *optReporter);
+    JigdoDesc::listMissingMD5(MD5sums, imageTmpFile, templFile, templ,
+                              *optReporter);
+    JigdoDesc::listMissingSHA256(SHA256sums, imageTmpFile, templFile, templ,
+                                 *optReporter);
   } catch (Error e) {
     string err = subst(_("%1 print-missing: %2"), binaryName, e.message);
     optReporter->error(err);
@@ -489,7 +526,7 @@ int JigdoFileCmd::printMissing(Command command) {
 
   case PRINT_MISSING: {
     // To list just the first URI
-    for (set<MD5>::iterator i = sums.begin(), e = sums.end(); i != e; ++i) {
+    for (set<MD5>::iterator i = MD5sums.begin(), e = MD5sums.end(); i != e; ++i) {
       Base64String m;
       m.write(i->sum, 16).flush();
       string& s(m.result());
@@ -514,12 +551,39 @@ int JigdoFileCmd::printMissing(Command command) {
         printMissing_lookup(jc, s, false);
       }
     }
+
+    // To list just the first URI
+    for (set<SHA256>::iterator i = SHA256sums.begin(), e = SHA256sums.end(); i != e; ++i) {
+      Base64String m;
+      m.write(i->sum, 32).flush();
+      string& s(m.result());
+
+      vector<string> words;
+      size_t off;
+      bool found = false;
+      for (ConfigFile::Find f(cf, partsSection, s, &off);
+           !f.finished(); off = f.next()) {
+        // f.section() points to "[section]" line, or end() if 0th section
+        // f.label()   points to "label=..." line, or end() if f.finished()
+        // off is offset of part after "label=", or 0
+        words.clear();
+        ConfigFile::split(words, *f.label(), off);
+        // Ignore everything but the first word
+        if (printMissing_lookup(jc, words[0], false)) { found = true; break;}
+      }
+      if (!found) {
+        /* No mapping found in [Parts] (this shouldn't happen) - create
+           fake "SHA256sum:<sha256sum>" label line */
+        s.insert(0, "SHA256Sum:");
+        printMissing_lookup(jc, s, false);
+      }
+    }
     break;
   }
 
   case PRINT_MISSING_ALL: {
     // To list all URIs for each missing file, separated by empty lines:
-    for (set<MD5>::iterator i = sums.begin(), e = sums.end(); i != e; ++i){
+    for (set<MD5>::iterator i = MD5sums.begin(), e = MD5sums.end(); i != e; ++i){
       Base64String m;
       m.write(i->sum, 16).flush();
       string& s(m.result());
@@ -538,6 +602,28 @@ int JigdoFileCmd::printMissing(Command command) {
       }
       // Last resort: "MD5sum:<md5sum>" label line
       s.insert(0, "MD5Sum:");
+      printMissing_lookup(jc, s, true);
+      cout << endl;
+    }
+    for (set<SHA256>::iterator i = SHA256sums.begin(), e = SHA256sums.end(); i != e; ++i){
+      Base64String m;
+      m.write(i->sum, 32).flush();
+      string& s(m.result());
+
+      vector<string> words;
+      size_t off;
+      for (ConfigFile::Find f(cf, partsSection, s, &off);
+           !f.finished(); off = f.next()) {
+        // f.section() points to "[section]" line, or end() if 0th section
+        // f.label()   points to "label=..." line, or end() if f.finished()
+        // off is offset of part after "label=", or 0
+        words.clear();
+        ConfigFile::split(words, *f.label(), off);
+        // Ignore everything but the first word
+        printMissing_lookup(jc, words[0], true);
+      }
+      // Last resort: "SHA256sum:<sha256sum>" label line
+      s.insert(0, "SHA256Sum:");
       printMissing_lookup(jc, s, true);
       cout << endl;
     }
@@ -562,7 +648,7 @@ int JigdoFileCmd::scanFiles() {
   }
 
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
-  cache.setParams(blockLength, md5BlockLength);
+  cache.setParams(blockLength, csumBlockLength);
   if (addLabels(cache)) return 3;
   while (true) {
     try { cache.readFilenames(fileNames); } // Recurse through directories
@@ -572,10 +658,18 @@ int JigdoFileCmd::scanFiles() {
   JigdoCache::iterator ci = cache.begin(), ce = cache.end();
   if (optScanWholeFile) {
     // Cause entire file to be read
-    while (ci != ce) { ci->getMD5Sum(&cache); ++ci; }
+    while (ci != ce) {
+      ci->getMD5Sum(&cache);
+      ci->getSHA256Sum(&cache);
+      ++ci;
+    }
   } else {
-    // Only cause first md5 block to be read; not scanning the whole file
-    while (ci != ce) { ci->getSums(&cache, 0); ++ci; }
+    // Only cause first checksum block to be read; not scanning the whole file
+    while (ci != ce) {
+      ci->getMD5Sums(&cache, 0);
+      ci->getSHA256Sums(&cache, 0);
+      ++ci;
+    }
   }
   return 0;
   // Cache data is written out when the JigdoCache is destroyed
@@ -589,7 +683,7 @@ int JigdoFileCmd::scanFiles() {
    actually very similar to scanFiles() above. */
 int JigdoFileCmd::md5sumFiles() {
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
-  cache.setParams(blockLength, md5BlockLength);
+  cache.setParams(blockLength, csumBlockLength);
   cache.setCheckFiles(optCheckFiles);
   while (true) {
     try { cache.readFilenames(fileNames); } // Recurse through directories
@@ -606,6 +700,44 @@ int JigdoFileCmd::md5sumFiles() {
     const MD5Sum* md = ci->getMD5Sum(&cache);
     if (md != 0) {
       m.write(md->digest(), 16).flush();
+      string& s(m.result());
+      s += "  ";
+      if (ci->getPath() == "/") s += '/';
+      s += ci->leafName();
+      // Output checksum line
+      optReporter->coutInfo(s);
+    }
+    ++ci;
+  }
+  return 0;
+  // Cache data is written out when the JigdoCache is destroyed
+}
+//______________________________________________________________________
+
+/* Print SHA256 checksums of arguments like sha256sum(1), but using our
+   Base64-like encoding for the checksum, not hexadecimal like
+   sha256sum(1). Additionally, try to make use of the cache, and only
+   print out the part of any filename following any "//". This is
+   actually very similar to scanFiles() above. */
+int JigdoFileCmd::sha256sumFiles() {
+  JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
+  cache.setParams(blockLength, csumBlockLength);
+  cache.setCheckFiles(optCheckFiles);
+  while (true) {
+    try { cache.readFilenames(fileNames); } // Recurse through directories
+    catch (RecurseError e) { optReporter->error(e.message); continue; }
+    break;
+  }
+
+  if (JigdoFileCmd::optHex) Base64String::hex = true;
+
+  JigdoCache::iterator ci = cache.begin(), ce = cache.end();
+  while (ci != ce) {
+    Base64String m;
+    // Causes whole file to be read
+    const SHA256Sum* md = ci->getSHA256Sum(&cache);
+    if (md != 0) {
+      m.write(md->digest(), 32).flush();
       string& s(m.result());
       s += "  ";
       if (ci->getPath() == "/") s += '/';

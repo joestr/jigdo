@@ -1,7 +1,7 @@
 /* $Id: zstream.hh,v 1.10 2005/07/02 22:05:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2005  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -30,6 +30,7 @@
 #include <config.h>
 #include <debug.hh>
 #include <md5sum.fh>
+#include <sha256sum.fh>
 #include <zstream.fh>
 //______________________________________________________________________
 
@@ -48,13 +49,13 @@ struct Zerror : Error {
     resultant compressed chunk written out with a header (cf
     ../doc/TechDetails.txt for format). This is jigdo-specific.
 
-    Additional features mainly useful for jigdo: If an MD5Sum object
-    is passed to Zobstream(), any data written to the output stream is
-    also passed to the object. */
+    Additional features mainly useful for jigdo: If an MD5Sum or
+    SHA256Sum object is passed to Zobstream(), any data written to the
+    output stream is also passed to the object. */
 class Zobstream {
 public:
 
-  inline explicit Zobstream(MD5Sum* md = 0);
+  inline explicit Zobstream(MD5Sum* md = 0, SHA256Sum* sd = 0);
   /** Calls close(), which might throw a Zerror exception! Call
       close() before destroying the object to avoid this. */
   virtual ~Zobstream() { close(); delete zipBuf; Assert(todoBuf == 0); }
@@ -138,6 +139,7 @@ private:
   unsigned chunkLimVal;
 
   MD5Sum* md5sum;
+  SHA256Sum* sha256sum;
 };
 //______________________________________________________________________
 
@@ -245,9 +247,9 @@ private:
 /* Initialising todoBufSize and todoCount in this way allows us to
    move Assert(is_open) out of the inline functions and into zip() for
    calls to put() and write() */
-Zobstream::Zobstream(MD5Sum* md)
+Zobstream::Zobstream(MD5Sum* md, SHA256Sum *sd)
     : zipBuf(0), zipBufLast(0), todoBuf(0), todoBufSize(0), todoCount(0),
-      stream(0), md5sum(md) { }
+      stream(0), md5sum(md), sha256sum(sd) { }
 //________________________________________
 
 void Zobstream::open(bostream& s, unsigned chunkLimit, unsigned todoBufSz) {

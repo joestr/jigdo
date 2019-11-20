@@ -1,7 +1,7 @@
 /* $Id: rsyncsum.ih,v 1.2 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -46,12 +46,13 @@ RsyncSum64& RsyncSum64::addBackNtimes(byte x, size_t n) {
   // gaussProd = n*(n+1)/2, but need to do the "/2" before the "*",
   // otherwise bit 31 of result is lost on 32-bit architectures.
   uint32 gaussProd;
-  if (n % 2 == 0)
-    gaussProd = (n / 2) * (n + 1);
+  uint32 tn = (uint32)n;
+  if (tn % 2 == 0)
+    gaussProd = (tn / 2) * (tn + 1);
   else
-    gaussProd = ((n + 1) / 2) * n;
-  sumHi = (sumHi + n * sumLo + gaussProd * charTable[x]) & 0xffffffff;
-  sumLo = (sumLo + n * charTable[x]) & 0xffffffff;
+    gaussProd = ((tn + 1) / 2) * tn;
+  sumHi = (sumHi + tn * sumLo + gaussProd * charTable[x]) & 0xffffffff;
+  sumLo = (sumLo + tn * charTable[x]) & 0xffffffff;
   return *this;
 }
 

@@ -1,0 +1,11 @@
+*.o
+*~
+config.log
+config.status
+Makefile
+TAGS
+config.h
+Makedeps
+configure
+*.exe
+autom4te.cache

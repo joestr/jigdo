@@ -1,7 +1,7 @@
 #! /bin/sh -e
 #  __   _
 #  |_) /|  Copyright (C) 2001  |  richard@
-#  | \/¯|  Richard Atterer     |  atterer.net
+#  | \/¯|  Richard Atterer     |  atterer.org
 #  ¯ '` ¯
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License, version 2. See
@@ -97,6 +97,7 @@ find "$@" '(' -type f -o -type l ')' \
 #    echo "Debian=ftp://cdimage.debian.org/debian-2.2r6-snapshot/" >>"$jigdo.tmp"
 #    echo "Non-US=ftp://cdimage.debian.org/debian-2.2r6-snapshot/non-US/" >>"$jigdo.tmp"
 #    echo "MD5Sum=ftp://ftp.fsn.hu/pub/debian-superseded/" >>"$jigdo.tmp"
+#    no sha256 needed
     gzip -9 "$jigdo.tmp"
     mv "$jigdo.tmp.gz" "$jigdo"
     log "Finished \`$file'"

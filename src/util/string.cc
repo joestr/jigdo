@@ -1,7 +1,7 @@
 /* $Id: string.cc,v 1.6 2005/04/09 10:38:21 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -14,6 +14,13 @@
 
 #include <debug.hh>
 #include <string.hh>
+
+#if WINDOWS
+# define PC64u "%I64u"
+#else
+# define PC64u "%llu"
+#endif
+
 //______________________________________________________________________
 
 namespace {
@@ -62,15 +69,16 @@ string& append(string& s, unsigned long x, int width) {
   buf[BUF_LEN - 1] = '\0';
   return s += buf;
 }
+
 #if HAVE_UNSIGNED_LONG_LONG
 string& append(string& s, unsigned long long x) {
-  snprintf(buf, BUF_LEN, "%llu", x);
+  snprintf(buf, BUF_LEN, PC64u, x);
   buf[BUF_LEN - 1] = '\0';
   return s += buf;
 }
 string& append(string& s, unsigned long long x, int width) {
   Assert(*PAD_END == '\0' && width < PAD_END - PAD);
-  int written = snprintf(buf, BUF_LEN, "%llu", x);
+  int written = snprintf(buf, BUF_LEN, PC64u, x);
   if (written < width) s += PAD_END - width + written;
   buf[BUF_LEN - 1] = '\0';
   return s += buf;
@@ -82,7 +90,7 @@ string Subst::subst(const char* format, int args, const Subst arg[]) {
   // Create output
   string result;
   const char* i = format - 1;
-  char max = '1' + args;
+  int max = '1' + args;
   while (*++i != '\0') {
     if (*i != '%') { result += *i; continue; }
     ++i;
@@ -108,7 +116,7 @@ string Subst::subst(const char* format, int args, const Subst arg[]) {
           buf[BUF_LEN - 1] = '\0'; result += buf; break;
 #       if HAVE_UNSIGNED_LONG_LONG
         case ULONGLONG:
-          snprintf(buf, BUF_LEN, "%llu", arg[n].val.ulonglongVal);
+          snprintf(buf, BUF_LEN, PC64u, arg[n].val.ulonglongVal);
           buf[BUF_LEN - 1] = '\0'; result += buf; break;
 #       endif
         case DOUBLE:

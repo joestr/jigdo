@@ -1,7 +1,7 @@
 /* $Id: partialmatch.hh,v 1.5 2004/09/12 21:08:28 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2002  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.net
+  | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -42,7 +42,7 @@ public:
       nextEvent. Uses linear search. */
   INLINE void setNextEvent(PartialMatchQueue* matches, uint64 newNextEvent);
 
-  /** Offset in buf of start of current MD5 block */
+  /** Offset in buf of start of current checksum block */
   size_t blockOffset() const { return blockOff; }
   void setBlockOffset(size_t b) { blockOff = b; }
 
@@ -61,7 +61,7 @@ private:
   PartialMatch() { } // Only to be instantiated by PartialMatchQueue
   uint64 startOff; // Offset in image at which this match starts
   uint64 nextEv; // Next value of off at which to finish() sum & compare
-  size_t blockOff; // Offset in buf of start of current MD5 block
+  size_t blockOff; // Offset in buf of start of current checksum block
   size_t blockNr; // Number of block in file, i.e. index into file->sums[]
   FilePart* filePart; // File whose sums matched so far
   PartialMatch* nextPart;
@@ -144,7 +144,7 @@ public:
 # endif
 
 private:
-  /* The size of the linked list of MD5 blocks awaiting matching must
+  /* The size of the linked list of checksum blocks awaiting matching must
      be limited for cases where there are lots of overlapping matches,
      e.g. both image and a file are all zeroes. */
   static const int MAX_MATCHES = 2048;

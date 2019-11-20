@@ -1,3 +1,11 @@
+# Most of this is now *very* out of date - Steve...
+
+Adding SHA256 support
+=====================
+
+I've hacked this in alongside the MD5 support. A better long-term
+solution would be more generic checksumming support, but that would
+need major re-architecting...
 
 Hacking the jigdo source code
 =============================
@@ -10,30 +18,21 @@ assertions are always enabled), #defines GTK_DISABLE_DEPRECATED, calls
 abort() on failed assertions instead of just printing the assertion,
 etc.
 
+Jigdo is maintained in git at:
 
-Mailing list, CVS
-~~~~~~~~~~~~~~~~~
-The jigdo-user mailing list is currently used both for end-user support
-and development.
+  https://git.einval.com/cgi-bin/gitweb.cgi?p=jigdo.git;a=summary
 
-Subscribe: https://lists.berlios.de/mailman/listinfo/jigdo-user
-Archive:   https://lists.berlios.de/pipermail/jigdo-user
-Address:   jigdo-user at lists.berlios.de
+Check the "upstream" branch.
 
-Anonymous CVS access to the latest source code is available. Execute
-    cvs -d:pserver:anonymous@cvs.jigdo.berlios.de:/cvsroot/jigdo login
-Just press return at the login prompt, then execute
-    cvs -z3 -d:pserver:anonymous@cvs.jigdo.berlios.de:/cvsroot/jigdo co jigdo
-
-Latest code: http://cvs.berlios.de/cgi-bin/viewcvs.cgi/jigdo/jigdo/jigdo.tar.gz?tarball=1
-Browse tree: http://cvs.berlios.de/cgi-bin/viewcvs.cgi/jigdo/jigdo/
-
+Mail about jigdo is probably best sent to debian-cd@lists.debian.org
+for now.
 
 Bootstrapping the code
 ~~~~~~~~~~~~~~~~~~~~~~
-If you checkout the code from CVS or download the CVS snapshot, some
-additional files have to be generated - in the jigdo release tarballs,
-these files are already present.
+
+If you checkout the code from git, some additional files have to be
+generated - in the jigdo release tarballs, these files are already
+present.
 
 The Makefiles automatically handle regeneration of those files if they
 are not present; the only thing that you need to do manually is to
@@ -81,7 +80,7 @@ Windows/Solaris/BSD/MacOS porting:
 
   It'd also be nice if someone ensured that it builds on
   Redhat/SuSE/Mandrake, and maintained the jigdo.spec file. Paul Bolle
-  <jigdo-rpm atterer.net> has been doing this, get in touch with him
+  <jigdo-rpm atterer.org> has been doing this, get in touch with him
   if you want to improve the .spec file.
 
   Andrew Mathieson has started maintaining a Mac OS X port - the Fink
@@ -174,6 +173,8 @@ src/net: Low-level network access.
     All code accessing libcurl should be isolated in this dir *only*.
     Files in this dir may make calls to glib, but not gtk.
 
+    ###### Steve (2019): abandoned for 0.8.0
+
 src/job: Application logic
 
     A "job" is a certain task, e.g. downloading an URL, processing a
@@ -190,11 +191,15 @@ src/job: Application logic
 
     Files in this dir may make calls to glib, but not gtk.
 
+    ###### Steve (2019): abandoned for 0.8.0
+
 src/gtk: GTK+ graphical user interface
 
     Provides a way to access the facilities of "jobs" via GTK widgets
     etc. This is the only dir whose files may make calls to GTK (and
     of course also glib).
+
+    ###### Steve (2019): abandoned for 0.8.0
 
 src/util: Independent small helper classes
 
@@ -431,5 +436,5 @@ it can retry the failed download, but use a different server.
 --
   __   _
   |_) /|  Richard Atterer
-  | \/¯|  http://atterer.net
+  | \/¯|  http://atterer.org
   ¯ '` ¯

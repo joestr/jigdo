@@ -1,7 +1,7 @@
 /* $Id: configfile.cc,v 1.2 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2003  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -18,7 +18,7 @@
 
 #include <iostream>
 #include <fstream>
-
+#include <cstring>
 #include <configfile.hh>
 #include <string.hh>
 //______________________________________________________________________

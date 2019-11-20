@@ -1,8 +1,9 @@
 #! /bin/sh
 #  __   _
 #  |_) /|  Copyright (C) 2002  |  richard@
-#  | \/¯|  Richard Atterer     |  atterer.net
+#  | \/¯|  Richard Atterer     |  atterer.org
 #  ¯ '` ¯
+# Copyright (C) 2016-2019 Steve McIntyre <93sam@debian.org>
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License, version 2. See
 #  the file COPYING for details.
@@ -71,7 +72,7 @@ jigdoFile="jigdo-file --cache=$tmpDir/jigdo-cache.db --cache-expiry=1w --report=
 maxMissing=100
 
 filesPerFetch=10
-wgetOpts="--passive-ftp --no-directories --non-verbose"
+wgetOpts="--passive-ftp --no-directories --no-verbose"
 
 # To find the template file, first the leafname of the template's URL
 # is extracted from the .jigdo file. Next, for a .jigdo file named
@@ -104,12 +105,16 @@ userAgent="jigdo-mirror/1.0 (`wget --version 2>/dev/null | (read ver; echo $ver)
 #______________________________________________________________________
 
 # isURI <string>
-# Returns 0 (true) if the supplied string is a HTTP/FTP URL, otherwise 1
+# Returns 0 (true) if the supplied string is a HTTP/HTTPS/FTP/FILE
+# URL, otherwise 1
 isURI() {
-    case "$1" in
-        http:*|ftp:*|HTTP:*|FTP:*|file:*|FILE:*) return 0;;
-        *) return 1;
-    esac
+  case "$1" in
+    [hH][tT][tT][pP]:*) return 0;;
+    [hH][tT][tT][pP][sS]:*) return 0;;
+    [fF][tT][pP]:*) return 0;;
+    [fF][iI][lL][eE]:*) return 0;;
+    *) return 1;
+  esac
 }
 #______________________________________________________________________
 
@@ -151,8 +156,18 @@ makeImage() {
             rm -f "image" "template"
             return 0
         fi
+    elif test "$templateSHA256"; then
+        set -- `$jigdoFile sha256sum --report=quiet "template"`
+        if test "$1" = "$templateSHA256"; then
+            log "    Template checksum is correct"
+        else
+            log "    Error - template checksum mismatch"
+            exitCode=1
+            rm -f "image" "template"
+            return 0
+        fi
     else
-        log "    [WARNING - \`Template-MD5Sum' missing from image section]"
+        log "    [WARNING - \`Template-MD5Sum' and \`Template-SHA256Sum' missing from image section]"
     fi
 
     # Try to merge any files into the image.
@@ -182,11 +197,11 @@ makeImage() {
     for pass in x xx xxx xxxx xxxxx xxxxxx xxxxxxx xxxxxxxx; do
         if $havePMA; then
             $jigdoFile print-missing-all $ijtOpts $jigdoOpts $uriOpts \
-            | egrep -i '^(http:|ftp:|$)' >"list"
+            | egrep -i '^(https:|http:|ftp:|$)' >"list"
         else
             # Quick hack until jigdo-port supports print-missing-all
             $jigdoFile print-missing $ijtOpts $jigdoOpts $uriOpts \
-            | egrep -i '^(http:|ftp:|$)' \
+            | egrep -i '^(https:|http:|ftp:|$)' \
             | sed -n '/./{p;s/^.*$//;p;}' >"list"
         fi
         missingCount=`egrep '^$' <"list" | wc -l | sed -e 's/ *//g'`
@@ -346,11 +361,12 @@ find "$jigdoDir" -name "*.jigdo" \
       case "$1" in
         "["*"]")
           sectionEnd
-          unset image templateURI templateMD5 shortInfo info
+          unset image templateURI templateMD5 templateSHA256 shortInfo info
           section="$1";;
         Filename) image="$2";;
         Template) templateURI="$2";;
         Template-MD5Sum) templateMD5="$2";;
+        Template-SHA256Sum) templateSHA256="$2";;
         ShortInfo) shift; shortInfo="$*";;
         Info) shift; info="$*";;
       esac

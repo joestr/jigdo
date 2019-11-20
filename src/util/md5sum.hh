@@ -1,7 +1,7 @@
 /* $Id: md5sum.hh,v 1.5 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2004  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   "Ported" to C++ by RA. Actual MD5 code taken from glibc
 
@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <cstdlib>
+#include <cstring>
 #include <iosfwd>
 #include <string>
 
@@ -197,7 +198,7 @@ public:
   /// Like error(), but for purely informational messages.
   virtual void info(const string& message);
   /// Called when data is read during updateFromStream()
-  virtual void readingMD5(uint64 offInStream, uint64 size);
+  virtual void readingChecksum(uint64 offInStream, uint64 size);
 };
 //______________________________________________________________________
 

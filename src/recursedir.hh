@@ -1,7 +1,7 @@
 /* $Id: recursedir.hh,v 1.7 2006/05/14 18:23:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -75,8 +75,7 @@ public:
       before using cache entries. If false, only check whether cache entry
       present and return it if so. */
   bool getName(string& result, struct stat* fileInfo = 0,
-               bool checkFiles = true)
-      throw(RecurseError, bad_alloc);
+               bool checkFiles = true);
 
   /** Flush list of "already visited device/inode pairs", which would
       otherwise be skipped during further scanning of filenames. */
@@ -101,8 +100,7 @@ private:
   string curDir;
   stack<Level> recurseStack;
 
-  inline bool getNextObjectName(string& result)
-    throw(RecurseError);
+  inline bool getNextObjectName(string& result);
   queue<string> objects; // Queue of filenames to output/dirs to recurse into
   queue<string> objectsFrom; // Files containing filenames
   ifstream fileList; // Was head of objectsFrom once, now has been opened

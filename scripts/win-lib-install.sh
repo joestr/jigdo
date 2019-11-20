@@ -10,11 +10,14 @@ date=050707
 # script! Subdirs called lib, bin, ... will be created.
 inst=~/samba/gtkwin-$date
 
+# Should I attempt to grab libs for graphics etc.?
+GET_GRAPHICS=0
+
 # Dir for downloaded software tarballs
 dl=~/samba/gtkwin-$date-dl
 
 # Sourceforge mirror
-sf=ovh.dl.sourceforge.net
+sf=netcologne.dl.sourceforge.net
 
 if test -f ~/.jigdo-win-lib-install; then
   . ~/.jigdo-win-lib-install
@@ -55,58 +58,67 @@ unzip() {
 # GTK+ for Windows
 # http://www.gimp.org/~tml/gimp/win32/downloads.html
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/glib-2.6.5.zip
-unzip "$file"
+if [ $GET_GRAPHICS = 1 ] ; then
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/glib-dev-2.6.5.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/glib-2.6.5.zip
+    unzip "$file"
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/gtk+-2.6.8.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/glib-dev-2.6.5.zip
+    unzip "$file"
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/gtk+-dev-2.6.8.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/gtk+-2.6.8.zip
+    unzip "$file"
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/pango-1.8.0.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/gtk+-dev-2.6.8.zip
+    unzip "$file"
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/pango-dev-1.8.0.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/pango-1.8.0.zip
+    unzip "$file"
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/atk-1.9.0.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/pango-dev-1.8.0.zip
+    unzip "$file"
 
-get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/atk-dev-1.9.0.zip
-unzip "$file"
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/atk-1.9.0.zip
+    unzip "$file"
 
-#______________________________________________________________________
+    get ftp://ftp.gtk.org/pub/gtk/v2.6/win32/atk-dev-1.9.0.zip
+    unzip "$file"
 
-# Various dependencies
-# http://www.gimp.org/~tml/gimp/win32/downloads.html
+    #______________________________________________________________________
 
-get http://$sf/sourceforge/gnuwin32/libpng-1.2.8-lib.zip
-unzip "$file"
-get http://$sf/sourceforge/gnuwin32/libpng-1.2.8-bin.zip
-unzip "$file"
+    # Various dependencies
+    # http://www.gimp.org/~tml/gimp/win32/downloads.html
 
-get http://www.zlib.net/zlib122-dll.zip
-unzip "$file"
-cmd mv zlib1.dll bin/
-cp lib/zdll.lib lib/libz.a # allows -lz to be used for linking
+    get http://$sf/sourceforge/gnuwin32/libpng-1.2.8-lib.zip
+    unzip "$file"
+    get http://$sf/sourceforge/gnuwin32/libpng-1.2.8-bin.zip
+    unzip "$file"
+
+    get http://www.gimp.org/~tml/gimp/win32/pkgconfig-0.15.zip
+    unzip "$file"
+
+    get http://www.gimp.org/~tml/gimp/win32/libiconv-1.9.1.bin.woe32.zip
+    unzip "$file"
+
+    get http://www.gimp.org/~tml/gimp/win32/gettext-runtime-0.13.1.zip
+    unzip "$file"
+fi
+
+#get http://www.zlib.net/zlib122-dll.zip
+#unzip "$file"
+#cmd mv zlib1.dll bin/
+#cp lib/zdll.lib lib/libz.a # allows -lz to be used for linking
 
 get http://$sf/sourceforge/gnuwin32/bzip2-1.0.3-lib.zip
 unzip "$file"
 get http://$sf/sourceforge/gnuwin32/bzip2-1.0.3-bin.zip
 unzip "$file"
 
-get http://www.gimp.org/~tml/gimp/win32/pkgconfig-0.15.zip
+get http://$sf/sourceforge/gnuwin32/zlib-1.2.3-lib.zip
+unzip "$file"
+get http://$sf/sourceforge/gnuwin32/zlib-1.2.3-bin.zip
 unzip "$file"
 
-get http://www.gimp.org/~tml/gimp/win32/libiconv-1.9.1.bin.woe32.zip
-unzip "$file"
-
-get http://www.gimp.org/~tml/gimp/win32/gettext-runtime-0.13.1.zip
-unzip "$file"
 #______________________________________________________________________
 
 # Still missing, but not strictly needed ATM:

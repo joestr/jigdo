@@ -1,7 +1,7 @@
 /* $Id: zstream.cc,v 1.11 2005/04/04 21:58:17 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2005  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -23,6 +23,7 @@
 
 #include <log.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <serialize.hh>
 #include <string.hh>
 #include <zstream.hh>
@@ -84,6 +85,7 @@ void Zobstream::writeZipped(unsigned partId) {
   if (!stream->good())
     throw Zerror(0, string(_("Could not write template data")));
   if (md5sum != 0) md5sum->update(buf, 16);
+  if (sha256sum != 0) sha256sum->update(buf, 16);
 
   ZipData* zd = zipBuf;
   unsigned len;
@@ -92,6 +94,7 @@ void Zobstream::writeZipped(unsigned partId) {
     len = (totalOut() < ZIPDATA_SIZE ? totalOut() : ZIPDATA_SIZE);
     writeBytes(*stream, zd->data, len);
     if (md5sum != 0) md5sum->update(zd->data, len);
+    if (sha256sum != 0) sha256sum->update(zd->data, len);
     if (!stream->good())
       throw Zerror(0, string(_("Could not write template data")));
     zd = zd->next;
@@ -263,14 +266,14 @@ Zibstream& Zibstream::read(byte* dest, unsigned n) {
     //____________________
 
     // Read data from file into buffer?
-    unsigned toRead = (dataLen < bufSize ? dataLen : bufSize);
+    unsigned long toRead = (unsigned long)(dataLen < bufSize ? dataLen : bufSize);
     byte* b = &buf[0];
     z->setNextIn(b);
-    z->setAvailIn(toRead);
+    z->setAvailIn((unsigned int)toRead);
     dataLen -= toRead;
     while (*stream && toRead > 0) {
       readBytes(*stream, b, toRead);
-      unsigned n = stream->gcount();
+      unsigned n = (unsigned)stream->gcount();
       b += n;
       toRead -= n;
     }

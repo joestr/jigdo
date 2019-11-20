@@ -1,7 +1,7 @@
 /* $Id: rsyncsum.hh,v 1.4 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
-  | \/Ø|  Richard Atterer          |  atterer.net
+  | \/Ø|  Richard Atterer          |  atterer.org
   Ø '` Ø
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -145,8 +145,9 @@ RsyncSum& RsyncSum::addBack(byte x) {
 RsyncSum& RsyncSum::addBackNtimes(byte x, size_t n) {
   uint32 a = sum;
   uint32 b = sum >> 16;
-  b += n * a + (n * (n + 1) / 2) * (x + CHAR_OFFSET); // Gauﬂ
-  a += n * (x + CHAR_OFFSET);
+  uint32 tn = (uint32)n;
+  b += tn * a + (tn * (tn + 1) / 2) * (x + CHAR_OFFSET); // Gauﬂ
+  a += tn * (x + CHAR_OFFSET);
   sum = ((a & 0xffff) + (b << 16)) & 0xffffffff;
   return *this;
 }
@@ -154,7 +155,8 @@ RsyncSum& RsyncSum::addBackNtimes(byte x, size_t n) {
 RsyncSum& RsyncSum::removeFront(byte x, size_t areaSize) {
   uint32 a = sum;
   uint32 b = sum >> 16;
-  b -= areaSize * (x + CHAR_OFFSET);
+  uint32 ta = (uint32)areaSize;
+  b -= ta * (x + CHAR_OFFSET);
   a -= x + CHAR_OFFSET;
   sum = ((a & 0xffff) + (b << 16)) & 0xffffffff;
   return *this;

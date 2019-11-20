@@ -1,7 +1,7 @@
 /* $Id: download.cc,v 1.22 2004/12/05 16:15:12 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2004  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.net
+  | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -90,7 +90,7 @@ void Download::init() {
       userAgent += ')';
     }
 #   endif
-    userAgent += " (+http://atterer.net/jigdo/) ";
+    userAgent += " (+http://atterer.org/jigdo/) ";
     //userAgent += curl_version();
     const char* p = curl_version();
     while (*p != ' ' && *p != '\0') userAgent += *p++;

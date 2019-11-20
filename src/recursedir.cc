@@ -1,7 +1,7 @@
 /* $Id: recursedir.cc,v 1.10 2006/05/14 18:23:31 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -33,6 +33,7 @@
 
 #include <iostream>
 #include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd-jigdo.h>
@@ -64,7 +65,7 @@ namespace {
    a file from which filenames are read, in contrast, stays at the
    head of "objectsFrom" until the file is closed, to allow for
    proper error messages to be generated. */
-bool RecurseDir::getNextObjectName(string& result) throw(RecurseError) {
+bool RecurseDir::getNextObjectName(string& result) {
   while (true) {
     
     // Try to assign the name of an object (name or dir) to result
@@ -135,8 +136,7 @@ bool RecurseDir::getNextObjectName(string& result) throw(RecurseError) {
 //________________________________________
 
 bool RecurseDir::getName(string& result, struct stat* fileInfo,
-                         bool checkFiles) 
-    throw(RecurseError, bad_alloc) {
+                         bool checkFiles) {
   static struct stat fInfo;
   if (fileInfo == 0) fileInfo = &fInfo;
 
@@ -225,7 +225,7 @@ bool RecurseDir::getName(string& result, struct stat* fileInfo,
 
     /* FIXME: "make-template --no-check-files" should 1) scan any files given
        on the cmd line, 2) later, while scanning through the image, only
-       operate on the cache contents; if a matching md5sum block is found, it
+       operate on the cache contents; if a matching checksum block is found, it
        could be from an old cache entry (which is not verified if
        checkFiles==true) or a new entry that was set up/updated during step
        1). Advantage: Unlike the way it is now, *all* files in the cache will

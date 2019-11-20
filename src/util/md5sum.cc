@@ -1,7 +1,7 @@
 /* $Id: md5sum.cc,v 1.4 2004/06/20 20:35:15 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2004  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   "Ported" to C++ by RA. Uses glibc code for the actual algorithm.
 
@@ -29,7 +29,7 @@ void MD5Sum::ProgressReporter::error(const string& message) {
 void MD5Sum::ProgressReporter::info(const string& message) {
   cerr << message << endl;
 }
-void MD5Sum::ProgressReporter::readingMD5(uint64, uint64) { }
+void MD5Sum::ProgressReporter::readingChecksum(uint64, uint64) { }
 
 MD5Sum::ProgressReporter MD5Sum::noReport;
 //______________________________________________________________________
@@ -113,14 +113,14 @@ uint64 MD5Sum::updateFromStream(bistream& s, uint64 size, size_t bufSize,
   byte* buf = &buffer[0];
   // Read from stream and update *this
   while (s && !s.eof() && toRead > 0) {
-    size_t n = (toRead < bufSize ? toRead : bufSize);
+    size_t n = (size_t)(toRead < bufSize ? toRead : bufSize);
     readBytes(s, buf, n);
     n = s.gcount();
     update(buf, n);
     bytesRead += n;
     toRead -= n;
     if (bytesRead >= nextReport) {
-      pr.readingMD5(bytesRead, size);
+      pr.readingChecksum(bytesRead, size);
       nextReport += REPORT_INTERVAL;
     }
   }

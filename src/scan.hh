@@ -1,7 +1,7 @@
 /* $Id: scan.hh,v 1.6 2006/05/19 14:46:25 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2001-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -27,6 +27,7 @@
 #include <cachefile.hh>
 #include <debug.hh>
 #include <md5sum.hh>
+#include <sha256sum.hh>
 #include <recursedir.fh>
 #include <rsyncsum.hh>
 #include <scan.fh>
@@ -64,9 +65,9 @@ typedef set<LocationPath> LocationPathSet;
     consists of. The object is also responsible for scanning the file
     and creating a) an RsyncSum64 of the first blockLength bytes (as
     determined by JigdoCache). Caching is done in a "lazy" manner;
-    first, only the file size and name is read, then the MD5 sum of
+    first, only the file size and name is read, then the checksum of
     the file's first block as well as the Rsync sum is calculated, and
-    only when the 2nd MD5 sum or the entire file's sum is requested,
+    only when the 2nd checksum or the entire file's sum is requested,
     the file is scanned til EOF. */
 class FilePart {
   /** Objects are only created by JigdoCache */
@@ -82,9 +83,14 @@ public:
   inline time_t mtime() const;
   /** Returns null ptr if error and you don't throw it in your
       JigdoCache error handler */
-  inline const MD5* getSums(JigdoCache* c, size_t blockNr);
+  inline const MD5* getMD5Sums(JigdoCache* c, size_t blockNr);
   /** Returns null ptr if error and you don't throw it */
   inline const MD5Sum* getMD5Sum(JigdoCache* c);
+  /** Returns null ptr if error and you don't throw it in your
+      JigdoCache error handler */
+  inline const SHA256* getSHA256Sums(JigdoCache* c, size_t blockNr);
+  /** Returns null ptr if error and you don't throw it */
+  inline const SHA256Sum* getSHA256Sum(JigdoCache* c);
   /** Returns null ptr if error and you don't throw it */
   inline const RsyncSum64* getRsyncSum(JigdoCache* c);
 
@@ -110,16 +116,18 @@ private:
   inline FilePart(LocationPathSet::iterator p, string rest, uint64 fSize,
                   time_t fMtime);
 
-  /* Called when the methods getSums/getMD5Sum() need data read from
-     file. Might return null. */
-  const MD5* getSumsRead(JigdoCache* c, size_t blockNr);
+  /* Called when the methods getMD5Sums/getMD5Sum() need data read from
+     file. Might return false on failure. */
+  bool getChecksumsRead(JigdoCache* c, size_t blockNr);
+
   const MD5Sum* getMD5SumRead(JigdoCache* c);
+  const SHA256Sum* getSHA256SumRead(JigdoCache* c);
   //__________
 
   /* There are 3 states of a FilePart:
-     a) sums.empty(): File has not been read from so far
-     b) !sums.empty() && !mdValid: sums[0] and rsyncSum are valid
-     c) !sums.empty() && mdValid: all sums[] and rsyncSum and md5Sum valid*/
+     a) MD5sums.empty(): File has not been read from so far
+     b) !MD5sums.empty() && !mdValid: MD5sums[0] and rsyncSum are valid
+     c) !MD5sums.empty() && mdValid: all MD5sums[] and rsyncSum and md5Sum valid*/
 
   LocationPathSet::iterator path;
   string pathRest; // further dir names after "path", and leafname of file
@@ -129,22 +137,25 @@ private:
   /* RsyncSum64 of the first MkTemplate::blockLength bytes of the
      file. */
   RsyncSum64 rsyncSum;
-  bool rsyncValid() const { return sums.size() > 0; }
+  bool rsyncValid() const { return MD5sums.size() > 0; }
 
-  /* File is split up into chunks of length md5BlockLength (the last
+  /* File is split up into chunks of length csumBlockLength (the last
      one may be smaller) and the MD5 checksum of each is
      calculated. */
-  vector<MD5> sums;
+  vector<MD5> MD5sums;
+  vector<SHA256> SHA256sums;
 
   /* Hash of complete file contents. mdValid is true iff md5Sum is
      cached and valid. NB, it is possible that mdValid==true, but
-     sums.size()==0, after md5BlockSize has been changed. If
-     sums.size()==fileSize/md5ChunkSize, then not necessarily
+     MD5sums.size()==0, after csumBlockLength has been changed. If
+     MD5sums.size()==fileSize/csumBlockLength, then not necessarily
      mdValid==true */
   MD5Sum md5Sum;
+  SHA256Sum sha256Sum;
+
   enum Flags {
     EMPTY = 0,
-    // Bit flag is set iff md5Sum contains the whole file's md5 sum
+    // Bit flag is set iff md5Sum and sha256Sum contains the whole file's checksum
     MD_VALID = 1,
     /* This file was looked up in the cache file (whether successfully
        or not doesn't matter) - don't look it up again. */
@@ -161,12 +172,19 @@ private:
 # if HAVE_LIBDB
   // Offsets for binary representation in database (see cachefile.hh)
   enum {
-    BLOCKLEN = 0, MD5BLOCKLEN = 4, MD5BLOCKS = 8, RSYNCSUM = 12,
-    FILE_MD5SUM = 20, PART_MD5SUM = 36
+    BLOCKLEN = 0,
+    CSUMBLOCKLEN = 4,
+    CSUMBLOCKS = 8,
+    RSYNCSUM = 12,
+    FILE_MD5SUM = 20,
+    FILE_SHA256SUM = 36,
+    PART_MD5SUMS = 68
+    // Can't point directly to the offset for PART_SHA256SUM, as
+    // things are dynamic after PART_MD5SUMS
   };
 
   size_t unserializeCacheEntry(const byte* data, size_t dataSize,
-      size_t md5BlockLength); // Byte stream => FilePart
+      size_t csumBlockLength); // Byte stream => FilePart
   struct SerializeCacheEntry; // FilePart => byte stream
   friend struct SerializeCacheEntry;
 # endif
@@ -203,21 +221,21 @@ public:
   ~JigdoCache();
 
   /** Read a list of filenames from the object and store them in the
-      JigdoCache. Only the file size is read during the call, Rsync/MD5
-      sums are calculated later, if/when needed. */
+      JigdoCache. Only the file size is read during the call,
+      Checksums are calculated later, if/when needed. */
   template <class RecurseDir>
   inline void readFilenames(RecurseDir& rd);
-  /** Set the sizes of cache's blockLength and md5BlockLength
+  /** Set the sizes of cache's blockLength and csumBlockLength
       parameters. This means that the checksum returned by a
       FilePart's getRsyncSum() method will cover the specified size.
       NB: If the cache already contains files and the new parameters
       are not the same as the old, the start of the files will
       (eventually) have to be re-read to re-calculate the checksums
       for blockLength, and the *whole* file will have to be re-read
-      for a changed md5BlockLength. */
-  void setParams(size_t blockLen,size_t md5BlockLen);
+      for a changed csumBlockLength. */
+  void setParams(size_t blockLen,size_t csumBlockLen);
   size_t getBlockLen() const { return blockLength; }
-  size_t getMD5BlockLen() const { return md5BlockLength; }
+  size_t getChecksumBlockLen() const { return csumBlockLength; }
 
   /** Amount of data that JigdoCache will attempt to read per call to
       ifstream::read(), and size of buffer allocated. Minimum: 64k */
@@ -291,7 +309,7 @@ private:
   /// Default reporter: Only prints error messages to stderr
   static ProgressReporter noReport;
 
-  size_t blockLength, md5BlockLength;
+  size_t blockLength, csumBlockLength;
 
   /* Check if files exist in the filesystem */
   bool checkFiles;
@@ -334,7 +352,7 @@ public:
       cerr */
   virtual void info(const string& message);
   /** Called when the individual files are read. JigdoCache sometimes
-      reads only the first md5BlockLength bytes and sometimes the
+      reads only the first csumBlockLength bytes and sometimes the
       whole file. This is *only* called when the whole file is read
       (if the file only consists of one MD5 block, it is also called).
       @param file File being scanned, or null if not applicable
@@ -349,7 +367,7 @@ public:
 FilePart::FilePart(LocationPathSet::iterator p, string rest, uint64 fSize,
                    time_t fMtime)
   : path(p), pathRest(rest), fileSize(fSize), fileMtime(fMtime),
-    rsyncSum(), sums(), md5Sum(), flags(EMPTY) {
+    rsyncSum(), MD5sums(), md5Sum(), flags(EMPTY) {
   //pathRest.reserve(0);
 }
 
@@ -373,29 +391,51 @@ time_t FilePart::mtime() const {
   return fileMtime;
 }
 
-const MD5* FilePart::getSums(JigdoCache* c, size_t blockNr) {
+const MD5* FilePart::getMD5Sums(JigdoCache* c, size_t blockNr) {
   Paranoid(!deleted());
-  if (mdValid() || (blockNr == 0 && !sums.empty())) return &sums[blockNr];
-  else return getSumsRead(c, blockNr);
+  if ( ((blockNr > 0) || MD5sums.empty()) && !mdValid() )
+    if (!getChecksumsRead(c, blockNr))
+      return 0;
+  return &MD5sums[blockNr];
 }
 
 const MD5Sum* FilePart::getMD5Sum(JigdoCache* c) {
   Paranoid(!deleted());
-  if (mdValid()) return &md5Sum;
-  else return getMD5SumRead(c);
+  if (mdValid())
+    return &md5Sum;
+  else
+    return getMD5SumRead(c);
+}
+
+const SHA256* FilePart::getSHA256Sums(JigdoCache* c, size_t blockNr) {
+  Paranoid(!deleted());
+  if ( ((blockNr > 0) || SHA256sums.empty()) && !mdValid() )
+    if (!getChecksumsRead(c, blockNr))
+      return 0;
+  return &SHA256sums[blockNr];
+}
+
+const SHA256Sum* FilePart::getSHA256Sum(JigdoCache* c) {
+  Paranoid(!deleted());
+  if (mdValid()) return &sha256Sum;
+  else return getSHA256SumRead(c);
 }
 
 const RsyncSum64* FilePart::getRsyncSum(JigdoCache* c) {
   Paranoid(!deleted());
   if (!rsyncValid()) {
-    if (getSumsRead(c, 0) == 0) return 0;
+    if (! getChecksumsRead(c, 0))
+      return 0;
   }
   Paranoid(rsyncValid());
   return &rsyncSum;
 }
 
 void FilePart::markAsDeleted(JigdoCache* c) {
-  fileSize = 0; sums.resize(0); --(c->nrOfFiles);
+  fileSize = 0;
+  MD5sums.resize(0);
+  SHA256sums.resize(0);
+  --(c->nrOfFiles);
 }
 
 void FilePart::setFlag(Flags f) {

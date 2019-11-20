@@ -1,6 +1,13 @@
 Changelog for Jigsaw Download                               -*- Text -*-
 ------------------------------------------------------------------------
 
+jigdo 0.8.0 -- Steve McIntyre, 19 Nov 2019
+
+  - Roll up lots of older fixes from Debian packaging
+  - Fixed lots of warnings thrown by newer compilers
+  - Extensive changes throughout to add support for using SHA256 as
+    well as / instead of MD5 checksums
+
 jigdo 0.7.3 -- Richard Atterer, 19 May 2006
 
   - A maintenance release with some bug fixes

@@ -514,7 +514,7 @@
       lucifer$ jigdo-lite sarge-i386-1.jigdo 
       
       Jigsaw Download "lite"
-      Copyright 2001-2003 by Richard Atterer &lt;jigdo@atterer.net&gt;
+      Copyright 2001-2003 by Richard Atterer &lt;jigdo@atterer.org&gt;
       Getting mirror information from /etc/apt/sources.list
       
       -----------------------------------------------------------------
@@ -756,7 +756,7 @@
       
       -----------------------------------------------------------------
       Jigsaw Download "lite"
-      Copyright 2001-2002 by Richard Atterer &lt;jigdo@atterer.net&gt;
+      Copyright 2001-2002 by Richard Atterer &lt;jigdo@atterer.org&gt;
       Loading settings from `/home/p/.jigdo-lite'
       
       -----------------------------------------------------------------
@@ -830,7 +830,7 @@
       
       -----------------------------------------------------------------
       Jigsaw Download "lite"
-      Copyright 2001-2002 by Richard Atterer &lt;jigdo@atterer.net&gt;
+      Copyright 2001-2002 by Richard Atterer &lt;jigdo@atterer.org&gt;
       Loading settings from `/home/p/.jigdo-lite'
       
       -----------------------------------------------------------------
@@ -1366,7 +1366,7 @@
 			<variablelist>
 			<varlistentry>
         <term>
-        <ulink url="http://atterer.net/jigdo">http://atterer.net/jigdo</ulink>
+        <ulink url="http://atterer.org/jigdo">http://atterer.org/jigdo</ulink>
         </term>
         <listitem>
         <para>This is the jigdo home site.  You should definitely browse this site; lots of

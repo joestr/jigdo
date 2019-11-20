@@ -154,7 +154,7 @@
 #define PACKAGE "jigdo"
 
 // For copyright messages, the year of the last change to the program code
-#define CURRENT_YEAR 2005
+#define CURRENT_YEAR 2019
 
 // __attribute__ only present with GCC
 #ifndef __GNUC__
@@ -226,13 +226,13 @@ namespace {
   const bool FAILURE = true;
 
   /** Version of file format */
-  const unsigned FILEFORMAT_MAJOR = 1;
-  const unsigned FILEFORMAT_MINOR = 2;
+  const unsigned FILEFORMAT_MAJOR = 2;
+  const unsigned FILEFORMAT_MINOR = 0;
   /** String at start of .template files */
   const char TEMPLATE_HDR[] = "JigsawDownload template ";
 
   /** Info URL written in .template/.jigdo file header */
-  const char* const URL = "http://atterer.net/jigdo/";
+  const char* const URL = "https://www.einval.com/~steve/software/jigdo/";
 
   /** Approximate size of chunks into which unmatched data is chopped up when
       included in template file. Measured in bytes of *uncompressed*
@@ -241,7 +241,7 @@ namespace {
 
   /** Number of bytes to write at a time before outputting a progress
       report */
-  const size_t REPORT_INTERVAL = 256U*1024;
+  const size_t REPORT_INTERVAL = 4*1024U*1024;
 }
 
 /** unsigned int with at least 64, but possibly more bits */

@@ -1,7 +1,7 @@
 /* $Id: zstream-gz.hh,v 1.5 2005/04/09 23:09:52 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2004-2005  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -35,7 +35,7 @@ public:
   inline ZobstreamGz(bostream& s, unsigned chunkLimit,
                      int level = Z_DEFAULT_COMPRESSION, int windowBits = 15,
                      int memLevel = 8, unsigned todoBufSz = 256U,
-                     MD5Sum* md = 0);
+                     MD5Sum* md = 0, SHA256Sum* sd = 0);
   ~ZobstreamGz() { Assert(memReleased); }
 
   /** @param s Output stream
@@ -52,8 +52,8 @@ protected:
   virtual unsigned partId();
   virtual void deflateEnd();
   virtual void deflateReset();
-  virtual unsigned totalOut() const { return z.total_out; }
-  virtual unsigned totalIn() const { return z.total_in; }
+  virtual unsigned totalOut() const { return (unsigned)z.total_out; }
+  virtual unsigned totalIn() const { return (unsigned)z.total_in; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
   virtual byte* nextOut() const { return z.next_out; }
@@ -87,8 +87,8 @@ public:
   ZibstreamGz() : status(0), memReleased(true) { }
   ~ZibstreamGz() { Assert(memReleased); }
 
-  virtual unsigned totalOut() const { return z.total_out; }
-  virtual unsigned totalIn() const { return z.total_in; }
+  virtual unsigned totalOut() const { return (unsigned)z.total_out; }
+  virtual unsigned totalIn() const { return (unsigned)z.total_in; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
   virtual byte* nextOut() const { return z.next_out; }
@@ -128,7 +128,8 @@ private:
 
 ZobstreamGz::ZobstreamGz(bostream& s, unsigned chunkLimit, int level,
                          int windowBits, int memLevel, unsigned todoBufSz,
-                         MD5Sum* md) : Zobstream(md), memReleased(true) {
+                         MD5Sum* md, SHA256Sum* sd)
+	: Zobstream(md, sd), memReleased(true) {
   z.zalloc = (alloc_func)0;
   z.zfree = (free_func)0;
   z.opaque = 0;

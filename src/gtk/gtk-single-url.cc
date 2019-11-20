@@ -1,7 +1,7 @@
 /* $Id: gtk-single-url.cc,v 1.20 2005/10/15 21:27:39 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.net
+  | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -15,7 +15,7 @@
 
 #include <time.h>
 #include <errno.h>
-
+#include <string.h>
 #include <autoptr.hh>
 #include <gtk-single-url.hh>
 #include <joblist.hh>

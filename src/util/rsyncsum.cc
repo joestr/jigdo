@@ -1,7 +1,7 @@
 /* $Id: rsyncsum.cc,v 1.2 2003/09/27 21:31:04 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2000-2002  |  richard@
-  | \/¯|  Richard Atterer          |  atterer.net
+  | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
@@ -58,8 +58,8 @@ RsyncSum& RsyncSum::addBack(const byte* mem, size_t len) {
 RsyncSum& RsyncSum::removeFront(const byte* mem, size_t len,
                                 size_t areaSize) {
   RsyncSum front(mem, len);
-  uint32 a = sum;
-  uint32 b = sum >> 16;
+  unsigned long a = sum;
+  unsigned long b = sum >> 16;
   /* The following is much cheaper than subtracting
      (areaSize-i)*(mem[i]+CHAR_OFFSET) from b for each i, 0<=i<len,
      because only one multiplication is needed, not len. */

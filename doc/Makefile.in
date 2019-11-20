@@ -1,7 +1,7 @@
 # Project: Jigdo (Jigsaw download)
 #  __   _
 #  |_) /|  Copyright (C) 2001-2003  |  richard@
-#  | \/¯|  Richard Atterer          |  atterer.net
+#  | \/¯|  Richard Atterer          |  atterer.org
 #  ¯ '` ¯
 srcdir =	@srcdir@
 VPATH =		@srcdir@
@@ -32,12 +32,12 @@ DOCBOOK2HTML =	docbook2html
 .PHONY:		all clean distclean mostlyclean maintainer-clean \
 		dep depend doc check
 all:		jigdo-file.1 jigdo-file.html jigdo-lite.1 jigdo-lite.html \
-		jigdo-mirror.1 jigdo-mirror.html jigdo.1 jigdo.html \
+		jigdo-mirror.1 jigdo-mirror.html \
 		debian-jigdo-mini-howto.html
 doc mostlyclean dep depend check: ;
 
 clean:		Makefile
-		rm -rf tmp
+		rm -rf tmp *~
 distclean:	Makefile
 		rm -rf tmp
 		rm -f *~ \#*\# *.bak

@@ -1,4 +1,4 @@
-%define version			0.7.3
+%define version			0.8.0
 %define release			0
 %define buildfordefault 	Red Hat Linux
 
@@ -104,8 +104,8 @@ Name:		%{name}
 Version:	%{version}
 Release:	%{release}
 Group:		%{group}
-URL:		http://atterer.net/jigdo/
-Source:		http://atterer.net/jigdo/%{name}-%{version}.tar.bz2
+URL:		http://atterer.org/jigdo/
+Source:		http://atterer.org/jigdo/%{name}-%{version}.tar.bz2
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root
 License:	GPL
 
@@ -201,28 +201,28 @@ rm -rf %{buildroot}
 
 
 %changelog
-* Sun Jun 1 2003 Paul Bolle <jigdo-rpm@atterer.net> 0.7.0-5
+* Sun Jun 1 2003 Paul Bolle <jigdo-rpm@atterer.org> 0.7.0-5
 - Some optimizations (too lazy to specifiy)
 - Small typo in %%description
 - Added dependency: ImageMagick (Red Hat Linux)
 - added --prefix =/usr to configure (Red Hat Linux)
 - preliminary work for SuSE (mostly fake!)
 
-* Fri May 16 2003 Paul Bolle <jigdo-rpm@atterer.net> 0.7.0-4
+* Fri May 16 2003 Paul Bolle <jigdo-rpm@atterer.org> 0.7.0-4
 - Minimization of use of buildforredhat and buildformandrake 
 - Minor optimizations
 
-* Tue May 13 2003 Paul Bolle <jigdo-rpm@atterer.net> 0.7.0-3
+* Tue May 13 2003 Paul Bolle <jigdo-rpm@atterer.org> 0.7.0-3
 - Use jigdo-icon.png instead of 3 png.bz2 of mandrake.src.rpm
 - Deleted double listing of pixmaps in %%files
 
-* Sun May 11 2003 Paul Bolle <jigdo-rpm@atterer.net> 0.7.0-2
+* Sun May 11 2003 Paul Bolle <jigdo-rpm@atterer.org> 0.7.0-2
 - Richard Atterer reminded me that I had suggested to use %%{_vendor}
 - Deleted VERSION from %%doc and added all html's
 - Added build-dependencies: zlib-devel, gtk2-devel (Red Hat Linux)
 - Added dependencie: wget (Red Hat Linux)
 
-* Sat May 10 2003 Paul Bolle <jigdo-rpm@atterer.net> 0.7.0-1
+* Sat May 10 2003 Paul Bolle <jigdo-rpm@atterer.org> 0.7.0-1
 - First Red Hat Linux 9 enabled rewrite
 
 * Sat Dec 28 2002 Alexander Skwar <ASkwar@DigitalProjects.com> 0.6.8-3mdk

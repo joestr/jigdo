@@ -1,7 +1,7 @@
 /* $Id: glibcurl.h,v 1.7 2004/12/04 13:58:29 atterer Exp $ -*- C -*-
   __   _
   |_) /|  Copyright (C) 2004  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.net
+  | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
   All rights reserved.
 
