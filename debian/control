@@ -10,9 +10,9 @@ Architecture: any
 Depends: wget, ${shlibs:Depends}, ${misc:Depends}
 Conflicts: jigdo (<< 0.6.9)
 Homepage: https://www.einval.com/~steve/software/jigdo/
-Description: Download Debian CD images from any Debian mirror
+Description: Download Debian CD/DVD/USB images from any Debian mirror
  Using the jigdo-lite script contained in this package, you can use
- your nearest "regular" Debian mirror to download Debian CD images,
+ your nearest "regular" Debian mirror to download Debian images,
  instead of having to use one of the few, slow, overloaded mirrors
  that offer the images as direct HTTP or FTP downloads. See
  <http://www.debian.org/CD/jigdo-cd/> for details.
