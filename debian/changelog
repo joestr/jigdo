@@ -1,3 +1,10 @@
+jigdo (0.8.0-1~bpo10+1) buster-backports; urgency=medium
+
+  * Backport to buster, to support users needing support for the
+    new format.
+
+ -- Steve McIntyre <93sam@debian.org>  Thu, 05 Dec 2019 18:44:19 +0000
+
 jigdo (0.8.0-1) unstable; urgency=medium
 
   * New upstream release, with me as new upstream
