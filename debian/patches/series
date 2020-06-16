@@ -5,3 +5,4 @@
 04.jigdo-lite-tmpdir.patch
 05.jigdo-lite-grep-options.patch
 06.jigdo-lite-store-filesPerFetch.patch
+07.more_https_support.patch

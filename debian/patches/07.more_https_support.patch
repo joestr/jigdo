@@ -1,0 +1,46 @@
+commit 53abb98c46c9ee2d298b29359f1376aea1891f88
+Author: Steve McIntyre <steve@einval.com>
+Date:   Thu Nov 7 18:16:20 2019 +0000
+
+    Make jigdo-mirror believe in https too
+
+diff --git a/scripts/jigdo-mirror b/scripts/jigdo-mirror
+index 1324f11..fb0aa3b 100644
+--- a/scripts/jigdo-mirror
++++ b/scripts/jigdo-mirror
+@@ -105,12 +105,16 @@ userAgent="jigdo-mirror/1.0 (`wget --version 2>/dev/null | (read ver; echo $ver)
+ #______________________________________________________________________
+ 
+ # isURI <string>
+-# Returns 0 (true) if the supplied string is a HTTP/FTP URL, otherwise 1
++# Returns 0 (true) if the supplied string is a HTTP/HTTPS/FTP/FILE
++# URL, otherwise 1
+ isURI() {
+-    case "$1" in
+-        http:*|ftp:*|HTTP:*|FTP:*|file:*|FILE:*) return 0;;
+-        *) return 1;
+-    esac
++  case "$1" in
++    [hH][tT][tT][pP]:*) return 0;;
++    [hH][tT][tT][pP][sS]:*) return 0;;
++    [fF][tT][pP]:*) return 0;;
++    [fF][iI][lL][eE]:*) return 0;;
++    *) return 1;
++  esac
+ }
+ #______________________________________________________________________
+ 
+@@ -193,11 +197,11 @@ makeImage() {
+     for pass in x xx xxx xxxx xxxxx xxxxxx xxxxxxx xxxxxxxx; do
+         if $havePMA; then
+             $jigdoFile print-missing-all $ijtOpts $jigdoOpts $uriOpts \
+-            | egrep -i '^(http:|ftp:|$)' >"list"
++            | egrep -i '^(https:|http:|ftp:|$)' >"list"
+         else
+             # Quick hack until jigdo-port supports print-missing-all
+             $jigdoFile print-missing $ijtOpts $jigdoOpts $uriOpts \
+-            | egrep -i '^(http:|ftp:|$)' \
++            | egrep -i '^(https:|http:|ftp:|$)' \
+             | sed -n '/./{p;s/^.*$//;p;}' >"list"
+         fi
+         missingCount=`egrep '^$' <"list" | wc -l | sed -e 's/ *//g'`

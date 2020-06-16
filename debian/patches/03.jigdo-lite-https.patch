@@ -17,3 +17,12 @@
      *) return 1;
    esac
  }
+@@ -596,7 +596,7 @@ imageDownload() {
+     for pass in x xx xxx xxxx xxxxx xxxxxx xxxxxxx xxxxxxxx; do
+       $jigdoFile print-missing-all --image="$image" --jigdo="$jigdoF" \
+         --template="$template" $jigdoOpts $uriOpts \
+-      | egrep -i '^(http:|ftp:|$)' >"$list"
++      | egrep -i '^(http:|https:|ftp:|$)' >"$list"
+       missingCount=`egrep '^$' <"$list" | wc -l | sed -e 's/ *//g'`
+       # Accumulate URLs in $@, pass them to fetchAndMerge in batches
+       shift "$#" # Solaris /bin/sh doesn't understand "set --"

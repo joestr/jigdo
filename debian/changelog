@@ -1,3 +1,10 @@
+jigdo (0.7.3-5+deb10u1) buster; urgency=medium
+
+  * Backport more upstream changes to make jigdo-lite and jigdo-mirror
+    support https. Closes: #962776
+
+ -- Steve McIntyre <93sam@debian.org>  Tue, 16 Jun 2020 21:54:52 +0100
+
 jigdo (0.7.3-5) unstable; urgency=medium
 
   * Switch addresses from atterer.org to atterer.org in various places
