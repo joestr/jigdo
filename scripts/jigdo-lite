@@ -1,17 +1,17 @@
 #! /bin/sh
 # Poor man's jigdo - download and assemble Jigsaw Download files
 # Copyright 2001-2009 Richard Atterer
-# Copyright 2016-2019 Steve McIntyre
+# Copyright 2016-2021 Steve McIntyre
 # Portability improvements by J.A. Bezemer, Jan 2002
 # License: GPL version 2
 
 # These 4 variables can be overridden in ~/.jigdo-lite if necessary:
 jigdoOpts="--cache jigdo-file-cache.db"
-wgetOpts="--passive-ftp --dot-style=mega --continue --timeout=30"
+wgetOpts="-nv --passive-ftp --dot-style=mega --continue --timeout=30"
 mirrors="mirrors.jigdo"
 tmpDir="."
 
-filesPerFetch=10
+filesPerFetch=30
 maxMissing=30 # Don't try fallback servers if x% or more of files missing
 rcFile="$HOME/.jigdo-lite"
 
@@ -21,10 +21,10 @@ if test "x$OSTYPE" = "xmsys"; then
   windows=true
   OSTYPE=Windows
   mirrors="jigdo-bin/mirrors.jigdo"
-  rcFile="jigdo-lite-settings.txt"
+  rcFile="./jigdo-lite-settings.txt"
   egrep() { grep -E "$@"; }
   expr() { echo "$(($@))"; }
-  filesPerFetch=5 # What's the command line length limit?
+  filesPerFetch=30 # What's the command line length limit?
   nl='\r\n'
 else
   windows=false
