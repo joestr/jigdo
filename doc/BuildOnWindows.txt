@@ -1,218 +1,98 @@
 
-There are several different ways of building jigdo for Windows:
+There are several different ways of building and then bundling jigdo
+for Windows. See git history for others. How I've done it in 2021 for
+0.8.0a:
 
-Recommended:
+Install the Debian packages g++-mingw-w64-i686, gcc-mingw-w64-i686 for
+the cross-toolchain.
 
-A) On Linux, cross-compiling for Windows. Most comfortable in the
-   long run, recommended! Described below.
+2021-05-31
+----------
 
-B) On Windows, using MinGW + MSYS. Described below.
+1. Build bzip2 from scratch, to get a sane current version:
 
-Should work, but not tested:
+$ apt-get source bzip2
+$ cd bzip2-1.0.6/
 
- - On Windows, using Cygwin, but actually calling the MinGW gcc/g++.
-   Possible, but I do not see the point - these days, MSYS has enough
-   features to execute the configure script.
+Edit Makefile to point to Windows toolchain:
 
- - On Windows, using Cygwin, and instructing it (with -mms-bitfields)
-   to generate code which does not use the Cygwin DLL. Never tried,
-   might work.
+CC=i686-w64-mingw32-gcc
+AR=i686-w64-mingw32-ar
+RANLIB=i686-w64-mingw32-ranlib
 
-----------------------------------------------------------------------
+Run "make" to get the static libbz2.a
 
-Getting the Windows versions of the libraries (applies to A and B)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Copy that and bzlib.h into place in the "sysroot"
 
-These days, jigdo depends on a quite large number of libraries. An
-incomplete list is: zlib, libbzip2, libcurl + OpenSSL, GTK+.
+2. Build zlib from scratch, to get a sane current version:
 
-Tracking down, downloading and installing all the Windows versions of
-these libraries, together with header files, DLLs etc is quite a bit of
-work. For this reason, I have put together a script which does all this
-work for you.
+$ apt-get source zlib
+$ cd zlib-1.2.11.dfsg/
+$ CC=/usr/bin/i686-w64-mingw32-gcc ./configure --static
 
-"scripts/win-lib-install.sh" only needs to be given destination
-directories for the downloaded .zip files (variable "dl" near the top
-of the script) and the unpacked software (variable "inst").
+Run "make"
 
-Executing this script is possible either under Linux or Windows (MSYS,
-to be exact).
+Copy libz.a and z*.h into the "sysroot"
 
-----------------------------------------------------------------------
+3. Build jigdo-file.exe
 
-A) Build On Linux, cross-compiling for Windows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configure things to use the right compiler and the location of the
+"sysroot" where the library bits are.
 
-If you have the choice between building on Linux and Windows, choose
-Linux! MinGW/MSYS is really quite slow, compiling natively is not a
-lot of fun.
+$ ./configure --host i686-w64-mingw32 --with-pkg-config-prefix=/home/steve/debian/jigdo/windows-build/2021-05-31 --without-libdb --includedir=/home/steve/debian/jigdo/windows-build/2021-05-31/include
+$ make
 
-To cross-compile jigdo:
+4. Grab a binary build of wget: binary build, statically linked,
+   includes support for using the Windows certificate store - yay
+   HTTPS!
 
- - Get a cross-compiler which runs on Linux and produces code for
-   Windows. MinGW <http://mingw.org/>, a special x86 version of GCC,
-   is the right choice. You can build the cross-compiler yourself from
-   the GCC/MinGW sources or search for precompiled versions - see
-   <http://mingw.org/mingwfaq.shtml#faq-cross>. For Debian Linux, it
-   is much simpler: Execute
-   "apt-get install mingw32 mingw32-binutils mingw32-runtime"
-   to install the Debian mingw cross-compiler package. The
-   cross-compiler programs must be installed in a directory which is
-   in your PATH, so that you can invoke them as
-   "i586-mingw32msvc-gcc", "i586-mingw32msvc-g++" etc.
+   https://eternallybored.org/misc/wget/releases/wget-1.21.1-1-win32.zip
 
- - Get Windows versions of all the libraries that jigdo needs, by
-   executing "scripts/win-lib-install.sh".
+   Extract the following:
+   * wget.exe
 
- - Now run the configure script as follows:
+5. Grab the rest of the binaries we need from msys (all i686 versions):
 
-   ./configure --host i586-mingw32msvc --with-pkg-config-prefix=/inst --without-libdb
+coreutils:
+   https://repo.msys2.org/msys/i686/coreutils-8.32-1-i686.pkg.tar.xz
+   * basename.exe
+   * dirname.exe
+   * mkdir.exe
+   * rm.exe
+   * wc.exe
 
-   Instead of "/inst", substitute the value the "inst" variable that
-   you chose. The value must be an absolute path. The
-   --with-pkg-config-prefix switch is a speciality of jigdo's
-   configure script, it is not supported by other projects. Also, it
-   only works if the detected compiler is GCC.
+grep:
+   https://repo.msys2.org/msys/i686/grep-3.0-2-i686.pkg.tar.xz
+   * grep.exe
 
-   The configure script automatically adds the necessary
-   -mms-bitfields switch for GCC, and -march=pentium to optimize for
-   Pentium and later processors.
+gzip:
+   https://repo.msys2.org/msys/i686/gzip-1.10-1-i686.pkg.tar.xz
+   * gzip.exe
 
- - Type "make" and hope for the best! :-)
+sed:
+   https://repo.msys2.org/msys/i686/sed-4.8-1-i686.pkg.tar.xz
+   * sed.exe
 
-Using samba, I export the directory with the cross-compiled binaries
-to another machine running Windows - very useful because tests are
-possible immediately after compilation. By the way, another very
-useful tool in this situation is "Synergy"
-<http://synergy2.sourceforge.net/>, it allows you to share a keyboard
-and mouse between the Linux and Windows machines.
+bash:
+   https://repo.msys2.org/msys/i686/bash-4.4.023-2-i686.pkg.tar.xz
+   * sh.exe
 
-When you double-click jigdo.exe or jigdo-file.exe under Windows,
-you'll likely get a message about missing DLLs. To fix this, either
-copy all the required DLLs from $inst/bin to the same directory as the
-.exe, or write a small jigdo.bat file which adds the directory with
-the DLLs to PATH:
+runtime (libs):
+   https://repo.msys2.org/msys/i686/msys2-runtime-3.1.7-2-i686.pkg.tar.xz
+   https://repo.msys2.org/msys/i686/libiconv-1.16-2-i686.pkg.tar.zst
+   https://repo.msys2.org/msys/i686/libintl-0.19.8.1-1-i686.pkg.tar.xz
+   https://repo.msys2.org/msys/i686/libpcre-8.44-1-i686.pkg.tar.xz
+   https://repo.msys2.org/msys/i686/gcc-libs-9.3.0-1-i686.pkg.tar.xz
+   * msys-2.0.dll
+   * msys-charset-1.dll
+   * msys-iconv-2.dll
+   * msys-intl-8.dll
+   * msys-pcre-1.dll
+   * msys-gcc_s-1.dll
 
-path Y:\inst\bin;%PATH%
-jigdo.exe %1 %2 %3 %4 %5 %6 %7 %8 %9
+6. For safety, validate the signatures on the binary tarballs, then
+   copy all those binaries into <release>/jigdo-bin
 
-NOTE: configure.in sets up @MWINDOWS@ in such a way that a console
-window ("DOS window") will open alongside the jigdo window if you
-compile jigdo.exe with --enable-debug. Otherwise, the console window
-will not appear. The -mwindows switch to the g++ link command prevents
-the window from opening.
+7. Test, etc.! Make sure that large files work OK, make sure that
+   https works ok, make sure that fallback mirrors work.
 
-----------------------------------------------------------------------
-
-B) Build on Windows, using MinGW + MSYS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-MinGW GCC is the special version of GCC which can create Windows .exe
-files. MSYS is an environment which provides you with a Unix command
-line environment based on MinGW; a shell and all the utilities you
-need to execute configure scripts.
-
-To compile jigdo under Windows:
-
- - Download and install the following files from
-   <http://mingw.org/download.shtml#hdr2>:
-   msysDTK-x.x.x.exe  (MSYS developer toolkit)
-   MSYS-x.x.x.exe     (MSYS; shell and many Unix utilities)
-   MinGW-x.x.x.exe    (gcc, g++, binutils)
-
- - Before win-lib-install.sh can run successfully under MSYS, you need
-   to download and install
-   unzip.exe: http://www.info-zip.org/UnZip.html#Win32
-   wget.exe: http://gnuwin32.sourceforge.net/packages/wget.htm
-   Copy the binaries into your PATH, e.g. into /bin under MSYS.
-
- - Set up the "inst" and "dl" variables in win-lib-install.sh and run
-   it to install the libraries.
-
- - "./configure --without-libdb" and "make"
-   The configure script automatically adds the necessary
-   -mms-bitfields switch for GCC, and -march=pentium to optimize for
-   Pentium and later processors.
-
-In the future, jigdo on Win might use the NSIS installer from
-<http://www.nullsoft.com/free/nsis/>.
-
-For debugging, the gdb supplied with mingw is useful, and so is Dr.
-MinGW:
-<http://mefriss1.swan.ac.uk/~jfonseca/gnu-win32/software/drmingw/index.html>
-
-In case you want to install software in a different location than
-/mingw/local and want to set LIBRARY_PATH, C_INCLUDE_PATH or
-CPLUS_INCLUDE_PATH, note that with mingw, the path separator is not
-':', but ';'
-
-----------------------------------------------------------------------
-
-Misc notes from older versions of this file, may or may not apply:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
- - If the zlib distribution does not ship with a lib/libzdll.a file or
-   similar for mingw, generate it as suggested in its USAGE.txt, with
-   a command like this from within the $GTKWIN directory:
-   i586-mingw32msvc-dlltool -D zlib1.dll -d lib/zlib.def -l
-   lib/libzdll.a
-
- - Cygwin actually includes mingw as one of the installable
-   components.  I have never tried that, though it probably
-   works... better don't use Cygwin's toolchain with the -mno-cygwin
-   switch, apparently this causes problems sometimes.
-
- - For the mingw binaries, C:\mingw is accessible as /mingw. For
-   Cygwin binaries, that is not the case ("/" in Cygwin is mapped to
-   C:\cygwin). To fix this, execute from within Cygwin:
-   ln -s /cygdrive/c/mingw /mingw
-
- - Should you experience weird problems during compilation later on,
-   remove or rename the mingw version of make, e.g. with mv
-   /mingw/bin/make.exe /mingw/bin/make-mingw.exe In other words, use
-   the Cygwin version. I have encountered a number of bizarre problems
-   with the mingw make when compiling libwww.
-   [The same applies to MSYS; prefer the MSYS make over the MinGW
-   one. Luckily, the slightly broken MinGW make is called
-   "mingw-make.exe" (or something like that) today.]
-
-The following script may be useful to you. I put it in my .bashrc
-under Cygwin, then just entering "mingw" will set up all environment
-variables ready for mingw compilation, and "nomingw" will switch back
-to Cygwin.
-
-function mingw() {
-if test -z "$old_PS1"; then
-    dirs=/mingw/local/*
-    old_PS1="$PS1"
-    old_PATH="$PATH"
-    PS1='\[\033[33m\w\033[0m\]
-MinGW> '
-    export CC='gcc -march=pentium -fnative-struct'
-    export CXX='c++ -march=pentium -fnative-struct'
-    export MACHTYPE="i586-pc-mingw32"
-    for dir in $dirs; do
-        C_INCLUDE_PATH="$C_INCLUDE_PATH;/mingw/local/$dir/include"
-        CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH;/mingw/local/$dir/include"
-        LIBRARY_PATH="$LIBRARY_PATH;/mingw/local/$dir/lib"
-        PATH="$PATH:/mingw/local/$dir/bin:/mingw/local/$dir/lib"
-    done
-    unset dir dirs
-    export PATH="/mingw/bin:$PATH"
-    export C_INCLUDE_PATH="${C_INCLUDE_PATH#;}"
-    export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH#;}"
-    export LIBRARY_PATH="${LIBRARY_PATH#;}"
-fi
-}
-function nomingw() {
-    if test "$old_PS1"; then
-        export PS1="$old_PS1"
-        export PATH="$old_PATH"
-        unset old_PS1 CC CXX LIBRARY_PATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH
-        unset old_PATH
-    fi
-}
-
-Contact me in case of problems.
-
-Richard Atterer
