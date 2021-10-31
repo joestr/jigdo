@@ -1,3 +1,10 @@
+jigdo (0.8.1-1) unstable; urgency=medium
+
+  * New upstream release
+    - Fix up compilation with g++ 11. Closes: #984071
+
+ -- Steve McIntyre <93sam@debian.org>  Sun, 31 Oct 2021 21:14:05 +0000
+
 jigdo (0.8.0-1) unstable; urgency=medium
 
   * New upstream release, with me as new upstream

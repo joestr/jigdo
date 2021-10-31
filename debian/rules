@@ -41,7 +41,7 @@ endif
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp config.log
+	rm -f build-stamp configure-stamp config.log po/*.gmo
 	[ ! -f Makefile ] || $(MAKE) distclean
 	dh_clean
 
