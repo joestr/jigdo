@@ -100,7 +100,7 @@ Non-interactive frontend for jigdo:
 CGI-like program for on-the-fly creation from .jigdo/.template files:
 
   NOTE: Steve McIntyre has implemented something like this as part of
-  JTE, see <http://www.einval.com/~steve/software/JTE/>
+  JTE, see <https://www.einval.com/~steve/software/JTE/>
 
   With Debian, we have lots of mirror admins who have the bandwidth to
   host CD images, but not the disc space. They'd like a CGI-like
@@ -122,7 +122,7 @@ CGI-like program for on-the-fly creation from .jigdo/.template files:
 ".rawtemplate" support:
 
   NOTE: This is now being tackled by Steve McIntyre, see
-  <http://www.einval.com/~steve/software/JTE/>
+  <https://www.einval.com/~steve/software/JTE/>
 
   It is possible to make .jigdo creation for Debian CDs much faster
   by hacking mkisofs to support more direct output of .jigdo/.template

@@ -679,7 +679,7 @@ echo
 echo 'Jigsaw Download "lite"'
 echo "Copyright (C) 2001-2009  |  jigdo@"
 echo "Richard Atterer          |  atterer.org"
-echo "Copyright (C) 2016-2019"
+echo "Copyright (C) 2016-2021"
 echo "Steve McIntyre <93sam@debian.org>"
 
 jigdoFile="jigdo-file"
