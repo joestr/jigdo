@@ -110,8 +110,8 @@ SHA256Sum::sha256_init_ctx (sha256_ctx *ctx)
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 32 bits value.  */
-byte*
-SHA256Sum::sha256_finish_ctx (sha256_ctx *ctx, byte* resbuf)
+Ubyte*
+SHA256Sum::sha256_finish_ctx (sha256_ctx *ctx, Ubyte* resbuf)
 {
   /* Take yet unprocessed bytes into account.  */
   uint32_t bytes = ctx->buflen;

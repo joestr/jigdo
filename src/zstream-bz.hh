@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2004-2005  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -52,19 +55,19 @@ protected:
   virtual unsigned totalIn() const { return z.total_in_lo32; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
-  virtual byte* nextOut() const { return reinterpret_cast<byte*>(z.next_out); }
-  virtual byte* nextIn() const { return reinterpret_cast<byte*>(z.next_in); }
+  virtual Ubyte* nextOut() const { return reinterpret_cast<Ubyte*>(z.next_out); }
+  virtual Ubyte* nextIn() const { return reinterpret_cast<Ubyte*>(z.next_in); }
   virtual void setTotalOut(unsigned n) {
     z.total_out_lo32 = n; z.total_out_hi32 = 0; }
   virtual void setTotalIn(unsigned n) {
     z.total_in_lo32 = n; z.total_in_hi32 = 0; }
   virtual void setAvailOut(unsigned n) { z.avail_out = n; }
   virtual void setAvailIn(unsigned n) { z.avail_in = n; }
-  virtual void setNextOut(byte* n) {
+  virtual void setNextOut(Ubyte* n) {
     z.next_out = reinterpret_cast<char*>(n); }
-  virtual void setNextIn(byte* n) {
+  virtual void setNextIn(Ubyte* n) {
     z.next_in = reinterpret_cast<char*>(n); }
-  virtual void zip2(byte* start, unsigned len, bool finish = false);
+  virtual void zip2(Ubyte* start, unsigned len, bool finish = false);
 
 private:
   bz_stream z;
@@ -88,14 +91,14 @@ public:
   virtual unsigned totalIn() const { return z.total_in_lo32; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
-  virtual byte* nextOut() const { return reinterpret_cast<byte*>(z.next_out); }
-  virtual byte* nextIn() const { return reinterpret_cast<byte*>(z.next_in); }
+  virtual Ubyte* nextOut() const { return reinterpret_cast<Ubyte*>(z.next_out); }
+  virtual Ubyte* nextIn() const { return reinterpret_cast<Ubyte*>(z.next_in); }
   virtual void setTotalOut(unsigned n) {
     z.total_out_lo32 = n; z.total_out_hi32 = 0; }
   virtual void setTotalIn(unsigned n) {
     z.total_in_lo32 = n; z.total_in_hi32 = 0; }
   virtual void setAvailIn(unsigned n) { z.avail_in = n; }
-  virtual void setNextIn(byte* n) {
+  virtual void setNextIn(Ubyte* n) {
     z.next_in = reinterpret_cast<char*>(n); }
 
   virtual void init() {
@@ -111,10 +114,10 @@ public:
     if (status == BZ_OK) init();
   }
 
-  virtual void inflate(byte** nextOut, unsigned* availOut) {
+  virtual void inflate(Ubyte** nextOut, unsigned* availOut) {
     z.next_out = reinterpret_cast<char*>(*nextOut); z.avail_out = *availOut;
     status = BZ2_bzDecompress(&z);
-    *nextOut = reinterpret_cast<byte*>(z.next_out); *availOut = z.avail_out;
+    *nextOut = reinterpret_cast<Ubyte*>(z.next_out); *availOut = z.avail_out;
   }
   virtual bool streamEnd() const { return status == BZ_STREAM_END; }
   virtual bool ok() const { return status == BZ_OK; }

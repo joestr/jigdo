@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -116,7 +119,7 @@ public:
 
 private:
   // Values for codes in the template data's DESC section
-  static const byte IMAGE_INFO = 1, UNMATCHED_DATA = 2, MATCHED_FILE = 3;
+  static const Ubyte IMAGE_INFO = 1, UNMATCHED_DATA = 2, MATCHED_FILE = 3;
   static const size_t REPORT_INTERVAL = 256U*1024;
   /* If the queue of matches runs full, we enter a special mode where new
      matches are only added to the queue if their start offset is a multiple
@@ -148,7 +151,7 @@ private:
     const SHA256Sum& templSHA256Sum, int checksumChoice);
   INLINE bool scanFiles(size_t blockLength, uint32 blockMask,
     size_t csumBlockLength);
-  INLINE bool scanImage(byte* buf, size_t bufferLength, size_t blockLength,
+  INLINE bool scanImage(Ubyte* buf, size_t bufferLength, size_t blockLength,
     uint32 blockMask, size_t csumBlockLength, MD5Sum&, SHA256Sum&);
   static INLINE void insertInTodo(PartialMatchQueue& matches,
     PartialMatch* x);
@@ -157,17 +160,17 @@ private:
   INLINE void checkRsyncSumMatch(const RsyncSum64& sum,
     const uint32& bitMask, const size_t blockLen, const size_t back,
     const size_t csumBlockLength, uint64& nextEvent);
-  INLINE bool checkChecksumMatch(byte* const buf,
+  INLINE bool checkChecksumMatch(Ubyte* const buf,
     const size_t bufferLength, const size_t data,
     const size_t csumBlockLength, uint64& nextEvent,
     const size_t stillBuffered, Desc& desc);
   INLINE bool checkMatch_mismatch(const size_t stillBuffered,
     PartialMatch* x, Desc& desc);
-  INLINE bool unmatchedAtEnd(byte* const buf, const size_t bufferLength,
+  INLINE bool unmatchedAtEnd(Ubyte* const buf, const size_t bufferLength,
     const size_t data, Desc& desc);
   bool rereadUnmatched(FilePart* file, uint64 count);
   INLINE void scanImage_mainLoop_fastForward(uint64 nextEvent,
-    RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
+    RsyncSum64* rsum, Ubyte* buf, size_t* data, size_t* n, size_t* rsumBack,
     size_t bufferLength, size_t blockLength, uint32 blockMask,
     size_t csumBlockLength);
   INLINE bool matchExecCommands(PartialMatch* x);

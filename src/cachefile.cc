@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -87,7 +90,7 @@ namespace {
 }
 //________________________________________
 
-Status CacheFile::find(const byte*& resultData, size_t& resultSize,
+Status CacheFile::find(const Ubyte*& resultData, size_t& resultSize,
                        const string& fileName, uint64 fileSize, time_t mtime) {
   DBT key; memset(&key, 0, sizeof(DBT));
   key.data = const_cast<char*>(fileName.c_str());
@@ -103,7 +106,7 @@ Status CacheFile::find(const byte*& resultData, size_t& resultSize,
 
   // Check whether mtime and size matches
   Paranoid(data.size >= USER_DATA);
-  byte* d = static_cast<byte*>(data.data);
+  Ubyte* d = static_cast<Ubyte*>(data.data);
   Paranoid(d != 0);
   time_t cacheMtime;
   unserialize4(cacheMtime, d + MTIME);
@@ -131,7 +134,7 @@ Status CacheFile::find(const byte*& resultData, size_t& resultSize,
 }
 //________________________________________
 
-Status CacheFile::findName(const byte*& resultData, size_t& resultSize,
+Status CacheFile::findName(const Ubyte*& resultData, size_t& resultSize,
     const string& fileName, off_t& resultFileSize,
     time_t& resultMtime) {
   DBT key; memset(&key, 0, sizeof(DBT));
@@ -148,7 +151,7 @@ Status CacheFile::findName(const byte*& resultData, size_t& resultSize,
 
   // get mtime and size
   Paranoid(data.size >= USER_DATA);
-  byte* d = static_cast<byte*>(data.data);
+  Ubyte* d = static_cast<Ubyte*>(data.data);
   Paranoid(d != 0);
   time_t cacheMtime;
   unserialize4(cacheMtime, d + MTIME);
@@ -188,7 +191,7 @@ void CacheFile::expire(time_t t) {
     time_t lastAccess = 0;
     // If data.data == 0, expire entry by leaving lastAccess at 0
     if (data.data != 0)
-      unserialize4(lastAccess, static_cast<byte*>(data.data) + ACCESS);
+      unserialize4(lastAccess, static_cast<Ubyte*>(data.data) + ACCESS);
     // Same as 'if (lastAccess<t)', but deals with wraparound:
     if (static_cast<signed>(t - lastAccess) > 0) {
       debug("Cache: expiring %1",
@@ -203,13 +206,13 @@ void CacheFile::expire(time_t t) {
 
 /* Prepare for an insertion of data, by allocating a sufficient amount
    of memory and returning a pointer to it. */
-byte* CacheFile::insert_prepare(size_t inSize) {
+Ubyte* CacheFile::insert_prepare(size_t inSize) {
   // Allocate enough memory for the new entry
   void* tmp = realloc(data.data, USER_DATA + inSize);
   if (tmp == 0) throw bad_alloc();
   data.data = tmp;
   data.size = (u_int32_t)(USER_DATA + inSize);
-  return static_cast<byte*>(tmp) + USER_DATA;
+  return static_cast<Ubyte*>(tmp) + USER_DATA;
 }
 
 /* ASSUMES THAT insert_prepare() HAS JUST BEEN CALLED and that the
@@ -217,7 +220,7 @@ byte* CacheFile::insert_prepare(size_t inSize) {
    function commits the data to the db. */
 void CacheFile::insert_perform(const string& fileName, time_t mtime,
                                uint64 fileSize) {
-  byte* buf = static_cast<byte*>(data.data);
+  Ubyte* buf = static_cast<Ubyte*>(data.data);
 
   // Write our data members
   time_t now = time(0);

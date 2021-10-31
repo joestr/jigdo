@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -74,7 +77,7 @@ void MakeImageDl::JigdoDownload::job_message(string* message) {
 void MakeImageDl::JigdoDownload::dataSource_dataSize(uint64 n) {
   if (ioVal) ioVal->dataSource_dataSize(n);
 }
-void MakeImageDl::JigdoDownload::dataSource_data(const byte* data,
+void MakeImageDl::JigdoDownload::dataSource_data(const Ubyte* data,
                                                  unsigned size,
                                                  uint64 currentSize) {
   if (master->state() == ERROR) return;
@@ -104,14 +107,14 @@ void MakeImageDl::JigdoDownload::gunzip_needOut(Gunzip*) {
    copy any remaining unfinished line to the start of gunzipBuf. The first
    byte of gunzipBuf (if it contains valid data) is always the first char of
    a line in the config file. */
-void MakeImageDl::JigdoDownload::gunzip_data(Gunzip*, byte* decompressed, unsigned size) {
+void MakeImageDl::JigdoDownload::gunzip_data(Gunzip*, Ubyte* decompressed, unsigned size) {
 //   // If an error happened earlier, ignore this call to gunzip_data()
 //   if (gunzipBuf == 0) return;
 
   // Look for end of line.
-  byte* p = decompressed;
-  const byte* end = decompressed + size;
-  const byte* stringStart = gunzipBuf;
+  Ubyte* p = decompressed;
+  const Ubyte* end = decompressed + size;
+  const Ubyte* stringStart = gunzipBuf;
   string line;
 
   while (p < end) {

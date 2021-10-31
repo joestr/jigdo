@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -46,7 +49,7 @@ namespace {
     /* If contents == 0, will call job_failed() */
     MemData(DataSource::IO* ioPtr, const string& loc, const char* contents)
       : DataSource(), locVal(loc),
-        data(reinterpret_cast<const byte*>(contents)),
+        data(reinterpret_cast<const Ubyte*>(contents)),
         cur(data), dataEnd(data) {
       if (ioPtr) io.addListener(*ioPtr);
       if (contents != 0) dataEnd += strlen(contents);
@@ -78,7 +81,7 @@ namespace {
        manually to feed data to the rest of the code, since we do not use the
        glib idle loop. */
     void output(unsigned n = UINT_MAX) {
-      const byte* newCur = cur;
+      const Ubyte* newCur = cur;
       while (newCur < dataEnd && n > 0) {
         if (*newCur == '\n') --n;
         ++newCur;
@@ -93,9 +96,9 @@ namespace {
 
   private:
     string locVal;
-    const byte* data;
-    const byte* cur;
-    const byte* dataEnd;
+    const Ubyte* data;
+    const Ubyte* cur;
+    const Ubyte* dataEnd;
   };
 
   MemData::~MemData() {
@@ -139,7 +142,7 @@ namespace {
   //______________________________________________________________________
 
   const char* const hexDigits = "0123456789abcdef";
-  void escapedChar(string* o, byte c) {
+  void escapedChar(string* o, Ubyte c) {
     switch (c) {
     case 0: *o += "\\0"; break;
     case '\n': *o += "\\n"; break;
@@ -203,7 +206,7 @@ MakeImageDl::Child* MakeImageDl::childFor(const string& url, const MD5* md,
   MapWww::iterator i = www.find(url);
   if (i == www.end()) contents = 0; else contents = i->second;
 
-  auto_ptr<MemData> dl(new MemData(0, url, contents));
+  unique_ptr<MemData> dl(new MemData(0, url, contents));
   Child* c = new Child(this, &childrenVal, dl.get(), 0);
   dl.release();
   c->childSuccFail = true;
@@ -261,7 +264,7 @@ void MakeImageDl::Child::job_succeeded() { }
 void MakeImageDl::Child::job_failed(const string&) { }
 void MakeImageDl::Child::job_message(const string&) { }
 void MakeImageDl::Child::dataSource_dataSize(uint64) { }
-void MakeImageDl::Child::dataSource_data(const byte*, unsigned, uint64) { }
+void MakeImageDl::Child::dataSource_data(const Ubyte*, unsigned, uint64) { }
 //======================================================================
 
 // Basic check: Does it find the image section?

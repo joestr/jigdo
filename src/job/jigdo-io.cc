@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -121,7 +124,7 @@ void JigdoIO::job_message(const string&) { }
 
 void JigdoIO::dataSource_dataSize(uint64) { }
 
-void JigdoIO::dataSource_data(const byte* data, unsigned size, uint64) {
+void JigdoIO::dataSource_data(const Ubyte* data, unsigned size, uint64) {
   Assert(!finished());
   if (/*master()->finalState() ||*/ failed()) {
     debug("Got %1 bytes, ignoring", size);
@@ -152,13 +155,13 @@ void JigdoIO::gunzip_needOut(Gunzip*) {
    remaining unfinished line to the start of gunzipBuf. The first byte of
    gunzipBuf (if it contains valid data) is always the first char of a line
    in the config file. */
-void JigdoIO::gunzip_data(Gunzip*, byte* decompressed, unsigned size) {
+void JigdoIO::gunzip_data(Gunzip*, Ubyte* decompressed, unsigned size) {
   if (failed()) return;
 
   // Look for end of line.
-  byte* p = decompressed;
-  const byte* end = decompressed + size;
-  const byte* stringStart = gunzipBuf;
+  Ubyte* p = decompressed;
+  const Ubyte* end = decompressed + size;
+  const Ubyte* stringStart = gunzipBuf;
   string line;
 
   while (p < end) {
@@ -481,7 +484,7 @@ void JigdoIO::include(string* url) {
   } while (p != 0);
 
   // childDl->source() is the source of the included .jigdo file's data
-  auto_ptr<MakeImageDl::Child> childDl(
+  unique_ptr<MakeImageDl::Child> childDl(
       master()->childFor(includeUrl));
   if (childDl.get() != 0) {
     // ...and jio is the destination of above data
@@ -506,10 +509,10 @@ namespace {
   struct ArrayOut {
     typedef ArrayOut& ResultType;
     ArrayOut() { }
-    void set(byte* array) { cur = array; end = array + 16; }
-    void put(byte b) { if (cur == end) cur = end = 0; else *cur++ = b; }
+    void set(Ubyte* array) { cur = array; end = array + 16; }
+    void put(Ubyte b) { if (cur == end) cur = end = 0; else *cur++ = b; }
     ArrayOut& result() { return *this; }
-    byte* cur; byte* end;
+    Ubyte* cur; Ubyte* end;
   };
 }
 //____________________

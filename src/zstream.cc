@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2005  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -74,8 +77,8 @@ void Zobstream::writeZipped(unsigned partId) {
   //  6       dataLen "Length of part, i.e. length of compressed data + 16"
   //  6       dataUnc "Number of bytes of *uncompressed* data of this part"
   // dataLen-16       "Compressed data"
-  byte buf[16];
-  byte* p = buf;
+  Ubyte buf[16];
+  Ubyte* p = buf;
   serialize4(partId, p); // DATA or BZIP
   uint64 l = totalOut() + 16;
   serialize6(l, p + 4);
@@ -115,13 +118,13 @@ void Zobstream::writeZipped(unsigned partId) {
 
 Zobstream& Zobstream::put(uint32 x) {
   if (todoCount > todoBufSize - 4) zip(todoBuf, todoCount);
-  todoBuf[todoCount] = static_cast<byte>(x & 0xff);
+  todoBuf[todoCount] = static_cast<Ubyte>(x & 0xff);
   ++todoCount;
-  todoBuf[todoCount] = static_cast<byte>((x >> 8) & 0xff);
+  todoBuf[todoCount] = static_cast<Ubyte>((x >> 8) & 0xff);
   ++todoCount;
-  todoBuf[todoCount] = static_cast<byte>((x >> 16) & 0xff);
+  todoBuf[todoCount] = static_cast<Ubyte>((x >> 16) & 0xff);
   ++todoCount;
-  todoBuf[todoCount] = static_cast<byte>((x >> 24) & 0xff);
+  todoBuf[todoCount] = static_cast<Ubyte>((x >> 24) & 0xff);
   ++todoCount;
   return *this;
 }
@@ -131,7 +134,7 @@ Zobstream& Zobstream::put(uint32 x) {
 void Zibstream::open(bistream& s) {
   Assert(!is_open());
   Paranoid(buf == 0);
-  buf = new byte[bufSize];
+  buf = new Ubyte[bufSize];
 
 //   z = new ZibstreamGz(); // TODO switch for each block
 //   z->setNextIn(0);
@@ -162,7 +165,7 @@ void Zibstream::close() {
 }
 //________________________________________
 
-Zibstream& Zibstream::read(byte* dest, unsigned n) {
+Zibstream& Zibstream::read(Ubyte* dest, unsigned n) {
   gcountVal = 0; // in case n == 0
   if (!good()) return *this;
   nextOut = dest;
@@ -177,7 +180,7 @@ Zibstream& Zibstream::read(byte* dest, unsigned n) {
     /* If possible, uncompress into destination buffer. Handling this
        case first for speed */
     if (z != 0 && z->availIn() != 0) {
-      byte* oldNextOut = nextOut;
+      Ubyte* oldNextOut = nextOut;
       z->inflate(&nextOut, &availOut);
       gcountVal = nextOut - dest;
       dataUnc -= nextOut - oldNextOut;
@@ -208,7 +211,7 @@ Zibstream& Zibstream::read(byte* dest, unsigned n) {
 //       Assert(dataUnc == 0);
 //       const char* hdr = "DATA";
 //       const char* cur = hdr;
-//       byte x;
+//       Ubyte x;
 //       while (*cur != '\0' && *stream) {
 //         x = stream->get(); // Any errors handled below, after end of while()
 //         //debug("read: cur=%1, infile=%2 @%3", int(*cur), x,
@@ -267,7 +270,7 @@ Zibstream& Zibstream::read(byte* dest, unsigned n) {
 
     // Read data from file into buffer?
     unsigned long toRead = (unsigned long)(dataLen < bufSize ? dataLen : bufSize);
-    byte* b = &buf[0];
+    Ubyte* b = &buf[0];
     z->setNextIn(b);
     z->setAvailIn((unsigned int)toRead);
     dataLen -= toRead;

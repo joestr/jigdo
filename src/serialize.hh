@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -14,7 +17,7 @@
 
   Classes that support serialization should implement the indicated
   member functions; serialize(), unserialize() and serialSizeOf(). It
-  is assumed that 'byte' has been typdef'd to an unsigned type which
+  is assumed that 'Ubyte' has been typdef'd to an unsigned type which
   represents one byte.
 
   <pre>
@@ -32,11 +35,11 @@
 #define SERIALIZE_HH
 
 #include <bstream.hh>
-#include <config.h> /* byte, size_t */
+#include <config.h> /* Ubyte, size_t */
 //______________________________________________________________________
 
-/** Store serialized object via iterator. The iterator could be byte*
-    or vector<byte>::iterator or SerialOstreamIterator - anything in
+/** Store serialized object via iterator. The iterator could be Ubyte*
+    or vector<Ubyte>::iterator or SerialOstreamIterator - anything in
     which you can store bytes. There must be enough room to store
     serialSizeOf() bytes, implementers of serialize() need not check
     this.
@@ -79,9 +82,9 @@ inline size_t serialSizeOf(const Object& o) {
 class SerialIstreamIterator {
 public:
   typedef bistream istream_type;
-  typedef byte value_type;
-  typedef const byte* pointer;
-  typedef const byte& reference;
+  typedef Ubyte value_type;
+  typedef const Ubyte* pointer;
+  typedef const Ubyte& reference;
 
   SerialIstreamIterator() : stream(0), val(0) { }
   SerialIstreamIterator(istream_type& s) : stream(&s), val(0) { }
@@ -89,13 +92,13 @@ public:
   SerialIstreamIterator operator++(int) {
     SerialIstreamIterator i = *this; stream->get(); return i; }
   reference operator*() const {
-    val = static_cast<byte>(stream->peek()); return val; }
+    val = static_cast<Ubyte>(stream->peek()); return val; }
   pointer operator->() const {
-    val = static_cast<byte>(stream->peek()); return &val; }
+    val = static_cast<Ubyte>(stream->peek()); return &val; }
 
 private:
   istream_type* stream;
-  mutable byte val;
+  mutable Ubyte val;
 };
 //____________________
 
@@ -109,7 +112,7 @@ public:
   typedef void reference;
 
   SerialOstreamIterator(ostream_type& s) : stream(&s) { }
-  SerialOstreamIterator& operator=(const byte val) {
+  SerialOstreamIterator& operator=(const Ubyte val) {
     stream->put(val);
     return *this;
   }

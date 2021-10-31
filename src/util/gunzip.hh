@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -66,7 +69,7 @@ public:
         @param self Gunzip object this IO object is registered with
         @param decompressed Pointer to "size" new bytes of uncompressed data
         @param size Number of bytes at decompressed */
-    virtual void gunzip_data(Gunzip* self, byte* decompressed,
+    virtual void gunzip_data(Gunzip* self, Ubyte* decompressed,
                              unsigned size) = 0;
 
     /** Called from within Gunzip::inject() if self->availOut()==0 and
@@ -114,11 +117,11 @@ public:
 
   /** Called by you whenever new compressed data is available. The contents
       of "compressed" need not be preserved after the call returns. */
-  void inject(const byte* compressed, unsigned size);
+  void inject(const Ubyte* compressed, unsigned size);
 
   /** Return current output position, i.e. pointer to address where next
       uncompressed byte will be put. */
-  inline byte* nextOut() const;
+  inline Ubyte* nextOut() const;
 
   /** Return nr of bytes left in output buffer. */
   inline unsigned availOut() const;
@@ -126,7 +129,7 @@ public:
   /** Supply an output buffer to place decompressed data into. This *must* be
       called from gunzip_needOut(), but can also be called at other times,
       e.g. from gunzip_data(). */
-  inline void setOut(byte* newNextOut, unsigned newAvailOut);
+  inline void setOut(Ubyte* newNextOut, unsigned newAvailOut);
 
 private:
   // Pass zlib error to IO object
@@ -134,9 +137,9 @@ private:
   // Ensure that at least one output byte is writable in z.next_out/avail_out
   inline void needOutByte();
   // Advance z.next_in/z.avail_in by one byte & return it
-  inline byte nextInByte();
+  inline Ubyte nextInByte();
   // Output a single byte. Calls needOutByte() and io->data(this,...,1)
-  inline void outputByte(byte b);
+  inline void outputByte(Ubyte b);
 
   /* zlib doesn't support in-memory decompression of .gz files, only of zlib
      streams, so we need to extract the zlib stream from the .gz file. Keep
@@ -159,7 +162,7 @@ private:
     ERROR // Final state: zlib error or error in .gz header
   };
   int state;
-  byte headerFlags;
+  Ubyte headerFlags;
   z_stream z;
   unsigned skip; // Nr of bytes to ignore in input stream
   unsigned data; // to accumulate parameters from the stream
@@ -167,7 +170,7 @@ private:
 };
 //______________________________________________________________________
 
-byte* Gunzip::nextOut() const {
+Ubyte* Gunzip::nextOut() const {
   return z.next_out;
 }
 
@@ -175,7 +178,7 @@ unsigned Gunzip::availOut() const {
   return z.avail_out;
 }
 
-void Gunzip::setOut(byte* newNextOut, unsigned newAvailOut) {
+void Gunzip::setOut(Ubyte* newNextOut, unsigned newAvailOut) {
   z.next_out = newNextOut;
   z.avail_out = newAvailOut;
 }
@@ -187,7 +190,7 @@ void Gunzip::needOutByte() {
   }
 }
 
-void Gunzip::outputByte(byte b) {
+void Gunzip::outputByte(Ubyte b) {
   needOutByte();
   *z.next_out = b;
   --z.avail_out;
@@ -195,8 +198,8 @@ void Gunzip::outputByte(byte b) {
   io->gunzip_data(this, z.next_out - 1, 1);
 }
 
-byte Gunzip::nextInByte() {
-  byte result = *z.next_in;
+Ubyte Gunzip::nextInByte() {
+  Ubyte result = *z.next_in;
   ++z.next_in;
   --z.avail_in;
   return result;

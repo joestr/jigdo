@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -49,7 +52,7 @@ public:
   /** Initialises the checksum with zero */
   RsyncSum() : sum(0) { };
   /** Initialises with the checksum of a memory area */
-  RsyncSum(const byte* mem, size_t len) : sum(0) { addBack(mem, len); };
+  RsyncSum(const Ubyte* mem, size_t len) : sum(0) { addBack(mem, len); };
   /** Compare two RsyncSum objects */
   bool operator==(const RsyncSum& x) const { return get() == x.get(); }
   bool operator!=(const RsyncSum& x) const { return get() != x.get(); }
@@ -58,23 +61,23 @@ public:
   bool operator<=(const RsyncSum& x) const { return get() <= x.get(); }
   bool operator>=(const RsyncSum& x) const { return get() >= x.get(); }
   /** Append memory area to end of area covered by the checksum */
-  RsyncSum& addBack(const byte* mem, size_t len);
+  RsyncSum& addBack(const Ubyte* mem, size_t len);
   /** Append one byte at end of area covered by the checksum */
-  inline RsyncSum& addBack(byte x);
+  inline RsyncSum& addBack(Ubyte x);
   /** Append the same byte n times at end of area covered by the
       checksum. (addBack() is not overloaded for this in order to
       avoid confusion with removeFront(byte, size_t), which has the
       same signature, but only removes one byte.) */
-  inline RsyncSum& addBackNtimes(byte x, size_t n);
+  inline RsyncSum& addBackNtimes(Ubyte x, size_t n);
   /** Remove memory area from start of area covered by the checksum
       @param mem Data to remove
       @param len Number of bytes to remove from area, so it will cover
       area-len bytes after call
       @param areaSize Size covered by area before call (necessary for
       calculcations) */
-  RsyncSum& removeFront(const byte* mem, size_t len, size_t areaSize);
+  RsyncSum& removeFront(const Ubyte* mem, size_t len, size_t areaSize);
   /** Remove one byte from start of area covered by checksum */
-  inline RsyncSum& removeFront(byte x, size_t areaSize);
+  inline RsyncSum& removeFront(Ubyte x, size_t areaSize);
   /** Read stored checksum */
   uint32 get() const { return sum; }
   /** Reset to initial state */
@@ -98,18 +101,18 @@ private:
 class RsyncSum64 {
 public:
   RsyncSum64() : sumLo(0), sumHi(0) { };
-  inline RsyncSum64(const byte* mem, size_t len);
+  inline RsyncSum64(const Ubyte* mem, size_t len);
   inline bool operator==(const RsyncSum64& x) const;
   inline bool operator!=(const RsyncSum64& x) const;
   inline bool operator< (const RsyncSum64& x) const;
   inline bool operator> (const RsyncSum64& x) const;
   inline bool operator<=(const RsyncSum64& x) const;
   inline bool operator>=(const RsyncSum64& x) const;
-  INLINE RsyncSum64& addBack(const byte* mem, size_t len);
-  INLINE RsyncSum64& addBack(byte x);
-  INLINE RsyncSum64& addBackNtimes(byte x, size_t n);
-  RsyncSum64& removeFront(const byte* mem, size_t len, size_t areaSize);
-  inline RsyncSum64& removeFront(byte x, size_t areaSize);
+  INLINE RsyncSum64& addBack(const Ubyte* mem, size_t len);
+  INLINE RsyncSum64& addBack(Ubyte x);
+  INLINE RsyncSum64& addBackNtimes(Ubyte x, size_t n);
+  RsyncSum64& removeFront(const Ubyte* mem, size_t len, size_t areaSize);
+  inline RsyncSum64& removeFront(Ubyte x, size_t areaSize);
   /** Return lower 32 bits of checksum */
   uint32 getLo() const { return sumLo; }
   /** Return higher 32 bits of checksum */
@@ -124,7 +127,7 @@ public:
   inline size_t serialSizeOf() const;
 
 private:
-  RsyncSum64& addBack2(const byte* mem, size_t len);
+  RsyncSum64& addBack2(const Ubyte* mem, size_t len);
   static const uint32 charTable[256];
   uint32 sumLo, sumHi;
 };
@@ -133,7 +136,7 @@ INLINE ostream& operator<<(ostream& s, const RsyncSum& r);
 INLINE ostream& operator<<(ostream& s, const RsyncSum64& r);
 //______________________________________________________________________
 
-RsyncSum& RsyncSum::addBack(byte x) {
+RsyncSum& RsyncSum::addBack(Ubyte x) {
   uint32 a = sum;
   uint32 b = sum >> 16;
   a += x + CHAR_OFFSET;
@@ -142,7 +145,7 @@ RsyncSum& RsyncSum::addBack(byte x) {
   return *this;
 }
 
-RsyncSum& RsyncSum::addBackNtimes(byte x, size_t n) {
+RsyncSum& RsyncSum::addBackNtimes(Ubyte x, size_t n) {
   uint32 a = sum;
   uint32 b = sum >> 16;
   uint32 tn = (uint32)n;
@@ -152,7 +155,7 @@ RsyncSum& RsyncSum::addBackNtimes(byte x, size_t n) {
   return *this;
 }
 
-RsyncSum& RsyncSum::removeFront(byte x, size_t areaSize) {
+RsyncSum& RsyncSum::removeFront(Ubyte x, size_t areaSize) {
   uint32 a = sum;
   uint32 b = sum >> 16;
   uint32 ta = (uint32)areaSize;
@@ -163,7 +166,7 @@ RsyncSum& RsyncSum::removeFront(byte x, size_t areaSize) {
 }
 //________________________________________
 
-RsyncSum64::RsyncSum64(const byte* mem, size_t len) : sumLo(0), sumHi(0) {
+RsyncSum64::RsyncSum64(const Ubyte* mem, size_t len) : sumLo(0), sumHi(0) {
   addBack(mem, len);
 };
 
@@ -187,7 +190,7 @@ bool RsyncSum64::operator>=(const RsyncSum64& x) const {
 }
 
 
-RsyncSum64& RsyncSum64::removeFront(byte x, size_t areaSize) {
+RsyncSum64& RsyncSum64::removeFront(Ubyte x, size_t areaSize) {
   sumHi = (sumHi - areaSize * charTable[x]) & 0xffffffff;
   sumLo = (sumLo - charTable[x]) & 0xffffffff;
   return *this;

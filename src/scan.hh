@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -183,7 +186,7 @@ private:
     // things are dynamic after PART_MD5SUMS
   };
 
-  size_t unserializeCacheEntry(const byte* data, size_t dataSize,
+  size_t unserializeCacheEntry(const Ubyte* data, size_t dataSize,
       size_t csumBlockLength); // Byte stream => FilePart
   struct SerializeCacheEntry; // FilePart => byte stream
   friend struct SerializeCacheEntry;
@@ -239,7 +242,7 @@ public:
 
   /** Amount of data that JigdoCache will attempt to read per call to
       ifstream::read(), and size of buffer allocated. Minimum: 64k */
-  inline void setReadAmount(size_t bytes);
+  inline void setReadAmount(size_t Ubytes);
   /** To speed things up, JigdoCache by default keeps one file open and
       a read buffer allocated. You can close the file and deallocate
       the buffer with a call to this method. They will be
@@ -327,7 +330,7 @@ private:
   LocationPathSet locationPaths;
 
   size_t readAmount;
-  vector<byte> buffer;
+  vector<Ubyte> buffer;
   ProgressReporter& reporter;
 
 # if HAVE_LIBDB
@@ -463,7 +466,7 @@ void JigdoCache::readFilenames(RecurseDir& rd) {
     off_t stSize = fileInfo.st_size;
 #   if HAVE_LIBDB
     if (!checkFiles) {
-      const byte* data;
+      const Ubyte* data;
       size_t dataSize;
       try {
         if (cacheFile->findName(data, dataSize, name, stSize,

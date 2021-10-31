@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -35,10 +38,10 @@ namespace {
   const int BUFSIZE = 4096;
 
   struct ToStdout : Gunzip::IO {
-    byte buf[BUFSIZE];
+    Ubyte buf[BUFSIZE];
     virtual ~ToStdout() { }
     virtual void gunzip_deleted() { }
-    virtual void gunzip_data(Gunzip* self, byte* decompressed,
+    virtual void gunzip_data(Gunzip* self, Ubyte* decompressed,
                              unsigned size) {
       Assert(self != 0); // NOP, doxygen insists on the param name
       cout.write(reinterpret_cast<char*>(decompressed), size);
@@ -53,7 +56,7 @@ namespace {
   };
 
   const char* const hexDigits = "0123456789abcdef";
-  void escapedChar(string* o, byte c) {
+  void escapedChar(string* o, Ubyte c) {
     switch (c) {
     case 0: *o += "\\0"; break;
     case '\n': *o += "\\n"; break;
@@ -77,7 +80,7 @@ namespace {
     return result;
   }
 
-  inline string escapedString(const byte* s, unsigned ssize) {
+  inline string escapedString(const Ubyte* s, unsigned ssize) {
     string result;
     for (unsigned i = 0; i < ssize; ++i)
       escapedChar(&result, s[i]);
@@ -86,14 +89,14 @@ namespace {
 
   struct ToString : Gunzip::IO {
     unsigned bufsize;
-    byte* buf;
+    Ubyte* buf;
     ToString(unsigned bufs) : bufsize(bufs) {
-      buf = new byte[bufs + 1];
+      buf = new Ubyte[bufs + 1];
       buf[bufs] = 0x7fU;
     }
     virtual ~ToString() { delete[] buf; }
     virtual void gunzip_deleted() { }
-    virtual void gunzip_data(Gunzip* self, byte* decompressed,
+    virtual void gunzip_data(Gunzip* self, Ubyte* decompressed,
                              unsigned size) {
       Assert(self != 0); // NOP, doxygen insists on the param name
       if (buf[bufsize] != 0x7fU) o += "[BUFFER OVERFLOW]";
@@ -113,7 +116,7 @@ namespace {
 
   void decompressFile(const char* name) {
     bifstream f(name);
-    byte buf[FILEBUFSIZE];
+    Ubyte buf[FILEBUFSIZE];
     ToStdout out;
     Gunzip decompressor(&out);
 
@@ -128,12 +131,12 @@ namespace {
   }
 
   // cbs/ubs: Block size for I/O of (un)compressed data
-  void testCase2(const byte* c, unsigned csize, const string& unp,
+  void testCase2(const Ubyte* c, unsigned csize, const string& unp,
                  unsigned cbs, unsigned ubs) {
     ToString io(ubs);
     Gunzip decompressor(&io);
     unsigned cleft = csize;
-    const byte* cptr = c;
+    const Ubyte* cptr = c;
     while (cleft > 0) {
       unsigned count = min(cleft, cbs);
       decompressor.inject(cptr, count);
@@ -150,7 +153,7 @@ namespace {
     }
   }
 
-  void testCase(const byte* c, unsigned csize, const byte* u, unsigned usize,
+  void testCase(const Ubyte* c, unsigned csize, const Ubyte* u, unsigned usize,
                 int testNr) {
     string unp(reinterpret_cast<const char*>(u), usize);
     msg("Test case %1: \"%2\"", testNr, escapedString(c, csize));
@@ -180,7 +183,7 @@ int main(int argc, char* argv[]) {
     string o;
     int len = 0;
     while (cin) {
-      byte c;
+      Ubyte c;
       cin.read(reinterpret_cast<char*>(&c), 1);
       if (cin.gcount() == 0) continue;
       escapedChar(&o, c);
@@ -247,8 +250,8 @@ int main(int argc, char* argv[]) {
   };
   int nrOfTests = sizeof(test) / sizeof(Test);
   for (int i = 0; i < nrOfTests; ++i) {
-    testCase(reinterpret_cast<const byte*>(test[i].c), test[i].csize,
-             reinterpret_cast<const byte*>(test[i].u), test[i].usize, i);
+    testCase(reinterpret_cast<const Ubyte*>(test[i].c), test[i].csize,
+             reinterpret_cast<const Ubyte*>(test[i].u), test[i].usize, i);
   }
 
   if (returnCode == 0)

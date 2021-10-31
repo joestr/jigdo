@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2004-2005  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -113,7 +116,7 @@ void ZobstreamGz::deflateReset() {
 }
 //______________________________________________________________________
 
-void ZobstreamGz::zip2(byte* start, unsigned len, bool finish) {
+void ZobstreamGz::zip2(Ubyte* start, unsigned len, bool finish) {
   debug("zip2 %1 bytes at %2", len, start);
   int flush = (finish ? Z_FINISH : Z_NO_FLUSH);
   Assert(is_open());

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -63,14 +66,14 @@ Gunzip::~Gunzip() {
 }
 //______________________________________________________________________
 
-void Gunzip::inject(const byte* compressed, unsigned size) {
+void Gunzip::inject(const Ubyte* compressed, unsigned size) {
   if (state == ERROR) return;
 
   Assert(z.avail_in == 0);
-  z.next_in = (byte*)compressed;
+  z.next_in = (Ubyte*)compressed;
   z.avail_in = size;
 
-  byte b;
+  Ubyte b;
 
   while (z.avail_in > 0) {
 
@@ -108,7 +111,7 @@ void Gunzip::inject(const byte* compressed, unsigned size) {
     case INIT1:
       // Found first .gz ID byte \x1f, look for second \x8b
       debug("INIT1: Need byte 139, got %1", unsigned(*z.next_in));
-      if (static_cast<byte>(*z.next_in) != 0x8bU) {
+      if (static_cast<Ubyte>(*z.next_in) != 0x8bU) {
         outputByte('\x1f');
         state = TRANSPARENT;
         break;
@@ -171,7 +174,7 @@ void Gunzip::inject(const byte* compressed, unsigned size) {
       }
       // Skip null-terminated original filename
       while (z.avail_in > 0) {
-        byte b = nextInByte();
+        Ubyte b = nextInByte();
         debug("FNAME: Skipping name: %1", unsigned(b));
         if (b == 0) {
           state = HEADER_FCOMMENT;

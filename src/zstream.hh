@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2005  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -79,7 +82,7 @@ public:
 //   inline Zobstream& write(const signed char* x, size_t n);
 //   Zobstream& write(const unsigned char* x, size_t n);
 //   inline Zobstream& write(const void* x, size_t n);
-  inline Zobstream& write(const byte* x, unsigned n);
+  inline Zobstream& write(const Ubyte* x, unsigned n);
 
 protected:
   static const unsigned ZIPDATA_SIZE = 64*1024;
@@ -97,16 +100,16 @@ protected:
   virtual unsigned totalIn() const = 0;
   virtual unsigned availOut() const = 0;
   virtual unsigned availIn() const = 0;
-  virtual byte* nextOut() const = 0;
-  virtual byte* nextIn() const = 0;
+  virtual Ubyte* nextOut() const = 0;
+  virtual Ubyte* nextIn() const = 0;
   virtual void setTotalOut(unsigned n) = 0;
   virtual void setTotalIn(unsigned n) = 0;
   virtual void setAvailOut(unsigned n) = 0;
   virtual void setAvailIn(unsigned n) = 0;
-  virtual void setNextOut(byte* n) = 0;
-  virtual void setNextIn(byte* n) = 0;
+  virtual void setNextOut(Ubyte* n) = 0;
+  virtual void setNextIn(Ubyte* n) = 0;
 
-  virtual void zip2(byte* start, unsigned len, bool finish) = 0;
+  virtual void zip2(Ubyte* start, unsigned len, bool finish) = 0;
 
   /* Compressed data is stored in a linked list of ZipData objects.
      During the Zobstream object's lifetime, the list is only ever
@@ -115,7 +118,7 @@ protected:
     ZipData() : next(0) { }
     ~ZipData() { delete next; }
     ZipData* next;
-    byte data[ZIPDATA_SIZE];
+    Ubyte data[ZIPDATA_SIZE];
   };
   ZipData* zipBuf; // Start of linked list
   ZipData* zipBufLast; // Last link
@@ -126,13 +129,13 @@ private:
 //   // Throw a Zerror exception, or bad_alloc() for status==Z_MEM_ERROR
 //   inline void throwZerror(int status, const char* zmsg);
   // Pipe contents of todoBuf through zlib into zipBuf
-  //  void zip(byte* start, unsigned len, int flush = Z_NO_FLUSH);
-  inline void zip(byte* start, unsigned len, bool finish = false);
+  //  void zip(Ubyte* start, unsigned len, int flush = Z_NO_FLUSH);
+  inline void zip(Ubyte* start, unsigned len, bool finish = false);
 
   //z_stream z;
-  byte* todoBuf; // Allocated during open(), deallocated during close()
+  Ubyte* todoBuf; // Allocated during open(), deallocated during close()
   unsigned todoBufSize; // Size of todoBuf
-  unsigned todoCount; // Offset of 1st unused byte in todoBuf
+  unsigned todoCount; // Offset of 1st unused Ubyte in todoBuf
 
   bostream* stream;
 
@@ -158,12 +161,12 @@ public:
     virtual unsigned totalIn() const = 0;
     virtual unsigned availOut() const = 0;
     virtual unsigned availIn() const = 0;
-    virtual byte* nextOut() const = 0;
-    virtual byte* nextIn() const = 0;
+    virtual Ubyte* nextOut() const = 0;
+    virtual Ubyte* nextIn() const = 0;
     virtual void setTotalOut(unsigned n) = 0;
     virtual void setTotalIn(unsigned n) = 0;
     virtual void setAvailIn(unsigned n) = 0;
-    virtual void setNextIn(byte* n) = 0;
+    virtual void setNextIn(Ubyte* n) = 0;
 
     /** Initialize, i.e. inflateInit(). {next,avail}{in,out} must be set up
         before calling this. Does not throw, sets an internal status flag. */
@@ -174,7 +177,7 @@ public:
     virtual void reset() = 0;
 
     /** Sets an internal status flag. Updates nextOut and availOut. */
-    virtual void inflate(byte** nextOut, unsigned* availOut) = 0;
+    virtual void inflate(Ubyte** nextOut, unsigned* availOut) = 0;
     /** Check status flag: At stream end? */
     virtual bool streamEnd() const = 0;
     /** Check status flag: OK? */
@@ -207,7 +210,7 @@ public:
 //   inline Zibstream& read(const signed char* x, size_t n);
 //   Zibstream& read(const unsigned char* x, size_t n);
 //   inline Zibstream& read(const void* x, size_t n);
-  Zibstream& read(byte* x, unsigned n);
+  Zibstream& read(Ubyte* x, unsigned n);
   typedef uint64 streamsize;
   /** Number of characters read by last read() */
   inline streamsize gcount() const {
@@ -236,10 +239,10 @@ private:
   bistream* stream;
   mutable streamsize gcountVal;
   unsigned bufSize;
-  byte* buf; // Contains compressed data
+  Ubyte* buf; // Contains compressed data
   uint64 dataLen; // bytes remaining to be read from current DATA part
   uint64 dataUnc; // bytes remaining in uncompressed DATA part
-  byte* nextOut; // Pointer into output buffer
+  Ubyte* nextOut; // Pointer into output buffer
   unsigned availOut; // Bytes remaining in output buffer
 };
 //______________________________________________________________________
@@ -258,13 +261,13 @@ void Zobstream::open(bostream& s, unsigned chunkLimit, unsigned todoBufSz) {
   chunkLimVal = chunkLimit;
 
   todoCount = 0;
-  todoBuf = new byte[todoBufSize];
+  todoBuf = new Ubyte[todoBufSize];
 
   stream = &s; // Declare as open
   Paranoid(stream != 0);
 }
 
-void Zobstream::zip(byte* start, unsigned len, bool finish) {
+void Zobstream::zip(Ubyte* start, unsigned len, bool finish) {
   if (len != 0 || finish)
     zip2(start, len, finish);
   todoCount = 0;
@@ -273,37 +276,37 @@ void Zobstream::zip(byte* start, unsigned len, bool finish) {
 
 Zobstream& Zobstream::put(unsigned char x) {
   if (todoCount >= todoBufSize) zip(todoBuf, todoCount);
-  todoBuf[todoCount] = static_cast<byte>(x);
+  todoBuf[todoCount] = static_cast<Ubyte>(x);
   ++todoCount;
   return *this;
 }
 
 Zobstream& Zobstream::put(signed char x) {
   if (todoCount >= todoBufSize) zip(todoBuf, todoCount);
-  todoBuf[todoCount] = static_cast<byte>(x);
+  todoBuf[todoCount] = static_cast<Ubyte>(x);
   ++todoCount;
   return *this;
 }
 
 Zobstream& Zobstream::put(char x) {
   if (todoCount >= todoBufSize) zip(todoBuf, todoCount);
-  todoBuf[todoCount] = static_cast<byte>(x);
+  todoBuf[todoCount] = static_cast<Ubyte>(x);
   ++todoCount;
   return *this;
 }
 
 Zobstream& Zobstream::put(int x) {
   if (todoCount >= todoBufSize) zip(todoBuf, todoCount);
-  todoBuf[todoCount] = static_cast<byte>(x);
+  todoBuf[todoCount] = static_cast<Ubyte>(x);
   ++todoCount;
   return *this;
 }
 
-Zobstream& Zobstream::write(const byte* x, unsigned n) {
+Zobstream& Zobstream::write(const Ubyte* x, unsigned n) {
   Assert(is_open());
   if (n > 0) {
     zip(todoBuf, todoCount); // Zip remaining data in todoBuf
-    zip(const_cast<byte*>(x), n); // Zip byte array
+    zip(const_cast<Ubyte*>(x), n); // Zip byte array
   }
   return *this;
 }
