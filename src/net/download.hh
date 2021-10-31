@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -179,7 +182,7 @@ public:
       arrived. You can write the data to a file, copy it away etc.
       currentSize is the offset into the downloaded data (including the
       "size" new bytes) - useful for "x% done" messages. */
-  virtual void download_data(const byte* data, unsigned size,
+  virtual void download_data(const Ubyte* data, unsigned size,
                              uint64 currentSize) = 0;
 
   /** Called when download is complete. If this is called, you may want to

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -85,7 +88,7 @@ public:
       this file. The first byte of resultData is the first byte of the
       "blockLength" entry (see start of this file). The result pointer is
       only valid until the next database operation. */
-  Status find(const byte*& resultData, size_t& resultSize,
+  Status find(const Ubyte*& resultData, size_t& resultSize,
               const string& fileName, uint64 fileSize, time_t mtime);
 
   /** Look for an entry in the database which matches the specified filename
@@ -95,17 +98,17 @@ public:
       this file. The first byte of resultData is the first byte of the
       "blockLength" entry (see start of this file). The result pointer is
       only valid until the next database operation. */
-  Status findName(const byte*& resultData, size_t& resultSize,
+  Status findName(const Ubyte*& resultData, size_t& resultSize,
                   const string& fileName,
                   off_t& resultFileSize, time_t& resultMtime);
 
   /** Insert/overwrite entry for the given file (name must be
       absolute, file must have the supplied mtime and size). The data
       for the entry is supplied in inData. */
-  inline void insert(const byte* inData, size_t inSize,
+  inline void insert(const Ubyte* inData, size_t inSize,
                      const string& fileName, time_t mtime, uint64 fileSize);
   /** As above, but data is created by the supplied functor object,
-      which must have the method 'void operator()(byte* x)' defined,
+      which must have the method 'void operator()(Ubyte* x)' defined,
       which when called must write inSize bytes to the memory at x. */
   template<class Functor>
   inline void insert(Functor f, size_t inSize, const string& fileName,
@@ -119,7 +122,7 @@ private:
   // Don't copy
   explicit inline CacheFile(const CacheFile&);
   inline CacheFile& operator=(const CacheFile&);
-  byte* insert_prepare(size_t inSize);
+  Ubyte* insert_prepare(size_t inSize);
   void insert_perform(const string& fileName, time_t mtime, uint64 fileSize);
 
   /* Byte offsets of first members of a cache entry (see start of this
@@ -141,7 +144,7 @@ CacheFile::~CacheFile() {
 }
 //______________________________________________________________________
 
-void CacheFile::insert(const byte* inData, size_t inSize,
+void CacheFile::insert(const Ubyte* inData, size_t inSize,
     const string& fileName, time_t mtime, uint64 fileSize) {
   memcpy(insert_prepare(inSize), inData, inSize);
   insert_perform(fileName, mtime, fileSize);
@@ -164,16 +167,16 @@ class CacheFile {
 public:
   CacheFile(const char*) { }
   ~CacheFile() { }
-  bool find(const byte*&, size_t&, const string&, time_t, uint64) {
+  bool find(const Ubyte*&, size_t&, const string&, time_t, uint64) {
     return false;
   }
-  bool find_name(const byte*&, size_t&, const string&,
+  bool find_name(const Ubyte*&, size_t&, const string&,
                  long long int&, time_t&) {
     return false;
   }
   template<class Functor>
   void insert(Functor, size_t, const string&, time_t, uint64) { }
-  void insert(const byte*, size_t, const string&, time_t, uint64) { }
+  void insert(const Ubyte*, size_t, const string&, time_t, uint64) { }
   void expire(time_t) { }
 };
 

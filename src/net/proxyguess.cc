@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -70,7 +73,7 @@ namespace {
   void proxyGuess_MSIE(HKEY internetSettings) {
     const unsigned BUFLEN = 256;
     DWORD len = BUFLEN;
-    byte buf[BUFLEN];
+    Ubyte buf[BUFLEN];
     DWORD type;
 
     if (RegQueryValueEx(internetSettings, "ProxyEnable", NULL, &type,

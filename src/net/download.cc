@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2004  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -224,7 +227,7 @@ size_t Download::curlWriter(void* data, size_t size, size_t nmemb,
 
   //if (self->state == PAUSE_SCHEDULED) self->pauseNow();
   self->currentSize += len;
-  self->outputVal->download_data(reinterpret_cast<const byte*>(data),
+  self->outputVal->download_data(reinterpret_cast<const Ubyte*>(data),
                                  len, self->currentSize);
   self->insideNewData = false;
   return len;

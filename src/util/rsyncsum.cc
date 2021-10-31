@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -21,11 +24,11 @@
 /* Note: This will not yield the same results as the original rsync
    algorithm because 1) it uses a non-zero CHAR_OFFSET, and 2) it
    treats single bytes as unsigned, not signed. */
-RsyncSum& RsyncSum::addBack(const byte* mem, size_t len) {
+RsyncSum& RsyncSum::addBack(const Ubyte* mem, size_t len) {
   uint32 a = sum;
   uint32 b = sum >> 16;
-  const byte* blockLimit = mem + (len / 16) * 16;
-  const byte* limit = mem + len; // 1st byte not to process
+  const Ubyte* blockLimit = mem + (len / 16) * 16;
+  const Ubyte* limit = mem + len; // 1st byte not to process
 
   while (mem < blockLimit) {
     a += *mem++ + CHAR_OFFSET; b += a;
@@ -55,7 +58,7 @@ RsyncSum& RsyncSum::addBack(const byte* mem, size_t len) {
 }
 //________________________________________
 
-RsyncSum& RsyncSum::removeFront(const byte* mem, size_t len,
+RsyncSum& RsyncSum::removeFront(const Ubyte* mem, size_t len,
                                 size_t areaSize) {
   RsyncSum front(mem, len);
   unsigned long a = sum;
@@ -70,11 +73,11 @@ RsyncSum& RsyncSum::removeFront(const byte* mem, size_t len,
 }
 //______________________________________________________________________
 
-RsyncSum64& RsyncSum64::addBack2(const byte* mem, size_t len) {
+RsyncSum64& RsyncSum64::addBack2(const Ubyte* mem, size_t len) {
   uint32 a = sumLo;
   uint32 b = sumHi;
-  const byte* blockLimit = mem + (len / 16) * 16;
-  const byte* limit = mem + len; // 1st byte not to process
+  const Ubyte* blockLimit = mem + (len / 16) * 16;
+  const Ubyte* limit = mem + len; // 1st byte not to process
 
   while (mem < blockLimit) {
     a += charTable[*mem++]; b += a;
@@ -105,7 +108,7 @@ RsyncSum64& RsyncSum64::addBack2(const byte* mem, size_t len) {
 }
 //________________________________________
 
-RsyncSum64& RsyncSum64::removeFront(const byte* mem, size_t len,
+RsyncSum64& RsyncSum64::removeFront(const Ubyte* mem, size_t len,
                                     size_t areaSize) {
   RsyncSum64 front(mem, len);
   sumLo = (sumLo - front.getLo()) & 0xffffffff;

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -84,8 +87,8 @@ int main(int argc, char* argv[]) {
 
   /* Try many of the 16.7 million ways of a "3 byte" <=> "4 ASCII chars"
      mapping */
-  byte x[3*256];
-  for (unsigned k = 0; k < 256; ++k) x[k * 3 + 2] = byte(k);
+  Ubyte x[3*256];
+  for (unsigned k = 0; k < 256; ++k) x[k * 3 + 2] = Ubyte(k);
   Base64String toAscii;
   Base64StringI toBin;
   unsigned j = 0;
@@ -99,7 +102,7 @@ int main(int argc, char* argv[]) {
       Assert(toAscii.result().length() == 4*256);
       // ASCII -> binary
       toBin.put(toAscii.result().data(), 4*256);
-      vector<byte>& r = toBin.result();
+      vector<Ubyte>& r = toBin.result();
       Assert(r.size() == 3*256);
       for (unsigned k = 0; k < 256; ++k) {
         if (r[k*3] != x[k*3] || r[k*3+1] != x[k*3+1] || r[k*3+2] != x[k*3+2]) {

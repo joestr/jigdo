@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2002-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -162,7 +165,7 @@ public:
 private:
   // Virtual methods from Download::Output
   virtual void download_dataSize(uint64 n);
-  virtual void download_data(const byte* data, unsigned size,
+  virtual void download_data(const Ubyte* data, unsigned size,
                              uint64 currentSize);
   virtual void download_succeeded();
   virtual void download_failed(string* message);
@@ -174,7 +177,7 @@ private:
   /* Write bytes at specified offset. Return FAILURE and call
      io->job_failed() if error during writing or if written data would
      exceed destEndOff. */
-  inline bool writeToDestStream(uint64 off, const byte* data, unsigned size);
+  inline bool writeToDestStream(uint64 off, const Ubyte* data, unsigned size);
 
   Download download;
   Progress progressVal;

@@ -1,8 +1,11 @@
 /* $Id: makeimagedl.cc,v 1.30 2005/07/06 22:06:34 atterer Exp $ -*- C++ -*-
   __   _
   |_) /|  Copyright (C) 2003  |  richard@
-  | \/¯|  Richard Atterer     |  atterer.org
-  ¯ '` ¯
+  | \/ |  Richard Atterer     |  atterer.org
+  Â¯ '` Â¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -69,7 +72,7 @@ MakeImageDl::MakeImageDl(/*IO* ioPtr,*/ const string& jigdoUri,
   /* Create name of temporary dir.
      Directory name: "jigdo-" followed by md5sum of .jigdo URL */
   MD5Sum md;
-  md.update(reinterpret_cast<const byte*>(jigdoUri.data()),
+  md.update(reinterpret_cast<const Ubyte*>(jigdoUri.data()),
             jigdoUri.length()).finish();
 
   Base64String b64;
@@ -77,8 +80,8 @@ MakeImageDl::MakeImageDl(/*IO* ioPtr,*/ const string& jigdoUri,
   b64.result() += DIRSEP;
   b64.result() += TMPDIR_PREFIX;
   // Halve number of bits by XORing bytes. (Would a real CRC64 be better??)
-  byte cksum[8];
-  const byte* digest = md.digest();
+  Ubyte cksum[8];
+  const Ubyte* digest = md.digest();
   for (int i = 0; i < 8; ++i)
     cksum[i] = digest[i] ^ digest[i + 8];
   b64.write(cksum, 8).flush();
@@ -194,7 +197,7 @@ string MakeImageDl::cachePathnameUrl(const string& url, string* leafnameOut,
   if (isFinished) x.result() += '-'; else x.result() += '~';
   static MD5Sum nameMd;
   nameMd.reset()
-        .update(reinterpret_cast<const byte*>(url.data()), url.length())
+        .update(reinterpret_cast<const Ubyte*>(url.data()), url.length())
         .finishForReuse();
   x.write(nameMd.digest(), 16);
   x.flush();
@@ -269,7 +272,7 @@ MakeImageDl::Child* MakeImageDl::childFor(const string& url, const MD5* md,
     generateError(err);
     return 0;
   }
-  auto_ptr<SingleUrl> dl(new SingleUrl(url));
+  unique_ptr<SingleUrl> dl(new SingleUrl(url));
   dl->setDestination(f, 0, 0);
   Child* c;
   if (reuseChild)
@@ -302,7 +305,7 @@ MakeImageDl::Child* MakeImageDl::childForCompletedUrl(
   if (cacheEntryAge < CACHE_ENTRY_AGE_NOIFMODSINCE) {
     // Data fetched very recently - no need to go on the net, imm. return it
     debug("childFor: already have %L1", filename);
-    auto_ptr<CachedUrl> dl(new CachedUrl(filename, 0));
+    unique_ptr<CachedUrl> dl(new CachedUrl(filename, 0));
     Child* c;
     if (reuseChild)
       c = reuseChild->init(this, &childrenVal, dl.get(), md);
@@ -334,7 +337,7 @@ MakeImageDl::Child* MakeImageDl::childForCompletedContent(
 
   // Data with that MD5 known - no need to go on the net, imm. return it
   debug("childFor: already have md %L1", filename);
-  auto_ptr<CachedUrl> dl(new CachedUrl(filename, 0));
+  unique_ptr<CachedUrl> dl(new CachedUrl(filename, 0));
   Child* c;
   if (reuseChild)
     c = reuseChild->init(this, &childrenVal, dl.get(), md);
@@ -510,7 +513,7 @@ void MakeImageDl::Child::job_message(const string&) { }
 
 void MakeImageDl::Child::dataSource_dataSize(uint64) { }
 
-void MakeImageDl::Child::dataSource_data(const byte* data, unsigned size,
+void MakeImageDl::Child::dataSource_data(const Ubyte* data, unsigned size,
                                          uint64) {
   // Desired checksum is in md; calculate actual checksum in mdCheck
   if (checkContent)
@@ -525,7 +528,7 @@ void MakeImageDl::Child::dataSource_data(const byte* data, unsigned size,
 /** Run initial .jigdo download, will start further downloads of [Include]d
     .jigdo files as necessary. */
 void MakeImageDl::createJigdoDownload() {
-  auto_ptr<Child> childDl(childFor(jigdoUrl));
+  unique_ptr<Child> childDl(childFor(jigdoUrl));
   if (childDl.get() != 0) {
     debug("jigdo download child %1", childDl.get());
     string info = _("Retrieving .jigdo");
@@ -565,7 +568,7 @@ void MakeImageDl::jigdoFinished2() {
   stateVal = DOWNLOADING_TEMPLATE;
 
   // Start template download
-  auto_ptr<Child> childDl(childFor(templateUrls.get(), templateMd5Val));
+  unique_ptr<Child> childDl(childFor(templateUrls.get(), templateMd5Val));
   if (childDl.get() != 0) {
     string info = _("Retrieving .template");
     IOSOURCE_SEND(IO, io, job_message, (info));

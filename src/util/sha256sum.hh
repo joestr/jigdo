@@ -2,6 +2,8 @@
 
   "Ported" to C++ by steve. Uses glibc code for the actual algorithm.
 
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -45,11 +47,11 @@ public:
   SHA256() { }
   inline SHA256(const SHA256Sum& md);
   /** 32 bytes of SHA256 checksum */
-  byte sum[32];
+  Ubyte sum[32];
   /** Allows you to treat the object exactly like a pointer to a byte
       array */
-  operator byte*() { return sum; }
-  operator const byte*() const { return sum; }
+  operator Ubyte*() { return sum; }
+  operator const Ubyte*() const { return sum; }
   /** Assign an SHA256Sum */
   inline SHA256& operator=(const SHA256Sum& md);
   inline bool operator<(const SHA256& x) const;
@@ -67,7 +69,7 @@ public:
   // Default copy ctor
 private:
   bool operator_less2(const SHA256& x) const;
-  static const byte zero[32];
+  static const Ubyte zero[32];
 };
 
 inline bool operator==(const SHA256& a, const SHA256& b);
@@ -107,9 +109,9 @@ public:
   inline SHA256Sum& reset();
   /** Process bytes with the checksum algorithm. May lead to some
       bytes being temporarily buffered internally. */
-  inline SHA256Sum& update(const byte* mem, size_t len);
+  inline SHA256Sum& update(const Ubyte* mem, size_t len);
   /// Add a single byte. NB, not implemented efficiently ATM
-  inline SHA256Sum& update(byte x) { update(&x, 1); return *this; }
+  inline SHA256Sum& update(Ubyte x) { update(&x, 1); return *this; }
   /** Process remaining bytes in internal buffer and create the final
       checksum.
       @return Pointer to the 32-byte checksum. */
@@ -124,7 +126,7 @@ public:
   inline SHA256Sum& abort();
   /** Return 32 byte buffer with checksum. Warning: Returns junk if
       checksum not yet finish()ed or flush()ed. */
-  inline const byte* digest() const;
+  inline const Ubyte* digest() const;
 
   /** Convert to string */
   INLINE string toString() const;
@@ -174,8 +176,8 @@ private:
   static void sha256_init_ctx(sha256_ctx* ctx);
   static void sha256_process_bytes(const void* buffer, size_t len,
                                 struct sha256_ctx* ctx);
-  static byte* sha256_finish_ctx(struct sha256_ctx* ctx, byte* resbuf);
-  static byte* sha256_read_ctx(const sha256_ctx *ctx, byte* resbuf);
+  static Ubyte* sha256_finish_ctx(struct sha256_ctx* ctx, Ubyte* resbuf);
+  static Ubyte* sha256_read_ctx(const sha256_ctx *ctx, Ubyte* resbuf);
   static void sha256_process_block(const void* buffer, size_t len,
                                 sha256_ctx* ctx);
   SHA256 sum;
@@ -240,7 +242,7 @@ SHA256Sum& SHA256Sum::reset() {
   return *this;
 }
 
-SHA256Sum& SHA256Sum::update(const byte* mem, size_t len) {
+SHA256Sum& SHA256Sum::update(const Ubyte* mem, size_t len) {
   Paranoid(p != 0);
 # if DEBUG
   Paranoid(!finished); // Don't forget to call reset() before update()
@@ -278,7 +280,7 @@ SHA256Sum& SHA256Sum::abort() {
   return *this;
 }
 
-const byte* SHA256Sum::digest() const {
+const Ubyte* SHA256Sum::digest() const {
 # if DEBUG
   Paranoid(finished); // Call finish() first
 # endif
@@ -323,7 +325,7 @@ SHA256::SHA256(const SHA256Sum& md) { *this = md.sum; }
 
 bool operator==(const SHA256& a, const SHA256& b) {
   // How portable is this?
-  return memcmp(a.sum, b.sum, 32 * sizeof(byte)) == 0;
+  return memcmp(a.sum, b.sum, 32 * sizeof(Ubyte)) == 0;
 # if 0
   return a.sum[0] == b.sum[0] && a.sum[1] == b.sum[1]
     && a.sum[2] == b.sum[2] && a.sum[3] == b.sum[3]
@@ -337,7 +339,7 @@ bool operator==(const SHA256& a, const SHA256& b) {
 }
 
 SHA256& SHA256::clear() {
-  byte* x = sum;
+  Ubyte* x = sum;
   *x++ = 0; *x++ = 0; *x++ = 0; *x++ = 0;
   *x++ = 0; *x++ = 0; *x++ = 0; *x++ = 0;
   *x++ = 0; *x++ = 0; *x++ = 0; *x++ = 0;

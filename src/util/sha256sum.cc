@@ -2,6 +2,8 @@
 
   "Ported" to C++ by steve. Uses glibc code for the actual algorithm.
 
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -137,9 +139,9 @@ uint64 SHA256Sum::updateFromStream(bistream& s, uint64 size, size_t bufSize,
   uint64 nextReport = REPORT_INTERVAL; // When next to call reporter
   uint64 toRead = size;
   uint64 bytesRead = 0;
-  vector<byte> buffer;
+  vector<Ubyte> buffer;
   buffer.resize(bufSize);
-  byte* buf = &buffer[0];
+  Ubyte* buf = &buffer[0];
   // Read from stream and update *this
   while (s && !s.eof() && toRead > 0) {
     size_t n = (size_t)(toRead < bufSize ? toRead : bufSize);

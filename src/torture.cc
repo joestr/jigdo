@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -93,8 +96,8 @@ string cacheFile;
 void* mmap(void *start, size_t length, int /*prot*/, int /*flags*/, int fd,
            off_t offset) {
   Assert(start == 0 && offset == 0);
-  byte* buf = new byte[length];
-  byte* bufPtr = buf;
+  Ubyte* buf = new Ubyte[length];
+  Ubyte* bufPtr = buf;
   size_t toRead = length;
   while (toRead > 0) {
     size_t didRead = read(fd, bufPtr,
@@ -107,7 +110,7 @@ void* mmap(void *start, size_t length, int /*prot*/, int /*flags*/, int fd,
 }
 // Dummy munmap frees the memory
 int munmap(void *start, size_t /*length*/) {
-  delete[] static_cast<byte*>(start);
+  delete[] static_cast<Ubyte*>(start);
   return 0;
 }
 #define PROT_READ 0
@@ -147,10 +150,10 @@ namespace {
   const size_t MAX_IMAGE = 16*1024*1024;
 
   void update(MD5Sum& md, uint32 x) {
-    md.update(static_cast<byte>(x));
-    md.update(static_cast<byte>(x >> 8));
-    md.update(static_cast<byte>(x >> 16));
-    md.update(static_cast<byte>(x >> 24));
+    md.update(static_cast<Ubyte>(x));
+    md.update(static_cast<Ubyte>(x >> 8));
+    md.update(static_cast<Ubyte>(x >> 16));
+    md.update(static_cast<Ubyte>(x >> 24));
   }
 
   struct Rand {
@@ -160,8 +163,8 @@ namespace {
       uint32 serial;
       MD5 r;
     } hashData;
-    byte* rptr; // points to one of hashData.r's elements
-    byte* rend;
+    Ubyte* rptr; // points to one of hashData.r's elements
+    Ubyte* rend;
     uint32 res; // Bit reservoir
     size_t bitsInRes;
     bool msg;
@@ -199,7 +202,7 @@ namespace {
     md.reset();
     update(md, hashData.nr);
     update(md, hashData.serial);
-    md.update(&hashData.r.sum[0], 16 * sizeof(byte));
+    md.update(&hashData.r.sum[0], 16 * sizeof(Ubyte));
     md.finishForReuse();
     hashData.r = md;
     ++hashData.serial;
@@ -217,7 +220,7 @@ namespace {
     inline ~File();
     size_t size;
     size_t nr;
-    byte* data;
+    Ubyte* data;
   private:
     int* refCount;
   };
@@ -241,8 +244,8 @@ namespace {
       abort();
     }
     // mmap the file
-    data = reinterpret_cast<byte*>(mmap(0, s, PROT_READ, MAP_SHARED, fd, 0));
-    if (data == ((byte*)-1)) {
+    data = reinterpret_cast<Ubyte*>(mmap(0, s, PROT_READ, MAP_SHARED, fd, 0));
+    if (data == ((Ubyte*)-1)) {
       cerr << "Couldn't mmap (" << strerror(errno) << ')' << endl;
       abort();
     }
@@ -314,7 +317,7 @@ namespace {
     cheatMrNice();
     ofstream orev(TORTURE_DIR "rev");
     static const size_t BUF_SIZE = 65536;
-    byte buf[BUF_SIZE];
+    Ubyte buf[BUF_SIZE];
     orev << nr << ' ';
     while (mem < MAX_MEM) {
       // Add another file. Size usually 512<size<64k, sometimes <2M
@@ -340,7 +343,7 @@ namespace {
       while (sizeLeft > 0 && o) {
         size_t n = (sizeLeft < BUF_SIZE ? sizeLeft : BUF_SIZE);
         if (!zeroes)
-          for (size_t i = 0; i < n; ++i) buf[i] = (byte)rand.get(8);
+          for (size_t i = 0; i < n; ++i) buf[i] = (Ubyte)rand.get(8);
         writeBytes(o, buf, n);
         if (!o) cerr << "Argh - write() failed! (" << strerror(errno)
                      << ')' << endl;
@@ -392,7 +395,7 @@ namespace {
         // an area of random data
         size_t size = static_cast<size_t>(rand.get(18));
         for (size_t i = 0; i < size; ++i)
-          img.put(static_cast<byte>(rand.get(8) ^ 0xff));
+          img.put(static_cast<Ubyte>(rand.get(8) ^ 0xff));
         mem += size;
       } else if (x < 2*85) {
         // a complete file
@@ -475,7 +478,7 @@ int main(int argc, char* argv[]) {
         cheatMrNice();
         TortureReport reporter;
         bifstream image(TORTURE_DIR "image", ios::binary);
-        auto_ptr<ConfigFile> cfDel(new ConfigFile());
+        unique_ptr<ConfigFile> cfDel(new ConfigFile());
         JigdoConfig jc(TORTURE_DIR "image"EXTSEPS"jigdo",
                        cfDel.release(), reporter);
         bofstream templ(TORTURE_DIR "image"EXTSEPS"template", ios::binary);

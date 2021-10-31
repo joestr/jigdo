@@ -1,5 +1,7 @@
 // -*- C++ -*-
 
+// Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
 /** @file
     Auto-generated from config.h.in */
 
@@ -154,7 +156,7 @@
 #define PACKAGE "jigdo"
 
 // For copyright messages, the year of the last change to the program code
-#define CURRENT_YEAR 2019
+#define CURRENT_YEAR 2021
 
 // __attribute__ only present with GCC
 #ifndef __GNUC__
@@ -249,7 +251,7 @@ typedef TYPE_UINT64 uint64;
 /** unsigned int with at least 32, but possibly more bits */
 typedef unsigned int uint32;
 /** exactly 8 bits, unsigned */
-typedef unsigned char byte;
+typedef unsigned char Ubyte;
 
 /** Bjarne's implicit cast - useful at times */
 template<class T, class U> inline T implicit_cast(U u) { return u; }

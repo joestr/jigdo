@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -62,7 +65,7 @@ namespace {
   inline void addFile(const char* path, FakeFile* f) {
     files.insert(files.end(), make_pair<string,FakeFile*>(path, f));
   }
-  inline void addFile(const char* path, auto_ptr<FakeFile>& f) {
+  inline void addFile(const char* path, unique_ptr<FakeFile>& f) {
     files.insert(files.end(), make_pair<string,FakeFile*>(path, f.get()));
   }
 
@@ -106,7 +109,7 @@ int main(int argc, char* argv[]) {
   if (home[home.size() - 1] != DIRSEP) home += DIRSEP;
 
   // Set up a couple of simulated files
-  auto_ptr<FakeFile> lynxNone(new FakeFile(start - 1,
+  unique_ptr<FakeFile> lynxNone(new FakeFile(start - 1,
     "# lynx.cfg file.\n"
     "\n"
     ".h1 Auxiliary Facilities\n"
@@ -119,7 +122,7 @@ int main(int argc, char* argv[]) {
     ".nf\n"
   ));
 
-  auto_ptr<FakeFile> lynxAll(new FakeFile(start - 10,
+  unique_ptr<FakeFile> lynxAll(new FakeFile(start - 10,
     "# preserve lowercasing, and will outlive the Lynx image.\n"
     "#\n"
     ".ex 15\n"
@@ -155,7 +158,7 @@ int main(int argc, char* argv[]) {
     "# This is the only allowed use of * in no_proxy.\n"
   ));
 
-  auto_ptr<FakeFile> wget(new FakeFile(start - 9,
+  unique_ptr<FakeFile> wget(new FakeFile(start - 9,
     "# You can set up other headers, like Accept-Language.  Accept-Language\n"
     "# is *not* sent by default.\n"
     "header = Accept-Language: en\n"
@@ -173,7 +176,7 @@ int main(int argc, char* argv[]) {
     "#dot_style = default\n"
   ));
 
-  auto_ptr<FakeFile> netscape4(new FakeFile(start - 10,
+  unique_ptr<FakeFile> netscape4(new FakeFile(start - 10,
     "// Netscape User Preferences\n"
     "// This is a generated file!  Do not edit.\n"
     "\n"
@@ -193,7 +196,7 @@ int main(int argc, char* argv[]) {
     "user_pref(\"news.default_fcc\", \"/home/richard/nsmail/Sent\");\n"
   ));
 
-  auto_ptr<FakeFile> kde(new FakeFile(start - 10,
+  unique_ptr<FakeFile> kde(new FakeFile(start - 10,
     "[Proxy Settings]\n"
     "NoProxyFor=lan localhost\n"
     "Proxy Config Script=\n" // Not supported
@@ -203,7 +206,7 @@ int main(int argc, char* argv[]) {
     "httpsProxy=http://localhost3:8080\n"
   ));
 
-  auto_ptr<FakeFile> galeon(new FakeFile(start - 10,
+  unique_ptr<FakeFile> galeon(new FakeFile(start - 10,
     "# Mozilla User Preferences\n"
     "// This is a generated file!\n"
     "user_pref(\"network.http.proxy.keep-alive\", false);\n"
@@ -220,7 +223,7 @@ int main(int argc, char* argv[]) {
     "user_pref(\"security.warn_submit_insecure\", false);\n"
   ));
 
-  auto_ptr<FakeFile> mozillaEmpty(new FakeFile(start - 5,
+  unique_ptr<FakeFile> mozillaEmpty(new FakeFile(start - 5,
     "// TryeType\n"
     "pref(\"font.FreeType2.enable\", true);\n"
     "pref(\"font.freetype2.shared-library\", \"libfreetype.so.6\");\n"

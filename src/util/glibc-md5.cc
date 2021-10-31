@@ -88,7 +88,7 @@ void MD5Sum::md5_init_ctx (md5_ctx *ctx)
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 32 bits value.  */
-byte* MD5Sum::md5_read_ctx(const md5_ctx *ctx, byte* resbuf)
+Ubyte* MD5Sum::md5_read_ctx(const md5_ctx *ctx, Ubyte* resbuf)
 {
   ((uint32 *) resbuf)[0] = SWAP (ctx->A);
   ((uint32 *) resbuf)[1] = SWAP (ctx->B);
@@ -103,7 +103,7 @@ byte* MD5Sum::md5_read_ctx(const md5_ctx *ctx, byte* resbuf)
 
    IMPORTANT: On some systems it is required that RESBUF is correctly
    aligned for a 32 bits value.  */
-byte* MD5Sum::md5_finish_ctx(struct md5_ctx* ctx, byte* resbuf)
+Ubyte* MD5Sum::md5_finish_ctx(struct md5_ctx* ctx, Ubyte* resbuf)
 {
   /* Take yet unprocessed bytes into account.  */
   uint32 bytes = ctx->buflen;

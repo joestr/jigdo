@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
   COPYING for details.
@@ -440,7 +443,7 @@ private:
   virtual void job_failed(const string& message);
   virtual void job_message(const string& message);
   virtual void dataSource_dataSize(uint64 n);
-  virtual void dataSource_data(const byte* data, unsigned size,
+  virtual void dataSource_data(const Ubyte* data, unsigned size,
                                uint64 currentSize);
   MakeImageDl* masterVal;
   DataSource* sourceVal;
@@ -486,7 +489,7 @@ const Job::MakeImageDl::ChildList& Job::MakeImageDl::children() const {
 
 Job::MakeImageDl::Child* Job::MakeImageDl::childFor(PartUrlMapping* urls,
     const MD5* md) {
-  auto_ptr<vector<UrlMapping*> > lastUrl(new vector<UrlMapping*>);
+  unique_ptr<vector<UrlMapping*> > lastUrl(new vector<UrlMapping*>);
   string url = urls->enumerate(lastUrl.get());
   Child* c = childFor(url, md);
   if (c != 0) {

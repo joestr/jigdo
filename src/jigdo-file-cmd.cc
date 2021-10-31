@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -218,13 +221,13 @@ int JigdoFileCmd::makeTemplate() {
 
   // Open files
   bistream* image;
-  auto_ptr<bistream> imageDel(openForInput(image, imageFile));
+  unique_ptr<bistream> imageDel(openForInput(image, imageFile));
 
-  auto_ptr<ConfigFile> cfDel(new ConfigFile());
+  unique_ptr<ConfigFile> cfDel(new ConfigFile());
   ConfigFile* cf = cfDel.get();
   if (!jigdoMergeFile.empty()) { // Load file to add to jigdo output
     istream* jigdoMerge;
-    auto_ptr<istream> jigdoMergeDel(openForInput(jigdoMerge,
+    unique_ptr<istream> jigdoMergeDel(openForInput(jigdoMerge,
                                                  jigdoMergeFile));
     *jigdoMerge >> *cf;
     if (jigdoMerge->bad()) {
@@ -237,7 +240,7 @@ int JigdoFileCmd::makeTemplate() {
   JigdoConfig jc(jigdoFile, cfDel.release(), *optReporter);
 
   bostream* templ;
-  auto_ptr<bostream> templDel(openForOutput(templ, templFile));
+  unique_ptr<bostream> templDel(openForOutput(templ, templFile));
   //____________________
 
   JigdoCache cache(cacheFile, optCacheExpiry, readAmount, *optReporter);
@@ -250,7 +253,7 @@ int JigdoFileCmd::makeTemplate() {
     break;
   }
   // Create and run MkTemplate operation
-  auto_ptr<MkTemplate>
+  unique_ptr<MkTemplate>
     op(new MkTemplate(&cache, image, &jc, templ, *optReporter,
                       optZipQuality, readAmount, optAddImage, optAddServers,
                       optBzip2, optChecksumChoice));
@@ -266,7 +269,7 @@ int JigdoFileCmd::makeTemplate() {
 
   // Write out jigdo file
   ostream* jigdoF;
-  auto_ptr<ostream> jigdoDel(openForOutput(jigdoF, jigdoFile));
+  unique_ptr<ostream> jigdoDel(openForOutput(jigdoF, jigdoFile));
   *jigdoF << jc.configFile();
   if (jigdoF->bad()) {
     string err = subst(_("%1 make-template: Could not write `%2' (%3)"),
@@ -303,7 +306,7 @@ int JigdoFileCmd::makeImage() {
   }
 
   bistream* templ;
-  auto_ptr<bistream> templDel(openForInput(templ, templFile));
+  unique_ptr<bistream> templDel(openForInput(templ, templFile));
 
   try {
     return JigdoDesc::makeImage(&cache, imageFile, imageTmpFile, templFile,
@@ -332,7 +335,7 @@ int JigdoFileCmd::listTemplate() {
 
   // Open file
   bistream* templ;
-  auto_ptr<bistream> templDel(openForInput(templ, templFile));
+  unique_ptr<bistream> templDel(openForInput(templ, templFile));
 
   if (JigdoDesc::isTemplate(*templ) == false)
     optReporter->info(
@@ -367,14 +370,14 @@ int JigdoFileCmd::verifyImage() {
   }
 
   bistream* image;
-  auto_ptr<bistream> imageDel(openForInput(image, imageFile));
+  unique_ptr<bistream> imageDel(openForInput(image, imageFile));
 
   JigdoDescVec contents;
   JigdoDesc::ImageInfoMD5* info_md5 = 0;
   JigdoDesc::ImageInfoSHA256* info_sha256 = 0;
   try {
     bistream* templ;
-    auto_ptr<bistream> templDel(openForInput(templ, templFile));
+    unique_ptr<bistream> templDel(openForInput(templ, templFile));
 
     if (JigdoDesc::isTemplate(*templ) == false)
       optReporter->info(
@@ -481,7 +484,7 @@ int JigdoFileCmd::printMissing(Command command) {
   }
 
   bistream* templ;
-  auto_ptr<bistream> templDel(openForInput(templ, templFile));
+  unique_ptr<bistream> templDel(openForInput(templ, templFile));
 
   string imageTmpFile;
   if (imageFile != "-") {
@@ -496,8 +499,8 @@ int JigdoFileCmd::printMissing(Command command) {
 
   // Read .jigdo file
   istream* jigdo;
-  auto_ptr<istream> jigdoDel(openForInput(jigdo, jigdoFile));
-  auto_ptr<ConfigFile> cfDel(new ConfigFile());
+  unique_ptr<istream> jigdoDel(openForInput(jigdo, jigdoFile));
+  unique_ptr<ConfigFile> cfDel(new ConfigFile());
   ConfigFile* cf = cfDel.get();
   *jigdo >> *cf;
   JigdoConfig jc(jigdoFile, cfDel.release(), *optReporter);

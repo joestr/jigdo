@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2004-2005  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -56,15 +59,15 @@ protected:
   virtual unsigned totalIn() const { return (unsigned)z.total_in; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
-  virtual byte* nextOut() const { return z.next_out; }
-  virtual byte* nextIn() const { return z.next_in; }
+  virtual Ubyte* nextOut() const { return z.next_out; }
+  virtual Ubyte* nextIn() const { return z.next_in; }
   virtual void setTotalOut(unsigned n) { z.total_out = n; }
   virtual void setTotalIn(unsigned n) { z.total_in = n; }
   virtual void setAvailOut(unsigned n) { z.avail_out = n; }
   virtual void setAvailIn(unsigned n) { z.avail_in = n; }
-  virtual void setNextOut(byte* n) { z.next_out = n; }
-  virtual void setNextIn(byte* n) { z.next_in = n; }
-  virtual void zip2(byte* start, unsigned len, bool finish = false);
+  virtual void setNextOut(Ubyte* n) { z.next_out = n; }
+  virtual void setNextIn(Ubyte* n) { z.next_in = n; }
+  virtual void zip2(Ubyte* start, unsigned len, bool finish = false);
 
 private:
   // Throw a Zerror exception, or bad_alloc() for status==Z_MEM_ERROR
@@ -91,12 +94,12 @@ public:
   virtual unsigned totalIn() const { return (unsigned)z.total_in; }
   virtual unsigned availOut() const { return z.avail_out; }
   virtual unsigned availIn() const { return z.avail_in; }
-  virtual byte* nextOut() const { return z.next_out; }
-  virtual byte* nextIn() const { return z.next_in; }
+  virtual Ubyte* nextOut() const { return z.next_out; }
+  virtual Ubyte* nextIn() const { return z.next_in; }
   virtual void setTotalOut(unsigned n) { z.total_out = n; }
   virtual void setTotalIn(unsigned n) { z.total_in = n; }
   virtual void setAvailIn(unsigned n) { z.avail_in = n; }
-  virtual void setNextIn(byte* n) { z.next_in = n; }
+  virtual void setNextIn(Ubyte* n) { z.next_in = n; }
 
   virtual void init() {
     //memset(&z, 0, sizeof(z));
@@ -109,7 +112,7 @@ public:
   virtual void end() { status = inflateEnd(&z); memReleased = true; }
   virtual void reset() { status = inflateReset(&z); }
 
-  virtual void inflate(byte** nextOut, unsigned* availOut) {
+  virtual void inflate(Ubyte** nextOut, unsigned* availOut) {
     z.next_out = *nextOut; z.avail_out = *availOut;
     status = ::inflate(&z, Z_NO_FLUSH);
     *nextOut = z.next_out; *availOut = z.avail_out;

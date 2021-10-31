@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2002-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -118,7 +121,7 @@ void SingleUrl::download_dataSize(uint64 n) {
 }
 //______________________________________________________________________
 
-bool SingleUrl::writeToDestStream(uint64 off, const byte* data,
+bool SingleUrl::writeToDestStream(uint64 off, const Ubyte* data,
                                   unsigned size) {
   if (destStream() == 0 /*|| stopLaterId != 0*/) return SUCCESS;
   //debug("writeToDestStream %1 %2 bytes at offset %3",
@@ -153,7 +156,7 @@ bool SingleUrl::writeToDestStream(uint64 off, const byte* data,
 }
 //______________________________________________________________________
 
-void SingleUrl::download_data(const byte* data, unsigned size,
+void SingleUrl::download_data(const Ubyte* data, unsigned size,
                               uint64 currentSize) {
 # if DEBUG
   Paranoid(resuming() || progressVal.currentSize() == currentSize - size);
@@ -191,9 +194,9 @@ void SingleUrl::download_data(const byte* data, unsigned size,
 
   // Read from file
   unsigned toRead = min(resumeLeft, size);
-  byte buf[toRead];
-  byte* bufEnd = buf + toRead;
-  byte* b = buf;
+  Ubyte buf[toRead];
+  Ubyte* bufEnd = buf + toRead;
+  Ubyte* b = buf;
   destStream()->seekg(destOff + currentSize - size, ios::beg);
   while (*destStream() && toRead > 0) {
     readBytes(*destStream(), b, toRead);

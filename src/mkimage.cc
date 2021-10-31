@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2003  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -43,7 +46,7 @@ namespace {
 typedef JigdoDesc::ProgressReporter ProgressReporter;
 
 // memset() is not portable enough...
-void memClear(byte* buf, size_t size) {
+void memClear(Ubyte* buf, size_t size) {
   while (size > 8) {
     *buf++ = 0; *buf++ = 0; *buf++ = 0; *buf++ = 0;
     *buf++ = 0; *buf++ = 0; *buf++ = 0; *buf++ = 0;
@@ -91,9 +94,9 @@ void JigdoDesc::seekFromEnd(bistream& file) {
         static_cast<uint64>(file.tellg()));
 
   size_t toRead = 4;
-  byte buf[4];
+  Ubyte buf[4];
   buf[3] = '\0';
-  byte* b = buf;
+  Ubyte* b = buf;
   do {
     readBytes(file, b, toRead);
     size_t n = file.gcount();
@@ -112,10 +115,10 @@ void JigdoDesc::seekFromEnd(bistream& file) {
 //______________________________________________________________________
 
 bistream& JigdoDescVec::get(bistream& file) {
-  /* Need auto_ptr: If we did a direct push_back(new JigdoDesc), the
+  /* Need unique_ptr: If we did a direct push_back(new JigdoDesc), the
      "new" might succeed, but the push_back() fail with bad_alloc =>
      mem leak */
-  auto_ptr<JigdoDesc> desc;
+  unique_ptr<JigdoDesc> desc;
   clear();
 
   SerialIstreamIterator f(file);
@@ -136,7 +139,7 @@ bistream& JigdoDescVec::get(bistream& file) {
   RsyncSum64 rsum;
   size_t blockLength;
   while (file && read < len) {
-    byte type = *f;
+    Ubyte type = *f;
     ++f;
     switch (type) {
 
@@ -286,9 +289,9 @@ bostream& JigdoDescVec::put(bostream& file, MD5Sum* md, SHA256Sum* sd, int check
   if (DEBUG) bufLen += 1;
 
   // Pass 2: Write DESC part
-  byte buf[bufLen];
+  Ubyte buf[bufLen];
   if (DEBUG) buf[bufLen - 1] = 0xa5;
-  byte* p;
+  Ubyte* p;
   p = serialize4(0x43534544, buf); // "DESC" in little-endian order
   p = serialize6(descLen, p);
   writeBytes(file, buf, 4 + 6);
@@ -446,7 +449,7 @@ namespace {
      more than specified amount to image, even if file is longer. */
   int fileToImageMD5(bostream* img, FilePart& file,
       const JigdoDesc::MatchedFileMD5& matched, bool checkChecksum, size_t rsyncLen,
-      ProgressReporter& reporter, byte* buf, size_t readAmount, uint64& off,
+      ProgressReporter& reporter, Ubyte* buf, size_t readAmount, uint64& off,
       uint64& nextReport, const uint64 totalBytes) {
     uint64 toWrite = file.size();
     MD5Sum md;
@@ -524,7 +527,7 @@ namespace {
      longer. */
   int fileToImageSHA256(bostream* img, FilePart& file,
       const JigdoDesc::MatchedFileSHA256& matched, bool checkChecksum, size_t rsyncLen,
-      ProgressReporter& reporter, byte* buf, size_t readAmount, uint64& off,
+      ProgressReporter& reporter, Ubyte* buf, size_t readAmount, uint64& off,
       uint64& nextReport, const uint64 totalBytes) {
     uint64 toWrite = file.size();
     SHA256Sum md;
@@ -626,13 +629,13 @@ namespace {
     uint64 blockLength = 0;
     uint64 imageSize = 0;
 
-    vector<byte> bufVec(readAmount);
-    byte* buf = &bufVec[0];
+    vector<Ubyte> bufVec(readAmount);
+    Ubyte* buf = &bufVec[0];
     /* Use an additional 8k of zip buffer. This is good if the
        unmatched image data is already compressed, which means that
        when it is compressed again by jigdo, it will get slightly
        larger. */
-    auto_ptr<Zibstream> data(new Zibstream(*templ, (unsigned int)readAmount + 8*1024));
+    unique_ptr<Zibstream> data(new Zibstream(*templ, (unsigned int)readAmount + 8*1024));
 #   if HAVE_WORKING_FSTREAM
     if (img == 0) img = &cout; // EEEEEK!
 #   else
@@ -835,8 +838,8 @@ namespace {
       const int missing, const size_t readAmount, bfstream* img,
       const string& imageTmpFile, bool checkChecksum, ProgressReporter& reporter,
       JigdoCache* cache, const uint64 totalBytes) {
-    vector<byte> bufVec(readAmount);
-    byte* buf = &bufVec[0];
+    vector<Ubyte> bufVec(readAmount);
+    Ubyte* buf = &bufVec[0];
     int result = (missing == 0 ? 0 : 1);
     uint64 bytesWritten = 0; // For 'x% done' calls to reporter
     uint64 nextReport = 0; // At what value of bytesWritten to call reporter
@@ -1049,7 +1052,7 @@ int JigdoDesc::makeImage(JigdoCache* cache, const string& imageFile,
 
   // Do we need to add new stuff to an existing tmp file?
   bfstream* img = 0; // Non-null => tmp file exists
-  auto_ptr<bfstream> imgDel(img);
+  unique_ptr<bfstream> imgDel(img);
   struct stat fileInfo;
   if (task != SINGLE_PASS && stat(imageTmpFile.c_str(), &fileInfo) == 0) {
     /* A tmp file already exists. We'll only reuse it if the DESC

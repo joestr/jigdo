@@ -3,21 +3,24 @@
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
 *//** @file
 
-  A variant of auto_ptr for pointers to arrays
+  A variant of unique_ptr for pointers to arrays
 
 */
 
 #ifndef AUTOPTR_HH
 #define AUTOPTR_HH
 
-/** A variant of std::auto_ptr for pointers to arrays. Aside note:
-    Does not implement the "const auto_ptr copy protection". */
+/** A variant of std::unique_ptr for pointers to arrays. Aside note:
+    Does not implement the "const unique_ptr copy protection". */
 template <class X> class ArrayAutoPtr {
 public:
   typedef X element_type;

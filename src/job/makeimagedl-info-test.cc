@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -49,7 +52,7 @@ void MakeImageDl::setImageSection(string* imageName, string* imageInfo,
 namespace {
 
   const char* const hexDigits = "0123456789abcdef";
-  void escapedChar(string* o, byte c) {
+  void escapedChar(string* o, Ubyte c) {
     switch (c) {
     case 0: *o += "\\0"; break;
     case '\n': *o += "\\n"; break;

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2004  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
   COPYING for details.
@@ -165,7 +168,7 @@ private:
   /* Set of URLs that were already returned by bestUnvisitedUrl(). Each URL
      is represented by a unique number, which is assigned to it by a
      depth-first scan of the tree-like structure in the UrlMap. */
-  auto_ptr<set<unsigned> > seen;
+  unique_ptr<set<unsigned> > seen;
 };
 //______________________________________________________________________
 

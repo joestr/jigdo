@@ -3,16 +3,19 @@
   |_) /|  Copyright (C) 2001-2004  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
 
 *//** @file
 
-  I/O streams for bytes (byte is unsigned char, not regular char).
+  I/O streams for bytes (Ubyte is unsigned char, not regular char).
 
   This was first solved with typedefs like "typedef
-  basic_istream<byte> bistream;". That turns out to be difficult,
+  basic_istream<Ubyte> bistream;". That turns out to be difficult,
   though, since you need to supply your own implementation for
   char_traits and basic_fstream. The current typedefs aren't very
   useful except to indicate in the source: "This is /intended/ to be
@@ -179,20 +182,20 @@ bofstream::bofstream(const char* name, ios::openmode m) : bostream() {
 //______________________________________________________________________
 
 // Avoid lots of ugly reinterpret_casts in the code itself
-inline bistream& readBytes(bistream& s, byte* buf, streamsize count) {
+inline bistream& readBytes(bistream& s, Ubyte* buf, streamsize count) {
   return s.read(reinterpret_cast<char*>(buf), count);
 }
 
-inline biostream& readBytes(biostream& s, byte* buf, streamsize count) {
+inline biostream& readBytes(biostream& s, Ubyte* buf, streamsize count) {
   s.read(reinterpret_cast<char*>(buf), count);
   return s;
 }
 
-inline bostream& writeBytes(bostream& s, const byte* buf, streamsize count) {
+inline bostream& writeBytes(bostream& s, const Ubyte* buf, streamsize count) {
   return s.write(reinterpret_cast<const char*>(buf), count);
 }
 
-inline biostream& writeBytes(biostream& s, const byte* buf,
+inline biostream& writeBytes(biostream& s, const Ubyte* buf,
                              streamsize count) {
   s.write(reinterpret_cast<const char*>(buf), count);
   return s;

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -75,7 +78,7 @@ struct stat JigdoCache::fileInfo;
   does not create a complete serialization - e.g. the location path
   iter is missing. It only creates a cache entry. */
 
-size_t FilePart::unserializeCacheEntry(const byte* data, size_t dataSize,
+size_t FilePart::unserializeCacheEntry(const Ubyte* data, size_t dataSize,
                                        size_t csumBlockLength){
   Assert(dataSize > PART_MD5SUMS);
 
@@ -146,7 +149,7 @@ struct FilePart::SerializeCacheEntry {
     return PART_MD5SUMS + (file.mdValid() ? file.MD5sums.size() * CSUM_SIZE : CSUM_SIZE);
   }
 
-  void operator()(byte* data) {
+  void operator()(Ubyte* data) {
     Paranoid(file.getFlag(TO_BE_WRITTEN));
     // If empty(), shouldn't have been marked TO_BE_WRITTEN:
     Assert(!file.MD5sums.empty());
@@ -267,7 +270,7 @@ bool FilePart::getChecksumsRead(JigdoCache* c, size_t blockNr) {
   // Can we maybe get the info from the cache?
   if (c->cacheFile != 0 && !getFlag(WAS_LOOKED_UP)) {
     setFlag(WAS_LOOKED_UP);
-    const byte* data;
+    const Ubyte* data;
     size_t dataSize;
     try {
       /* Unserialize will do nothing if csumBlockLength differs. If
@@ -356,9 +359,9 @@ bool FilePart::getChecksumsRead(JigdoCache* c, size_t blockNr) {
   // Calculate RsyncSum of head of file and MD5 and SHA256 for all blocks
 
   Assert(thisBlockLength <= c->csumBlockLength);
-  byte* buf = &c->buffer[0];
-  byte* bufpos = buf;
-  byte* bufend = buf + (c->readAmount > thisBlockLength ?
+  Ubyte* buf = &c->buffer[0];
+  Ubyte* bufpos = buf;
+  Ubyte* bufend = buf + (c->readAmount > thisBlockLength ?
                         c->readAmount : thisBlockLength);
   while (input && static_cast<size_t>(bufpos - buf) < thisBlockLength) {
     readBytes(input, bufpos, bufend - bufpos);
@@ -394,7 +397,7 @@ bool FilePart::getChecksumsRead(JigdoCache* c, size_t blockNr) {
     } else {
       md.update(buf, mdLeft);
       sd.update(buf, mdLeft);
-      byte* cur = buf + mdLeft;
+      Ubyte* cur = buf + mdLeft;
       size_t nn = n - mdLeft;
       do {
         md.finishForReuse();

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2000-2004  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   "Ported" to C++ by RA. Actual MD5 code taken from glibc
 
   This program is free software; you can redistribute it and/or modify
@@ -50,11 +53,11 @@ public:
   MD5() { }
   inline MD5(const MD5Sum& md);
   /** 16 bytes of MD5 checksum */
-  byte sum[16];
+  Ubyte sum[16];
   /** Allows you to treat the object exactly like a pointer to a byte
       array */
-  operator byte*() { return sum; }
-  operator const byte*() const { return sum; }
+  operator Ubyte*() { return sum; }
+  operator const Ubyte*() const { return sum; }
   /** Assign an MD5Sum */
   inline MD5& operator=(const MD5Sum& md);
   inline bool operator<(const MD5& x) const;
@@ -72,7 +75,7 @@ public:
   // Default copy ctor
 private:
   bool operator_less2(const MD5& x) const;
-  static const byte zero[16];
+  static const Ubyte zero[16];
 };
 
 inline bool operator==(const MD5& a, const MD5& b);
@@ -112,9 +115,9 @@ public:
   inline MD5Sum& reset();
   /** Process bytes with the checksum algorithm. May lead to some
       bytes being temporarily buffered internally. */
-  inline MD5Sum& update(const byte* mem, size_t len);
+  inline MD5Sum& update(const Ubyte* mem, size_t len);
   /// Add a single byte. NB, not implemented efficiently ATM
-  inline MD5Sum& update(byte x) { update(&x, 1); return *this; }
+  inline MD5Sum& update(Ubyte x) { update(&x, 1); return *this; }
   /** Process remaining bytes in internal buffer and create the final
       checksum.
       @return Pointer to the 16-byte checksum. */
@@ -129,7 +132,7 @@ public:
   inline MD5Sum& abort();
   /** Return 16 byte buffer with checksum. Warning: Returns junk if
       checksum not yet finish()ed or flush()ed. */
-  inline const byte* digest() const;
+  inline const Ubyte* digest() const;
 
   /** Convert to string */
   INLINE string toString() const;
@@ -166,8 +169,8 @@ private:
   static void md5_init_ctx(md5_ctx* ctx);
   static void md5_process_bytes(const void* buffer, size_t len,
                                 struct md5_ctx* ctx);
-  static byte* md5_finish_ctx(struct md5_ctx* ctx, byte* resbuf);
-  static byte* md5_read_ctx(const md5_ctx *ctx, byte* resbuf);
+  static Ubyte* md5_finish_ctx(struct md5_ctx* ctx, Ubyte* resbuf);
+  static Ubyte* md5_read_ctx(const md5_ctx *ctx, Ubyte* resbuf);
   static void md5_process_block(const void* buffer, size_t len,
                                 md5_ctx* ctx);
   MD5 sum;
@@ -232,7 +235,7 @@ MD5Sum& MD5Sum::reset() {
   return *this;
 }
 
-MD5Sum& MD5Sum::update(const byte* mem, size_t len) {
+MD5Sum& MD5Sum::update(const Ubyte* mem, size_t len) {
   Paranoid(p != 0);
 # if DEBUG
   Paranoid(!finished); // Don't forget to call reset() before update()
@@ -270,7 +273,7 @@ MD5Sum& MD5Sum::abort() {
   return *this;
 }
 
-const byte* MD5Sum::digest() const {
+const Ubyte* MD5Sum::digest() const {
 # if DEBUG
   Paranoid(finished); // Call finish() first
 # endif
@@ -315,7 +318,7 @@ MD5::MD5(const MD5Sum& md) { *this = md.sum; }
 
 bool operator==(const MD5& a, const MD5& b) {
   // How portable is this?
-  return memcmp(a.sum, b.sum, 16 * sizeof(byte)) == 0;
+  return memcmp(a.sum, b.sum, 16 * sizeof(Ubyte)) == 0;
 # if 0
   return a.sum[0] == b.sum[0] && a.sum[1] == b.sum[1]
     && a.sum[2] == b.sum[2] && a.sum[3] == b.sum[3]
@@ -329,7 +332,7 @@ bool operator==(const MD5& a, const MD5& b) {
 }
 
 MD5& MD5::clear() {
-  byte* x = sum;
+  Ubyte* x = sum;
   *x++ = 0; *x++ = 0; *x++ = 0; *x++ = 0;
   *x++ = 0; *x++ = 0; *x++ = 0; *x++ = 0;
   *x++ = 0; *x++ = 0; *x++ = 0; *x++ = 0;

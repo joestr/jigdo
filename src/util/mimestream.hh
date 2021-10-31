@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2000-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -227,7 +230,7 @@ Base64Out<Output>& Base64Out<Output>::trailer(streamsize n) {
 template <class Output>
 Base64Out<Output>& Base64Out<Output>::operator<<(const unsigned char* x) {
   while (*x != '\0')
-    (*this) << static_cast<byte>(*x++);
+    (*this) << static_cast<Ubyte>(*x++);
   return *this;
 }
 
@@ -236,7 +239,7 @@ template <class Output>
 Base64Out<Output>& Base64Out<Output>::write(const unsigned char* x,
                                             unsigned n) {
   for (unsigned i = 0; i < n; ++i)
-    (*this) << static_cast<byte>(*x++);
+    (*this) << static_cast<Ubyte>(*x++);
   return *this;
 }
 //______________________________________________________________________
@@ -244,7 +247,7 @@ Base64Out<Output>& Base64Out<Output>::write(const unsigned char* x,
 /** Convert a series of Base64 ASCII strings into binary data.
 
     Output is a class offering the following:
-      - void put(byte b); // Output one byte of binary data
+      - void put(Ubyte b); // Output one byte of binary data
       - typedef implementation_defined ResultType;
       - ResultType result(); // Is called by Base64In::result() */
 template <class Output>
@@ -268,7 +271,7 @@ public:
   void reset() { bits = 0; }
 
 private:
-  static const byte table[];
+  static const Ubyte table[];
   int bits;
   uint32 data;
   Output out;
@@ -279,11 +282,11 @@ private:
     bytes. */
 class Base64StringIn {
 public:
-  void put(byte b) { val.push_back(b); }
-  typedef vector<byte>& ResultType;
-  vector<byte>& result() { return val; }
+  void put(Ubyte b) { val.push_back(b); }
+  typedef vector<Ubyte>& ResultType;
+  vector<Ubyte>& result() { return val; }
 private:
-  vector<byte> val;
+  vector<Ubyte> val;
 };
 
 typedef Base64In<Base64StringIn> Base64StringI;
@@ -294,7 +297,7 @@ typedef Base64In<Base64StringIn> Base64StringI;
 //"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 #define x 255
 template <class Output>
-const byte Base64In<Output>::table[] = {
+const Ubyte Base64In<Output>::table[] = {
   //    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
     x,  x,  x,  x,  x,  x,  x,  x,  x,  x,  x, 62,  x, 62,  x, 63,
   //0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?
@@ -331,7 +334,7 @@ Base64In<Output>& Base64In<Output>::put(const char* x, unsigned n) {
   --x;
   while (n > 0) {
     --n; ++x;
-    unsigned code = static_cast<byte>(*x);
+    unsigned code = static_cast<Ubyte>(*x);
     if (code < 32 || code > 127) continue; // Just ignore invalid characters
     code = table[code - 32];
     if (code > 63) continue;
@@ -339,7 +342,7 @@ Base64In<Output>& Base64In<Output>::put(const char* x, unsigned n) {
     bits += 6;
     if (bits >= 8) {
       bits -= 8;
-      out.put(static_cast<byte>((data >> bits) & 255U));
+      out.put(static_cast<Ubyte>((data >> bits) & 255U));
     }
   }
   return *this;

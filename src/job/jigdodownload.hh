@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2003  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2. See
   the file COPYING for details.
@@ -60,13 +63,13 @@ private:
   virtual void job_failed(string* message);
   virtual void job_message(string* message);
   virtual void dataSource_dataSize(uint64 n);
-  virtual void dataSource_data(const byte* data, unsigned size,
+  virtual void dataSource_data(const Ubyte* data, unsigned size,
                                uint64 currentSize);
   //@}
 
   // Virtual methods from Gunzip::IO
   virtual void gunzip_deleted();
-  virtual void gunzip_data(Gunzip*, byte* decompressed, unsigned size);
+  virtual void gunzip_data(Gunzip*, Ubyte* decompressed, unsigned size);
   virtual void gunzip_needOut(Gunzip*);
   virtual void gunzip_failed(string* message);
 
@@ -81,7 +84,7 @@ private:
   /* Transparent gunzipping of .jigdo file. GUNZIP_BUF_SIZE is also the max
      size a single line in the .jigdo is allowed to have */
   static const unsigned GUNZIP_BUF_SIZE = 16384;
-  byte gunzipBuf[GUNZIP_BUF_SIZE];
+  Ubyte gunzipBuf[GUNZIP_BUF_SIZE];
   Gunzip gunzip;
 
   // Where to put .jigdo data. Points somewhere inside configFile()

@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2005  |  richard@
   | \/¯|  Richard Atterer     |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
   COPYING for details.
@@ -20,10 +23,10 @@
 //______________________________________________________________________
 
 void update(MD5Sum& md, uint32 x) {
-  md.update(static_cast<byte>(x));
-  md.update(static_cast<byte>(x >> 8));
-  md.update(static_cast<byte>(x >> 16));
-  md.update(static_cast<byte>(x >> 24));
+  md.update(static_cast<Ubyte>(x));
+  md.update(static_cast<Ubyte>(x >> 8));
+  md.update(static_cast<Ubyte>(x >> 16));
+  md.update(static_cast<Ubyte>(x >> 24));
 }
 //______________________________________________________________________
 
@@ -36,8 +39,8 @@ struct Rand {
     MD5 r;
   } hashData;
 
-  byte* rptr; // points to one of hashData.r's elements
-  byte* rend;
+  Ubyte* rptr; // points to one of hashData.r's elements
+  Ubyte* rend;
   uint32 res; // Bit reservoir
   size_t bitsInRes;
   bool msg;
@@ -76,7 +79,7 @@ void Rand::thumbScrew() {
   md.reset();
   update(md, hashData.nr);
   update(md, hashData.serial);
-  md.update(&hashData.r.sum[0], 16 * sizeof(byte));
+  md.update(&hashData.r.sum[0], 16 * sizeof(Ubyte));
   md.finishForReuse();
   hashData.r = md;
   ++hashData.serial;
@@ -132,12 +135,12 @@ int main(int argc, const char* argv[]) {
   }
   Rand rand(randomSeed);
 
-  byte buf[1024];
+  Ubyte buf[1024];
   if (byteVal == 256) {
     // Write random bytes
     while (bytesArg > 0) {
       uint32 n = (bytesArg > 1024 ? 1024 : bytesArg);
-      for (uint32 i = 0; i < n; ++i) buf[i] = (byte)rand.get(8);
+      for (uint32 i = 0; i < n; ++i) buf[i] = (Ubyte)rand.get(8);
       cout.write((char*)(buf), n);
       bytesArg -= n;
     }

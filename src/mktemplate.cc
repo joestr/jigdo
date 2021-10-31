@@ -3,6 +3,9 @@
   |_) /|  Copyright (C) 2001-2002  |  richard@
   | \/¯|  Richard Atterer          |  atterer.org
   ¯ '` ¯
+
+  Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License, version 2. See the file
   COPYING for details.
@@ -125,7 +128,7 @@ namespace {
      with offset "start" (incl) and ending with offset "end" (excl).
      Offsets can be equal to bufferLength. If both offsets are equal,
      the whole buffer content is written. */
-  inline void writeBuf(const byte* const buf, size_t begin, size_t end,
+  inline void writeBuf(const Ubyte* const buf, size_t begin, size_t end,
                        const size_t bufferLength, Zobstream* zip) {
     Paranoid(begin <= bufferLength && end <= bufferLength);
     if (begin < end) {
@@ -140,19 +143,19 @@ namespace {
   // Write lower 48 bits of x to s in little-endian order
   void write48(bostream& s, uint64 x) {
 #   if 0
-    s << static_cast<byte>(x & 0xff)
-      << static_cast<byte>((x >> 8) & 0xff)
-      << static_cast<byte>((x >> 16) & 0xff)
-      << static_cast<byte>((x >> 24) & 0xff)
-      << static_cast<byte>((x >> 32) & 0xff)
-      << static_cast<byte>((x >> 40) & 0xff);
+    s << static_cast<Ubyte>(x & 0xff)
+      << static_cast<Ubyte>((x >> 8) & 0xff)
+      << static_cast<Ubyte>((x >> 16) & 0xff)
+      << static_cast<Ubyte>((x >> 24) & 0xff)
+      << static_cast<Ubyte>((x >> 32) & 0xff)
+      << static_cast<Ubyte>((x >> 40) & 0xff);
 #   else
-    s.put(static_cast<byte>( x        & 0xff));
-    s.put(static_cast<byte>((x >> 8)  & 0xff));
-    s.put(static_cast<byte>((x >> 16) & 0xff));
-    s.put(static_cast<byte>((x >> 24) & 0xff));
-    s.put(static_cast<byte>((x >> 32) & 0xff));
-    s.put(static_cast<byte>((x >> 40) & 0xff));
+    s.put(static_cast<Ubyte>( x        & 0xff));
+    s.put(static_cast<Ubyte>((x >> 8)  & 0xff));
+    s.put(static_cast<Ubyte>((x >> 16) & 0xff));
+    s.put(static_cast<Ubyte>((x >> 24) & 0xff));
+    s.put(static_cast<Ubyte>((x >> 32) & 0xff));
+    s.put(static_cast<Ubyte>((x >> 40) & 0xff));
 #   endif
   }
 
@@ -316,10 +319,10 @@ bool MkTemplate::rereadUnmatched(FilePart* file, uint64 count) {
   // Lower peak memory usage: Deallocate cache's buffer
   cache->deallocBuffer();
 
-  ArrayAutoPtr<byte> tmpBuf(new byte[readAmount]);
+  ArrayAutoPtr<Ubyte> tmpBuf(new Ubyte[readAmount]);
   string inputName = file->getPath();
   inputName += file->leafName();
-  auto_ptr<bistream> inputFile(new bifstream(inputName.c_str(),ios::binary));
+  unique_ptr<bistream> inputFile(new bifstream(inputName.c_str(),ios::binary));
   while (inputFile->good() && count > 0) {
     // read data
     readBytes(*inputFile, tmpBuf.get(),
@@ -459,7 +462,7 @@ bool MkTemplate::matchExecCommands(PartialMatch* x) {
    @param stillBuffered bytes of image data "before current position" that
    are still in the buffer; they are at buf[data] to
    buf[(data+stillBuffered-1)%bufferLength] */
-bool MkTemplate::checkChecksumMatch(byte* const buf,
+bool MkTemplate::checkChecksumMatch(Ubyte* const buf,
     const size_t bufferLength, const size_t data,
     const size_t csumBlockLength, uint64& nextEvent,
     const size_t stillBuffered, Desc& desc) {
@@ -612,7 +615,7 @@ bool MkTemplate::checkChecksumMatch(byte* const buf,
 
    Since we are at the end of the image, the full last bufferLength bytes of
    the image are in the buffer. */
-bool MkTemplate::unmatchedAtEnd(byte* const buf,
+bool MkTemplate::unmatchedAtEnd(Ubyte* const buf,
     const size_t bufferLength, const size_t data, Desc& desc) {
   Paranoid(unmatchedStart < off); // cf. where this is called
 
@@ -652,7 +655,7 @@ bool MkTemplate::unmatchedAtEnd(byte* const buf,
    matches.full(), and which advances the rsum window by one sector at a
    time. */
 void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
-    RsyncSum64* rsum, byte* buf, size_t* data, size_t* n, size_t* rsumBack,
+    RsyncSum64* rsum, Ubyte* buf, size_t* data, size_t* n, size_t* rsumBack,
     size_t bufferLength, size_t blockLength, uint32 blockMask,
     size_t csumBlockLength) {
 
@@ -761,7 +764,7 @@ void MkTemplate::scanImage_mainLoop_fastForward(uint64 nextEvent,
    re-read that part of the image and pump it through zlib to templ - but we
    can't if the image is stdin! Solution: Since we know that the checksum of a
    block matched part of an input file, we can re-read from there. */
-inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
+inline bool MkTemplate::scanImage(Ubyte* buf, size_t bufferLength,
     size_t blockLength, uint32 blockMask, size_t csumBlockLength,
     MD5Sum& templMd5Sum, SHA256Sum& templSHA256Sum) {
   bool result = SUCCESS;
@@ -775,14 +778,14 @@ inline bool MkTemplate::scanImage(byte* buf, size_t bufferLength,
      would do - except that 0x00 or 0xff might lead to a larger number of
      false positives.) */
   RsyncSum64 rsum;
-  byte* bufEnd = buf + bufferLength;
-  //for (byte* z = bufEnd - blockLength; z < bufEnd; ++z) *z = 0x7f;
+  Ubyte* bufEnd = buf + bufferLength;
+  //for (Ubyte* z = bufEnd - blockLength; z < bufEnd; ++z) *z = 0x7f;
   // Init entire buf, keep valgrind happy
-  for (byte* z = buf; z < bufEnd; ++z) *z = 0x7f;
+  for (Ubyte* z = buf; z < bufEnd; ++z) *z = 0x7f;
   rsum.addBackNtimes(0x7f, blockLength);
 
   // Compression pipe for templ data
-  auto_ptr<Zobstream> zipDel;
+  unique_ptr<Zobstream> zipDel;
   if (useBzLib)
     zipDel.reset(implicit_cast<Zobstream*>(
       new ZobstreamBz(*templ, zipQual, 256U, &templMd5Sum, &templSHA256Sum) ));
@@ -1056,8 +1059,8 @@ bool MkTemplate::run(const string& imageLeafName,
 
   MD5Sum templMd5Sum;
   SHA256Sum templSha256Sum;
-  ArrayAutoPtr<byte> bufDel(new byte[bufferLength]);
-  byte* buf = bufDel.get();
+  ArrayAutoPtr<Ubyte> bufDel(new Ubyte[bufferLength]);
+  Ubyte* buf = bufDel.get();
 
   prepareJigdo(major, minor); // Add [Jigdo]
 
@@ -1071,7 +1074,7 @@ bool MkTemplate::run(const string& imageLeafName,
     s += "\r\nSee ";
     s += URL;
     s += " for details about jigdo.\r\n\r\n";
-    const byte* t = reinterpret_cast<const byte*>(s.data());
+    const Ubyte* t = reinterpret_cast<const Ubyte*>(s.data());
     writeBytes(*templ, t, s.size());
     if (useChecksum == CHECK_MD5)
       templMd5Sum.update(t, s.size());
