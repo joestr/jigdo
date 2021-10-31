@@ -1,6 +1,22 @@
 Changelog for Jigsaw Download                               -*- Text -*-
 ------------------------------------------------------------------------
 
+jigdo 0.8.1 -- Steve McIntyre, 31 Oct 2021
+
+  - Tweak various sources to fix compilation errrors and warnings with
+    g++ 11
+
+jigdo 0.8.0a -- Steve McIntyre, 03 Jun 2021
+
+  - Updated minor release for Windows only.
+  - Replaced the included programs and libraries in the Windows binary
+    release with significantly newer versions. This allowed running
+    cleanly on Windows 10 and added https support. Replaced the
+    guidance for building on Windows, tracking all the binaries
+    included.
+  - Tweaked the jigdo-lite script to make things quieter by default,
+    raised the default filesPerFetch to 30.
+
 jigdo 0.8.0 -- Steve McIntyre, 19 Nov 2019
 
   - Roll up lots of older fixes from Debian packaging

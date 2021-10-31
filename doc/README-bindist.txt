@@ -4,7 +4,7 @@
 
 Jigsaw Download (jigdo)
 ~~~~~~~~~~~~~~~~~~~~~~~
-Debian CD images via jigdo:            <http://www.debian.org/CD/jigdo-cd/>
+Debian CD images via jigdo:            <https://www.debian.org/CD/jigdo-cd/>
 Current Jigdo homepage:                <https://www.einval.com/~steve/software/jigdo/>
 Current maintainer:    Steve McIntyre  <steve@einval.com>
 
@@ -18,7 +18,7 @@ images) that someone offers for download in the form of ".jigdo"
 files.
 
 First, locate a site which offers such files with a ".jigdo" extension
-- see <http://www.debian.org/CD/jigdo-cd/> for CD and DVD images of
+- see <https://www.debian.org/CD/jigdo-cd/> for CD and DVD images of
 Debian Linux in jigdo format. Next, download the image as follows:
 
  - Open a command line terminal and change directory to the same
@@ -68,7 +68,7 @@ updated/added/deleted jigdo files are detected. See
 
 Copyright (C) 2001-2010  |  richard@
 Richard Atterer          |  atterer.org
-Copyright (C) 2016-2019 Steve McIntyre <steve@einval.com>
+Copyright (C) 2016-2021 Steve McIntyre <steve@einval.com>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as
