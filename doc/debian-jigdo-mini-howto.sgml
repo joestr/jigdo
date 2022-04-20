@@ -206,8 +206,8 @@
       were two ways of creating Debian CDs:</para>
 
 			<orderedlist>
-			<listitem><para>Downloading the entire ISO</para>
-			<listitem><para>Using the pseudo-image kit (PIK)</para>
+			<listitem><para>Downloading the entire ISO</para></listitem>
+			<listitem><para>Using the pseudo-image kit (PIK)</para></listitem>
 			</orderedlist>
 
       <para>This document is about the newer and better way of obtaining Debian ISO images, using a
@@ -1029,7 +1029,7 @@
       image using "virtual drive" software.  <application><ulink
       url="http://www.daemon-tools.cc">Daemon tools</ulink></application> and <application>Nero
       Image Drive</application> are both very popular.  See also <ulink
-      url="http://tinyurl.com/c39zr">http://tinyurl.com/c39zr</ulink> for more options.</para>
+      url="http://tinyurl.com/c39zr">http://tinyurl.com/c39zr</ulink> for more options.</para></listitem>
 
 
       </itemizedlist>
@@ -1219,11 +1219,11 @@
 
       <para>You might find that under MS Windows, jigdo-lite will download some files but then fail
       to read their contents, which will produce a "<literal>No such file or directory</literal>"
-      error message.
+      error message.</para>
 
       <para>It seems that this occurs if the length of the filenames that jigdo processes exceeds a
       certain limit. The solution is to move the half-finished download up in the directory
-      hierarchy, closer to the top-level directory of the drive.</para>
+      hierarchy, closer to the top-level directory of the drive.</para></sect2>
 
 
 
@@ -1311,7 +1311,7 @@
         <listitem><para>A loop-mounted copy of the temporary <filename>.iso.tmp</filename> file,
         when a previous <application>jigdo-lite</application> run aborted.</para></listitem>
 
-      </itemizedlist>
+      </itemizedlist></para>
 
       <para>As Jens Seidel points out, there is another, rather crafty, source you should use for a
       scanning source: your apt cache.  Apt uses the directory <filename
