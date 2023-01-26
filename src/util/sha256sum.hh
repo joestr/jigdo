@@ -25,6 +25,7 @@
 
 #include <config.h>
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iosfwd>
