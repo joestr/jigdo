@@ -45,7 +45,7 @@ inline ostream& operator<<(ostream& s, const uint64 x) {
     length is bigger than current file size */
 #if HAVE_TRUNCATE
 inline int compat_truncate(const char* path, uint64 length) {
-  return truncate64(path, length);
+  return truncate(path, length);
 }
 #else
 int compat_truncate(const char* path, uint64 length);
