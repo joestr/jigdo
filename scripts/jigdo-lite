@@ -22,7 +22,6 @@ if test "x$OSTYPE" = "xmsys"; then
   OSTYPE=Windows
   mirrors="jigdo-bin/mirrors.jigdo"
   rcFile="./jigdo-lite-settings.txt"
-  egrep() { grep -E "$@"; }
   expr() { echo "$(($@))"; }
   filesPerFetch=30 # What's the command line length limit?
   nl='\r\n'
@@ -461,11 +460,11 @@ selectServers() {
     usesNonus=true
   else
     usesDebian=false
-    if egrep '^[^=]+= *["'\'']?Debian:' <"$jigdoF" >/dev/null; then
+    if grep -E '^[^=]+= *["'\'']?Debian:' <"$jigdoF" >/dev/null; then
       usesDebian=true
     fi
     usesNonus=false
-    if egrep '^[^=]+= *["'\'']?Non-US:' <"$jigdoF" >/dev/null; then
+    if grep -E '^[^=]+= *["'\'']?Non-US:' <"$jigdoF" >/dev/null; then
       usesNonus=true
     fi
   fi
@@ -492,7 +491,7 @@ selectServers() {
       uriOpts="--uri Debian='$debianMirror'"
       break;
     fi
-    egrep -i "$REPLY" "$mirrors" | sed -n -e 's/^Debian=//p'
+    grep -E -i "$REPLY" "$mirrors" | sed -n -e 's/^Debian=//p'
     echo
     echo "An up-to-date copy of the above list is available at"
     echo "ftp://ftp.debian.org/debian/README.mirrors.txt"
@@ -513,7 +512,7 @@ selectServers() {
       uriOpts="$uriOpts --uri Non-US='$nonusMirror'";
       break;
     fi
-    egrep -i "$REPLY" "$mirrors" | sed -n -e 's/^Non-US=//p'
+    grep -E -i "$REPLY" "$mirrors" | sed -n -e 's/^Non-US=//p'
     echo
     echo "An up-to-date copy of the above list is available at"
     echo "ftp://ftp.debian.org/debian/README.non-US"
@@ -596,7 +595,7 @@ imageDownload() {
     echo "Merging parts from \`file:' URIs, if any..."
     $jigdoFile print-missing-all --image="$image" --jigdo="$jigdoF" \
         --template="$template" $jigdoOpts $uriOpts \
-    | egrep -v '^([a-zA-Z0-9.+_-]+:|$)' \
+    | grep -E -v '^([a-zA-Z0-9.+_-]+:|$)' \
     | $jigdoFile make-image --image="$image" --jigdo="$jigdoF" \
         --template="$template" $jigdoOpts --files-from=-
     jigdoErr="$?"
@@ -613,8 +612,8 @@ imageDownload() {
     for pass in x xx xxx xxxx xxxxx xxxxxx xxxxxxx xxxxxxxx; do
       $jigdoFile print-missing-all --image="$image" --jigdo="$jigdoF" \
         --template="$template" $jigdoOpts $uriOpts \
-      | egrep -i '^(http:|https:|ftp:|$)' >"$list"
-      missingCount=`egrep '^$' <"$list" | wc -l | sed -e 's/ *//g'`
+      | grep -E -i '^(http:|https:|ftp:|$)' >"$list"
+      missingCount=`grep -E '^$' <"$list" | wc -l | sed -e 's/ *//g'`
       # Accumulate URLs in $@, pass them to fetchAndMerge in batches
       shift "$#" # Solaris /bin/sh doesn't understand "set --"
       count=""
@@ -699,7 +698,7 @@ if test -r "$mirrorsSameDir"; then mirrors="$mirrorsSameDir"; fi
 if $windows; then
     jigdoFile=jigdo-file
 else
-    for prog in wget egrep sed gzip wc expr; do
+    for prog in wget grep sed gzip wc expr; do
         which "$prog" >/dev/null \
             || echo "Could not find program \`$prog' - please install it!"
     done
