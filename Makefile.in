@@ -170,7 +170,7 @@ bindist:	Makefile
 		 exit 1; \
 		fi
 		rm -f src/jigdo-file
-		cd src && $(MAKE) Y='-static' all-msg jigdo-file strip
+		cd src && $(MAKE) Y='-static' jigdo-file strip
 		cd doc && $(MAKE) all
 		jdir=jigdo-bin-`read a b v <"$(srcdir)/jigdo.spec" && echo $$v`; \
 		    mkdir "$$jdir"; \
