@@ -1,6 +1,11 @@
 Changelog for Jigsaw Download                               -*- Text -*-
 ------------------------------------------------------------------------
 
+jigdo 0.8.2 -- Steve McIntyre, 03 Aug 2021
+
+  - Tweak various sources to fix compilation errrors and warnings with
+    g++ 13
+
 jigdo 0.8.1 -- Steve McIntyre, 31 Oct 2021
 
   - Tweak various sources to fix compilation errrors and warnings with
